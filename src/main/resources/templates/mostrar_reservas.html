@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas</title>
+</head>
+<body>
+    <h1>Listado de reservas</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Estudiante</th>
+                <th>Tutor</th>
+                <th>Fecha</th>
+                <th>Hora de inicio</th>
+                <th>Duración</th>
+                <th>Tema</th>
+                <th>Estado</th>
+                <th>Costo total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="reserva : ${reservas}">
+                <td th:text="${reserva.id}"></td>
+                <td th:text="${reserva.estudiante.id}"></td>
+                <td th:text="${reserva.tutor.id}"></td>
+                <td th:text="${reserva.fecha}"></td>
+                <td th:text="${reserva.horaInicio}"></td>
+                <td th:text="|${reserva.duracionMinutos} minutos|"></td>
+                <td th:text="${reserva.tema}"></td>
+                <td th:text="${reserva.estado}"></td>
+                <td th:text="${reserva.costoTotal}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(reservas)}">
+                <td colspan="9">No hay reservas registradas.</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
