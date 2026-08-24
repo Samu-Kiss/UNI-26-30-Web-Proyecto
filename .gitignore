@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local environment and reports ###
+.env
+.env.*
+!.env.example
+.scannerwork/

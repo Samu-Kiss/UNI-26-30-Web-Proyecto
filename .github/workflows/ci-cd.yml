@@ -1,0 +1,206 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend / quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Prepare Maven wrapper
+        run: chmod +x mvnw
+
+      - name: Lint, test and package
+        run: ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Analyze with Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
+            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
+          sonar_args=(
+            --batch-mode
+            --no-transfer-progress
+            sonar:sonar
+            "-Dsonar.host.url=$SONAR_HOST_URL"
+            "-Dsonar.projectKey=$SONAR_PROJECT_KEY"
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+          )
+
+          if [[ -n "$SONAR_ORGANIZATION" ]]; then
+            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
+          fi
+
+          ./mvnw "${sonar_args[@]}"
+
+      - name: Upload application artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: myt-${{ github.sha }}
+          path: target/*.jar
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ github.sha }}
+          path: target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend:
+    name: Frontend / Angular-ready
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Detect Angular workspace
+        id: angular
+        shell: bash
+        run: |
+          if [[ -f frontend/angular.json && -f frontend/package-lock.json ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "directory=frontend" >> "$GITHUB_OUTPUT"
+            echo "lockfile=frontend/package-lock.json" >> "$GITHUB_OUTPUT"
+          elif [[ -f angular.json && -f package-lock.json ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "directory=." >> "$GITHUB_OUTPUT"
+            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Angular workspace not present; frontend checks skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Set up Node.js
+        if: steps.angular.outputs.enabled == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ${{ steps.angular.outputs.lockfile }}
+
+      - name: Install dependencies
+        if: steps.angular.outputs.enabled == 'true'
+        working-directory: ${{ steps.angular.outputs.directory }}
+        run: npm ci
+
+      - name: Lint
+        if: steps.angular.outputs.enabled == 'true'
+        working-directory: ${{ steps.angular.outputs.directory }}
+        run: npm run lint
+
+      - name: Test
+        if: steps.angular.outputs.enabled == 'true'
+        working-directory: ${{ steps.angular.outputs.directory }}
+        run: npm run test:ci
+
+      - name: Build
+        if: steps.angular.outputs.enabled == 'true'
+        working-directory: ${{ steps.angular.outputs.directory }}
+        env:
+          SENTRY_RELEASE: myt-frontend@${{ github.sha }}
+        run: npm run build
+
+      - name: Upload Angular source maps to Sentry
+        if: >-
+          steps.angular.outputs.enabled == 'true' &&
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        working-directory: ${{ steps.angular.outputs.directory }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_FRONTEND_PROJECT }}
+          SENTRY_RELEASE: myt-frontend@${{ github.sha }}
+        shell: bash
+        run: |
+          if [[ -z "$SENTRY_AUTH_TOKEN" || -z "$SENTRY_ORG" || -z "$SENTRY_PROJECT" ]]; then
+            echo "Sentry source-map upload skipped: configuration is incomplete." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          npm run sentry:sourcemaps
+
+  container:
+    name: CD / publish image
+    needs: [backend, frontend]
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha,prefix=sha-
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
