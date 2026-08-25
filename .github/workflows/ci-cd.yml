@@ -38,6 +38,83 @@ jobs:
       - name: Lint, test and package
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
+      - name: Add test and coverage summary
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import glob
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          test_totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+          report_paths = [
+              *glob.glob("target/surefire-reports/TEST-*.xml"),
+              *glob.glob("target/failsafe-reports/TEST-*.xml"),
+          ]
+
+          for report_path in report_paths:
+              suite = ET.parse(report_path).getroot()
+              for key in test_totals:
+                  test_totals[key] += int(suite.attrib.get(key, 0))
+
+          passed = (
+              test_totals["tests"]
+              - test_totals["failures"]
+              - test_totals["errors"]
+              - test_totals["skipped"]
+          )
+
+          coverage = {
+              "LINE_MISSED": 0,
+              "LINE_COVERED": 0,
+              "BRANCH_MISSED": 0,
+              "BRANCH_COVERED": 0,
+          }
+          coverage_path = Path("target/site/jacoco/jacoco.csv")
+          if coverage_path.exists():
+              with coverage_path.open(newline="", encoding="utf-8") as report:
+                  for row in csv.DictReader(report):
+                      for key in coverage:
+                          coverage[key] += int(row[key])
+
+          def percentage(covered, missed):
+              total = covered + missed
+              return f"{covered / total:.1%}" if total else "N/A"
+
+          lines = [
+              "## Backend quality",
+              "",
+              "### Tests",
+              "",
+              "| Total | Passed | Failed | Errors | Skipped |",
+              "| ---: | ---: | ---: | ---: | ---: |",
+              (
+                  f"| {test_totals['tests']} | {passed} | "
+                  f"{test_totals['failures']} | {test_totals['errors']} | "
+                  f"{test_totals['skipped']} |"
+              ),
+              "",
+              "### JaCoCo coverage",
+              "",
+              "| Metric | Coverage | Covered | Missed |",
+              "| --- | ---: | ---: | ---: |",
+              (
+                  f"| Lines | {percentage(coverage['LINE_COVERED'], coverage['LINE_MISSED'])} "
+                  f"| {coverage['LINE_COVERED']} | {coverage['LINE_MISSED']} |"
+              ),
+              (
+                  f"| Branches | {percentage(coverage['BRANCH_COVERED'], coverage['BRANCH_MISSED'])} "
+                  f"| {coverage['BRANCH_COVERED']} | {coverage['BRANCH_MISSED']} |"
+              ),
+          ]
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
+
       - name: Analyze with Sonar
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -163,11 +240,12 @@ jobs:
           npm run sentry:sourcemaps
 
   container:
-    name: CD / publish image
+    name: Container / build and publish
     needs: [backend, frontend]
     if: >-
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -179,6 +257,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Log in to GHCR
+        if: >-
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -195,11 +276,16 @@ jobs:
             type=ref,event=tag
             type=sha,prefix=sha-
 
-      - name: Build and publish image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and optionally publish image
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: true
+          push: >-
+            ${{ github.event_name == 'push' &&
+            (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
