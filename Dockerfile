@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-jammy AS build
+FROM eclipse-temurin:25-jdk-jammy AS build
 
 ARG SENTRY_VERSION=8.54.0
 
@@ -15,7 +15,7 @@ RUN ./mvnw --batch-mode --no-transfer-progress package -DskipTests \
         -DoutputDirectory=/workspace/sentry-agent \
         -Dmdep.stripVersion=true
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 
 WORKDIR /app
 COPY --from=build --chown=10001:0 /workspace/target/*.jar app.jar
