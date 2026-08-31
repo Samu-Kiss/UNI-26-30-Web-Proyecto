@@ -32,7 +32,8 @@
         <jacoco.version>0.8.15</jacoco.version>
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <sentry.version>8.53.0</sentry.version>
+        <sentry.maven.plugin.version>0.11.0</sentry.maven.plugin.version>
+        <sentry.version>8.54.0</sentry.version>
         <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.build.directory}/site/jacoco/jacoco.xml
@@ -174,5 +175,41 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>sentry-source-context</id>
+            <activation>
+                <property>
+                    <name>env.SENTRY_AUTH_TOKEN</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.sentry</groupId>
+                        <artifactId>sentry-maven-plugin</artifactId>
+                        <version>${sentry.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <debugSentryCli>true</debugSentryCli>
+                            <org>pontificia-universidad-jave-j7</org>
+                            <project>myt-back</project>
+                            <authToken>${env.SENTRY_AUTH_TOKEN}</authToken>
+                            <!-- The Spring Boot integration is declared explicitly above. -->
+                            <skipAutoInstall>true</skipAutoInstall>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>uploadSourceBundle</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

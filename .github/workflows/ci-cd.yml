@@ -7,6 +7,12 @@ on:
     branches: [main, develop]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      verify_sentry:
+        description: Send one intentional backend exception to Sentry
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +43,19 @@ jobs:
 
       - name: Lint, test and package
         run: ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Verify Sentry event delivery
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_sentry
+        env:
+          SENTRY_VERIFY: "true"
+          SENTRY_DSN: >-
+            https://c4030b0cfb10c760b3b1534427dd5c6c@o4511549920116736.ingest.us.sentry.io/4512006192693248
+          SENTRY_ENVIRONMENT: ci
+          SENTRY_RELEASE: myt@${{ github.sha }}
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=SentryVerificationTest test
+          echo "Intentional Sentry verification event sent." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Add test and coverage summary
         if: always()
@@ -146,6 +165,24 @@ jobs:
 
           ./mvnw "${sonar_args[@]}"
 
+      - name: Upload backend source context to Sentry
+        if: >-
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$SENTRY_AUTH_TOKEN" ]]; then
+            echo "Sentry source-context upload skipped: configure SENTRY_AUTH_TOKEN." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Psentry-source-context sentry:uploadSourceBundle
+          echo "Sentry backend source context uploaded." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload application artifact
         uses: actions/upload-artifact@v7
         with:
@@ -243,7 +280,7 @@ jobs:
     name: Container / build and publish
     needs: [backend, frontend]
     if: >-
-      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
     runs-on: ubuntu-latest
@@ -283,6 +320,9 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          load: >-
+            ${{ github.event_name == 'pull_request' ||
+            github.event_name == 'workflow_dispatch' }}
           push: >-
             ${{ github.event_name == 'push' &&
             (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
@@ -290,3 +330,32 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke test container startup
+        if: >-
+          github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        shell: bash
+        run: |
+          image_tag="$(printf '%s\n' "$IMAGE_TAGS" | head -n 1)"
+          container_id="$(docker run --detach --env SENTRY_DSN= "$image_tag")"
+          trap 'docker rm --force "$container_id" >/dev/null' EXIT
+
+          for attempt in {1..30}; do
+            if docker logs "$container_id" 2>&1 | grep -q "Started MyTApplication"; then
+              echo "Container started successfully with the Sentry Java agent." \
+                >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            if [[ "$(docker inspect --format '{{.State.Running}}' "$container_id")" != "true" ]]; then
+              docker logs "$container_id"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker logs "$container_id"
+          echo "Container did not become ready within 30 seconds." >&2
+          exit 1

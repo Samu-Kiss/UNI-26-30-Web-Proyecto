@@ -46,6 +46,16 @@ donde se ejecute el contenedor:
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.1` para iniciar en produccion |
 
 Sin `SENTRY_DSN`, el SDK queda inactivo. No se envia PII por defecto y el muestreo local es cero.
+La imagen incluye el agente OpenTelemetry de Sentry y lo inicia automaticamente junto con la
+aplicacion. `SENTRY_AUTO_INIT=false` evita una segunda inicializacion: Spring Boot mantiene el
+control de la configuracion del SDK.
+
+Para mostrar el codigo fuente junto a los stack traces, crear un **Organization Auth Token** en
+Sentry y guardarlo en GitHub como el secret `SENTRY_AUTH_TOKEN`. El token nunca debe almacenarse
+en `.env`, el `pom.xml` ni la imagen. En pushes a `main` y tags `v*`, CI activa el perfil Maven
+`sentry-source-context` y sube el source bundle a la organizacion
+`pontificia-universidad-jave-j7`, proyecto `myt-back`. Los PR no reciben el token ni realizan
+subidas.
 
 Cuando se agregue Angular:
 
