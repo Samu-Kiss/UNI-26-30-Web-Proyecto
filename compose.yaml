@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      context: .
+    env_file:
+      - path: .env.local
+        format: raw
+    ports:
+      - "8080:8080"

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${cliente.id == null ? 'Nuevo cliente - MyT' : 'Editar cliente - MyT'}"></title>
+    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+        <a class="volver" th:href="@{/clientes}">Volver a clientes</a>
+        <section class="tarjeta formulario-tarjeta">
+            <p class="marca">MyT</p>
+            <h1 th:text="${cliente.id == null ? 'Nuevo cliente' : 'Editar cliente'}"></h1>
+            <p class="descripcion">Los campos marcados con * son obligatorios.</p>
+
+            <form class="formulario" th:action="@{/clientes/guardar}" th:object="${cliente}" method="post">
+                <input type="hidden" th:field="*{id}">
+
+                <div class="rejilla">
+                    <label>
+                        Nombre *
+                        <input type="text" th:field="*{nombre}" maxlength="100" required>
+                        <span class="error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+                    </label>
+                    <label>
+                        Apellido *
+                        <input type="text" th:field="*{apellido}" maxlength="100" required>
+                        <span class="error" th:if="${#fields.hasErrors('apellido')}" th:errors="*{apellido}"></span>
+                    </label>
+                </div>
+
+                <label>
+                    Correo *
+                    <input type="email" th:field="*{correo}" maxlength="120" required>
+                    <span class="error" th:if="${#fields.hasErrors('correo')}" th:errors="*{correo}"></span>
+                </label>
+
+                <label>
+                    <span th:text="${cliente.id == null ? 'Contrasena *' : 'Nueva contrasena'}"></span>
+                    <input type="password" th:field="*{contrasena}" maxlength="72"
+                           th:attr="required=${cliente.id == null}" autocomplete="new-password">
+                    <small th:if="${cliente.id != null}">Dejala vacia para conservar la actual.</small>
+                    <span class="error" th:if="${#fields.hasErrors('contrasena')}"
+                          th:errors="*{contrasena}"></span>
+                </label>
+
+                <label>
+                    Telefono
+                    <input type="tel" th:field="*{telefono}" maxlength="30">
+                    <span class="error" th:if="${#fields.hasErrors('telefono')}" th:errors="*{telefono}"></span>
+                </label>
+
+                <div class="acciones-formulario">
+                    <a class="boton boton-secundario" th:href="@{/clientes}">Cancelar</a>
+                    <button class="boton boton-primario" type="submit">Guardar</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

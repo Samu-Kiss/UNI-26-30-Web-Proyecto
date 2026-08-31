@@ -1,0 +1,241 @@
+:root {
+    color-scheme: light;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #172033;
+    background: #f3f6fb;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(145deg, #eef4ff 0%, #f8fafc 45%, #eefbf7 100%);
+}
+
+.contenedor {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 64px 0;
+}
+
+.contenedor-formulario {
+    width: min(720px, calc(100% - 32px));
+}
+
+.encabezado {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.marca {
+    margin: 0 0 6px;
+    color: #196a54;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: -0.04em;
+}
+
+.descripcion {
+    margin: 10px 0 0;
+    color: #667085;
+}
+
+.tarjeta {
+    border: 1px solid #dfe5ee;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 50px rgba(23, 32, 51, 0.08);
+}
+
+.tabla-contenedor {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e8ecf2;
+    text-align: left;
+    white-space: nowrap;
+}
+
+th {
+    color: #667085;
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.estado {
+    display: inline-flex;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.estado-activo {
+    color: #176b52;
+    background: #dcf8ed;
+}
+
+.estado-inactivo {
+    color: #8a3f3f;
+    background: #fde8e8;
+}
+
+.acciones,
+.acciones form {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.enlace {
+    padding: 0;
+    border: 0;
+    color: #176b52;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.enlace-peligro {
+    color: #b34343;
+}
+
+.boton {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.boton-primario {
+    color: white;
+    background: #176b52;
+}
+
+.boton-secundario {
+    color: #344054;
+    border-color: #d0d5dd;
+    background: white;
+}
+
+.vacio {
+    padding: 52px 20px;
+    color: #667085;
+    text-align: center;
+}
+
+.volver {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: #176b52;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.formulario-tarjeta {
+    padding: clamp(24px, 6vw, 48px);
+}
+
+.formulario {
+    display: grid;
+    gap: 20px;
+    margin-top: 32px;
+}
+
+.rejilla {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+label {
+    display: grid;
+    gap: 8px;
+    color: #344054;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+input {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #cfd6e2;
+    border-radius: 9px;
+    background: white;
+    color: #172033;
+    font: inherit;
+}
+
+input:focus {
+    border-color: #26846a;
+    outline: 3px solid rgba(38, 132, 106, 0.14);
+}
+
+.error {
+    color: #b42318;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+small {
+    color: #667085;
+    font-weight: 500;
+}
+
+.acciones-formulario {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+    .contenedor {
+        padding: 36px 0;
+    }
+
+    .encabezado {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .rejilla {
+        grid-template-columns: 1fr;
+    }
+}
