@@ -11,4 +11,10 @@ public interface ClienteService {
 
     List<Cliente> findAll();
 
+    Cliente guardar(Cliente cliente);
+
+    void desactivar(Integer id);
+
+    void activar(Integer id);
+
 }
