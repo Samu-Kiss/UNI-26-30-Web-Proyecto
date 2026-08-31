@@ -17,14 +17,15 @@ definida.
 
 ## PostgreSQL y Supabase
 
-La aplicacion persiste los clientes con Spring Data JPA. Para desarrollo local espera PostgreSQL en
-`localhost:5432`, base `myt`, usuario `postgres` y contrasena `postgres`. La configuracion se puede
-reemplazar con `SUPABASE_DB_URL`.
+La aplicacion persiste el modelo con Spring Data JPA y tiene dos perfiles aislados:
+
+- `dev` es el perfil predeterminado y apunta a `UNI-26-30-Web-Proyecto-DEV`.
+- `prod` solo se activa explicitamente y apunta a `UNI-26-3-Web-Poyecto`.
 
 Para Supabase, copia desde **Connect** la URL JDBC del **Session pooler** (puerto `5432`) y agrega
 `sslmode=require`. No uses el Transaction pooler del puerto `6543` como fuente principal de
-Hibernate, porque no admite las sentencias preparadas que utiliza el ORM. Guarda la URL solamente
-en una variable de entorno; `.env.example` contiene el formato esperado.
+Hibernate, porque no admite las sentencias preparadas que utiliza el ORM. Las contrasenas se pasan
+por separado, por lo que no necesitan codificarse dentro de la URL JDBC.
 
 Como Supabase expone el esquema `public` mediante su Data API, crea un esquema exclusivo para el
 backend desde el SQL Editor y configuralo con `DB_SCHEMA=app`:
@@ -33,17 +34,36 @@ backend desde el SQL Editor y configuralo con `DB_SCHEMA=app`:
 create schema if not exists app;
 ```
 
+Los dos proyectos ya tienen el esquema `app`, las seis tablas y sus llaves foraneas. RLS esta
+habilitado para impedir acceso directo desde clientes anonimos; el backend JDBC se conecta como
+propietario de la base. La definicion reproducible esta en
+`supabase/migrations/20260831150000_create_app_schema.sql`.
+
+Para desarrollo, completa `SUPABASE_DEV_DB_PASSWORD` en `.env.local`. Conserva
+`SPRING_PROFILES_ACTIVE=dev`; Spring carga ese archivo automaticamente al iniciar desde IntelliJ o
+Maven.
+
+Para produccion define `SPRING_PROFILES_ACTIVE=prod` y `SUPABASE_PROD_DB_PASSWORD` en el entorno
+del proveedor donde se despliegue el backend. El perfil de produccion usa `ddl-auto=validate`, de
+modo que nunca modifica tablas implicitamente.
+
+### Docker conectado a Supabase
+
+El archivo `compose.yaml` ejecuta el backend local y carga la conexion de desarrollo desde
+`.env.local`, que esta ignorado por Git. Completa `SUPABASE_DEV_DB_PASSWORD` y ejecuta:
+
 ```bash
-export SUPABASE_DB_URL='jdbc:postgresql://HOST:5432/postgres?user=USUARIO&password=CLAVE&sslmode=require'
-export DB_SCHEMA=app
-./mvnw spring-boot:run
+docker compose up --build
 ```
+
+La aplicacion queda disponible en `http://localhost:8080/clientes`. Para detenerla usa
+`docker compose down`; este comando no elimina ni modifica el proyecto de Supabase.
 
 El CRUD de clientes esta disponible en `http://localhost:8080/clientes`. Crear y editar usan
 `save()`, mientras que desactivar o activar conserva la fila y cambia unicamente el campo `activo`.
 Las contrasenas se guardan como hashes BCrypt y nunca se vuelven a enviar al formulario de edicion.
-La aplicacion usa `ddl-auto=update` por defecto para este laboratorio; antes de produccion conviene
-reemplazarlo por migraciones versionadas y `JPA_DDL_AUTO=validate`.
+El perfil `dev` usa `ddl-auto=update` para el laboratorio. El perfil `prod` valida el esquema y debe
+recibir cambios mediante migraciones versionadas antes del despliegue.
 
 ## Modelo relacional JPA
 
