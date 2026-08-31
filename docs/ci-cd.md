@@ -8,13 +8,17 @@ El workflow `.github/workflows/ci-cd.yml` se ejecuta en pull requests y pushes a
 - Backend: Checkstyle, pruebas, empaquetado y reporte JaCoCo mediante `./mvnw verify`.
 - SonarQube o SonarCloud: analisis y espera del Quality Gate cuando esta configurado.
 - Frontend: se activa automaticamente al detectar Angular en `/frontend` o en la raiz.
-- CD: tras un push valido a `main` o un tag `v*`, publica una imagen en GHCR.
+- Contenedor: levanta un PostgreSQL efimero y comprueba que la imagen pueda iniciar con una base
+  real, sin usar credenciales de Supabase.
+- CD: tras un push valido a `main` o un tag `v*`, publica en GHCR exactamente la imagen que supero
+  la prueba de arranque.
 - Dependabot: revisa Maven, GitHub Actions y la imagen base de Docker semanalmente; agrupa los
   cambios compatibles para evitar ruido.
 
-El CD termina en un artefacto desplegable (la imagen de contenedor). Cuando exista un proveedor
-de hosting se debe agregar un job posterior que promueva exactamente esa imagen; no se reconstruye
-el codigo durante el despliegue.
+El CD termina en un artefacto desplegable (la imagen de contenedor). Supabase proporciona la base de
+datos PostgreSQL, pero no ejecuta la aplicacion Spring Boot. Cuando exista un proveedor de hosting
+para el backend se debe agregar un job posterior que promueva exactamente esa imagen; no se
+reconstruye el codigo durante el despliegue.
 
 ## Configurar Sonar
 
