@@ -7,6 +7,12 @@ on:
     branches: [main, develop]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      verify_sentry:
+        description: Send one intentional backend exception to Sentry
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +43,19 @@ jobs:
 
       - name: Lint, test and package
         run: ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Verify Sentry event delivery
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_sentry
+        env:
+          SENTRY_VERIFY: "true"
+          SENTRY_DSN: >-
+            https://c4030b0cfb10c760b3b1534427dd5c6c@o4511549920116736.ingest.us.sentry.io/4512006192693248
+          SENTRY_ENVIRONMENT: ci
+          SENTRY_RELEASE: myt@${{ github.sha }}
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=SentryVerificationTest test
+          echo "Intentional Sentry verification event sent." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Add test and coverage summary
         if: always()
