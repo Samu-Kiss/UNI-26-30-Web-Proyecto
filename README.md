@@ -13,7 +13,8 @@ chmod +x mvnw
 
 `verify` compila, ejecuta Checkstyle y las pruebas, y genera el reporte JaCoCo en
 `target/site/jacoco/index.html`. Sentry no envia datos en local mientras `SENTRY_DSN` no este
-definida.
+definida. Las pruebas de integracion usan Testcontainers, por lo que Docker debe estar en ejecucion
+para completar `verify`.
 
 ## PostgreSQL y Supabase
 
@@ -62,8 +63,8 @@ La aplicacion queda disponible en `http://localhost:8080/clientes`. Para detener
 El CRUD de clientes esta disponible en `http://localhost:8080/clientes`. Crear y editar usan
 `save()`, mientras que desactivar o activar conserva la fila y cambia unicamente el campo `activo`.
 Las contrasenas se guardan como hashes BCrypt y nunca se vuelven a enviar al formulario de edicion.
-El perfil `dev` usa `ddl-auto=update` para el laboratorio. El perfil `prod` valida el esquema y debe
-recibir cambios mediante migraciones versionadas antes del despliegue.
+Los perfiles `dev` y `prod` usan `ddl-auto=validate`: las migraciones versionadas son la unica
+fuente de cambios del esquema en cualquier entorno.
 
 ## Modelo relacional JPA
 

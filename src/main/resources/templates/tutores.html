@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutores - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+</head>
+<body>
+    <main class="contenedor">
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1>Tutores</h1>
+            </div>
+        </header>
+        <section class="tarjeta tabla-contenedor" aria-label="Listado de tutores">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Nombre</th><th>Materias</th><th>Tarifa por hora</th><th>Calificacion</th><th>Disponibilidad</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="tutor : ${tutores}">
+                        <td th:text="${tutor.id}"></td>
+                        <td th:text="|${tutor.cliente.nombre} ${tutor.cliente.apellido}|"></td>
+                        <td th:text="${#strings.listJoin(tutor.materias, ', ')}"></td>
+                        <td th:text="${tutor.tarifaPorHora}"></td>
+                        <td th:text="${tutor.calificacionPromedio ?: 'Sin calificar'}"></td>
+                        <td th:text="${tutor.disponible} ? 'Disponible' : 'No disponible'"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(tutores)}">
+                        <td class="vacio" colspan="6">No hay tutores registrados.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

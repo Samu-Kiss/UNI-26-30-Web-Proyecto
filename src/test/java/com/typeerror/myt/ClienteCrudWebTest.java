@@ -95,4 +95,20 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
         assertTrue(clienteRepository.findById(creado.getId()).orElseThrow().getActivo());
         assertEquals(1, clienteRepository.count());
     }
+
+    @Test
+    void renderizaLosListadosPublicados() throws Exception {
+        mockMvc.perform(get("/administradores"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("administradores"));
+        mockMvc.perform(get("/estudiantes"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("estudiantes"));
+        mockMvc.perform(get("/tutores"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("tutores"));
+        mockMvc.perform(get("/reservas"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("mostrar_reservas"));
+    }
 }
