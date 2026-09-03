@@ -13,6 +13,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -34,15 +39,24 @@ public class Estudiante {
     @ToString.Exclude
     private Cliente cliente;
 
+    @NotBlank
+    @Size(max = 30)
     @Column(name = "codigo_estudiantil", nullable = false, unique = true, length = 30)
     private String codigoEstudiantil;
 
+    @NotBlank
+    @Size(max = 150)
     @Column(nullable = false, length = 150)
     private String universidad;
 
+    @NotBlank
+    @Size(max = 150)
     @Column(name = "programa_academico", nullable = false, length = 150)
     private String programaAcademico;
 
+    @NotNull
+    @Min(1)
+    @Max(20)
     @Column(nullable = false)
     private Integer semestre;
 

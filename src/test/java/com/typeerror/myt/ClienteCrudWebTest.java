@@ -24,7 +24,7 @@ import com.typeerror.myt.repository.ClienteRepository;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class ClienteCrudWebTest {
+class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

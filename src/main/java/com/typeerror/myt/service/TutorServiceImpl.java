@@ -5,11 +5,13 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.typeerror.myt.entities.Tutor;
 import com.typeerror.myt.repository.TutorRepository;
 
 @Service
+@Transactional(readOnly = true)
 public class TutorServiceImpl implements TutorService {
 
     private final TutorRepository tutorRepository;
@@ -21,7 +23,7 @@ public class TutorServiceImpl implements TutorService {
 
     @Override
     public Optional<Tutor> findById(Integer id) {
-        return tutorRepository.findById(id);
+        return tutorRepository.findOneById(id);
     }
 
     @Override

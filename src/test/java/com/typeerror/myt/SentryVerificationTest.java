@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "SENTRY_VERIFY", matches = "true")
-class SentryVerificationTest {
+class SentryVerificationTest extends PostgreSqlIntegrationTest {
 
     @Test
     void sendsIntentionalException() {

@@ -5,11 +5,13 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.typeerror.myt.entities.Administrador;
 import com.typeerror.myt.repository.AdministradorRepository;
 
 @Service
+@Transactional(readOnly = true)
 public class AdministradorServiceImpl implements AdministradorService {
 
     private final AdministradorRepository administradorRepository;

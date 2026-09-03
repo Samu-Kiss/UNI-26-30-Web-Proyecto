@@ -9,10 +9,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
+import com.typeerror.myt.PostgreSqlIntegrationTest;
 import com.typeerror.myt.entities.Cliente;
 
 @DataJpaTest
-class ClienteRepositoryTest {
+class ClienteRepositoryTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private ClienteRepository clienteRepository;

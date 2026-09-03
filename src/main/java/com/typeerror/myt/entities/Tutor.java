@@ -2,7 +2,9 @@ package com.typeerror.myt.entities;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -18,6 +20,11 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,6 +46,7 @@ public class Tutor {
     @ToString.Exclude
     private Cliente cliente;
 
+    @Size(max = 2000)
     @Column(length = 2000)
     private String biografia;
 
@@ -48,9 +56,13 @@ public class Tutor {
     @Column(name = "materia", nullable = false, length = 100)
     private List<String> materias = new ArrayList<>();
 
+    @NotNull
+    @Positive
     @Column(name = "tarifa_por_hora", nullable = false, precision = 12, scale = 2)
     private BigDecimal tarifaPorHora;
 
+    @DecimalMin("0.0")
+    @DecimalMax("5.0")
     @Column(name = "calificacion_promedio")
     private Double calificacionPromedio;
 
@@ -59,7 +71,7 @@ public class Tutor {
 
     @OneToMany(mappedBy = "tutor", fetch = FetchType.LAZY)
     @ToString.Exclude
-    private List<Reserva> reservas = new ArrayList<>();
+    private Set<Reserva> reservas = new HashSet<>();
 
     public Tutor(Integer id, Cliente cliente, String biografia, List<String> materias,
             BigDecimal tarifaPorHora, Double calificacionPromedio, Boolean disponible) {
