@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administradores - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+</head>
+<body>
+    <main class="contenedor">
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1>Administradores</h1>
+            </div>
+        </header>
+        <section class="tarjeta tabla-contenedor" aria-label="Listado de administradores">
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Telefono</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="administrador : ${administradores}">
+                        <td th:text="${administrador.id}"></td>
+                        <td th:text="|${administrador.nombre} ${administrador.apellido}|"></td>
+                        <td th:text="${administrador.correo}"></td>
+                        <td th:text="${administrador.telefono ?: 'Sin registrar'}"></td>
+                        <td th:text="${administrador.activo} ? 'Activo' : 'Inactivo'"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(administradores)}">
+                        <td class="vacio" colspan="5">No hay administradores registrados.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

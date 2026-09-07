@@ -1,5 +1,7 @@
 .git
 .github
+.codegraph
+.codex-tmp
 .idea
 .scannerwork
 .vscode

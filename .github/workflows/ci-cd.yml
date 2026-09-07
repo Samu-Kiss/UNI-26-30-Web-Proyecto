@@ -316,46 +316,103 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build and optionally publish image
+      - name: Build image
         uses: docker/build-push-action@v7
         with:
           context: .
-          load: >-
-            ${{ github.event_name == 'pull_request' ||
-            github.event_name == 'workflow_dispatch' }}
-          push: >-
-            ${{ github.event_name == 'push' &&
-            (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+          load: true
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Smoke test container startup
-        if: >-
-          github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         env:
           IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
         shell: bash
         run: |
           image_tag="$(printf '%s\n' "$IMAGE_TAGS" | head -n 1)"
-          container_id="$(docker run --detach --env SENTRY_DSN= "$image_tag")"
-          trap 'docker rm --force "$container_id" >/dev/null' EXIT
+          network_name="myt-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          database_name="myt-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          docker network create "$network_name" >/dev/null
+          database_id="$(docker run --detach \
+            --name "$database_name" \
+            --network "$network_name" \
+            --network-alias database \
+            --env POSTGRES_DB=myt \
+            --env POSTGRES_USER=postgres \
+            --env POSTGRES_PASSWORD=postgres \
+            --health-cmd 'pg_isready --username=postgres --dbname=myt' \
+            --health-interval 1s \
+            --health-timeout 5s \
+            --health-retries 30 \
+            postgres:17-alpine)"
+
+          cleanup() {
+            if [[ -n "${application_id:-}" ]]; then
+              docker rm --force "$application_id" >/dev/null 2>&1 || true
+            fi
+            docker rm --force "$database_id" >/dev/null 2>&1 || true
+            docker network rm "$network_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
 
           for attempt in {1..30}; do
-            if docker logs "$container_id" 2>&1 | grep -q "Started MyTApplication"; then
-              echo "Container started successfully with the Sentry Java agent." \
-                >> "$GITHUB_STEP_SUMMARY"
-              exit 0
+            database_status="$(docker inspect --format '{{.State.Health.Status}}' "$database_id")"
+            if [[ "$database_status" == "healthy" ]]; then
+              break
             fi
-
-            if [[ "$(docker inspect --format '{{.State.Running}}' "$container_id")" != "true" ]]; then
-              docker logs "$container_id"
+            if [[ "$database_status" == "unhealthy" ]]; then
+              docker logs "$database_id"
               exit 1
             fi
             sleep 1
           done
 
-          docker logs "$container_id"
+          if [[ "$(docker inspect --format '{{.State.Health.Status}}' "$database_id")" != "healthy" ]]; then
+            docker logs "$database_id"
+            echo "PostgreSQL did not become ready within 30 seconds." >&2
+            exit 1
+          fi
+
+          application_id="$(docker run --detach \
+            --network "$network_name" \
+            --env SENTRY_DSN= \
+            --env 'SUPABASE_DB_URL=jdbc:postgresql://database:5432/myt' \
+            --env DB_USERNAME=postgres \
+            --env DB_PASSWORD=postgres \
+            --env DB_SCHEMA=public \
+            --env JPA_DDL_AUTO=create-drop \
+            "$image_tag")"
+
+          for attempt in {1..30}; do
+            if docker logs "$application_id" 2>&1 | grep -q "Started MyTApplication"; then
+              echo "Container started successfully with the Sentry Java agent." \
+                >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            if [[ "$(docker inspect --format '{{.State.Running}}' "$application_id")" != "true" ]]; then
+              docker logs "$application_id"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker logs "$application_id"
           echo "Container did not become ready within 30 seconds." >&2
           exit 1
+
+      - name: Publish verified image
+        if: >-
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        shell: bash
+        run: |
+          while IFS= read -r image_tag; do
+            [[ -z "$image_tag" ]] || docker push "$image_tag"
+          done <<< "$IMAGE_TAGS"
