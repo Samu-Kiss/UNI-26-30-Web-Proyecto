@@ -17,6 +17,8 @@ import com.typeerror.myt.service.ClienteService;
 @RequestMapping("/clientes")
 public class ClienteController {
 
+    private static final String CLIENTE_FORM_VIEW = "cliente-form";
+    private static final String REDIRECT_CLIENTES = "redirect:/clientes";
     private final ClienteService clienteService;
 
     public ClienteController(ClienteService clienteService) {
@@ -32,7 +34,7 @@ public class ClienteController {
     @GetMapping("/nuevo")
     public String nuevoCliente(Model model) {
         model.addAttribute("cliente", new Cliente());
-        return "cliente-form";
+        return CLIENTE_FORM_VIEW;
     }
 
     @GetMapping("/editar/{id}")
@@ -42,41 +44,41 @@ public class ClienteController {
         Cliente formulario = new Cliente(existente.getId(), existente.getNombre(), existente.getApellido(),
                 existente.getCorreo(), null, existente.getTelefono(), existente.getActivo());
         model.addAttribute("cliente", formulario);
-        return "cliente-form";
+        return CLIENTE_FORM_VIEW;
     }
 
     @PostMapping("/guardar")
     public String guardarCliente(@Valid @ModelAttribute("cliente") Cliente cliente,
             BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            return "cliente-form";
+            return CLIENTE_FORM_VIEW;
         }
         if (cliente.getId() == null && (cliente.getContrasena() == null
                 || cliente.getContrasena().isBlank())) {
             bindingResult.rejectValue("contrasena", "contrasena.requerida",
                     "La contrasena es obligatoria para un cliente nuevo");
-            return "cliente-form";
+            return CLIENTE_FORM_VIEW;
         }
 
         try {
             clienteService.guardar(cliente);
         } catch (IllegalArgumentException exception) {
             bindingResult.rejectValue("correo", "correo.duplicado", exception.getMessage());
-            return "cliente-form";
+            return CLIENTE_FORM_VIEW;
         }
-        return "redirect:/clientes";
+        return REDIRECT_CLIENTES;
     }
 
     @PostMapping("/{id}/desactivar")
     public String desactivarCliente(@PathVariable Integer id) {
         clienteService.desactivar(id);
-        return "redirect:/clientes";
+        return REDIRECT_CLIENTES;
     }
 
     @PostMapping("/{id}/activar")
     public String activarCliente(@PathVariable Integer id) {
         clienteService.activar(id);
-        return "redirect:/clientes";
+        return REDIRECT_CLIENTES;
     }
 
 }

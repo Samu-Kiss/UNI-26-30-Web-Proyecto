@@ -237,7 +237,7 @@ jobs:
       - name: Install dependencies
         if: steps.angular.outputs.enabled == 'true'
         working-directory: ${{ steps.angular.outputs.directory }}
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Lint
         if: steps.angular.outputs.enabled == 'true'
