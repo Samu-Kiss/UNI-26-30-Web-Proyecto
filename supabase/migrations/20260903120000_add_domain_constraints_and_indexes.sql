@@ -30,7 +30,7 @@ begin
         alter table app.reservas add constraint ck_reservas_estado
             check (estado in ('PENDIENTE', 'CONFIRMADA', 'COMPLETADA', 'CANCELADA'));
     end if;
-end
+end;
 $$;
 
 create unique index if not exists ux_clientes_correo_lower on app.clientes (lower(correo));
