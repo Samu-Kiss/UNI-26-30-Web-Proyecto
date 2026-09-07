@@ -11,7 +11,7 @@ COPY src/ src/
 COPY config/ config/
 RUN ./mvnw --batch-mode --no-transfer-progress package -DskipTests \
     && ./mvnw --batch-mode --no-transfer-progress dependency:copy \
-        -Dartifact=io.sentry:sentry-opentelemetry-agent:${SENTRY_VERSION} \
+        -Dartifact=io.sentry:sentry-opentelemetry-agent:"${SENTRY_VERSION}" \
         -DoutputDirectory=/workspace/sentry-agent \
         -Dmdep.stripVersion=true
 

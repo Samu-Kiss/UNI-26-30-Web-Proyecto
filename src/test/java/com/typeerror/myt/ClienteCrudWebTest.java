@@ -2,6 +2,7 @@ package com.typeerror.myt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -53,7 +54,7 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
 
         Cliente creado = clienteRepository.findByCorreoIgnoreCase("LAURA@MYT.TEST").orElseThrow();
         assertTrue(creado.getActivo());
-        assertFalse("secreto-inicial".equals(creado.getContrasena()));
+        assertNotEquals("secreto-inicial", creado.getContrasena());
         assertTrue(passwordEncoder.matches("secreto-inicial", creado.getContrasena()));
         String hashInicial = creado.getContrasena();
 

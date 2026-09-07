@@ -11,7 +11,7 @@
         <a class="volver" th:href="@{/clientes}">Volver a clientes</a>
         <section class="tarjeta formulario-tarjeta">
             <p class="marca">MyT</p>
-            <h1 th:text="${cliente.id == null ? 'Nuevo cliente' : 'Editar cliente'}"></h1>
+            <h1 th:text="${cliente.id == null ? 'Nuevo cliente' : 'Editar cliente'}">Formulario de cliente</h1>
             <p class="descripcion">Los campos marcados con * son obligatorios.</p>
 
             <form class="formulario" th:action="@{/clientes/guardar}" th:object="${cliente}" method="post">
