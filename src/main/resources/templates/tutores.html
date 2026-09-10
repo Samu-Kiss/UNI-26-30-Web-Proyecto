@@ -17,7 +17,7 @@
         <section class="tarjeta tabla-contenedor" aria-label="Listado de tutores">
             <table>
                 <thead>
-                    <tr><th>ID</th><th>Nombre</th><th>Materias</th><th>Tarifa por hora</th><th>Calificacion</th><th>Disponibilidad</th></tr>
+                    <tr><th>ID</th><th>Nombre</th><th>Materias</th><th>Tarifa por hora</th><th>Calificacion</th><th>Disponibilidad</th><th>Acciones</th></tr>
                 </thead>
                 <tbody>
                     <tr th:each="tutor : ${tutores}">
@@ -27,9 +27,10 @@
                         <td th:text="${tutor.tarifaPorHora}"></td>
                         <td th:text="${tutor.calificacionPromedio ?: 'Sin calificar'}"></td>
                         <td th:text="${tutor.disponible} ? 'Disponible' : 'No disponible'"></td>
+                        <td class="acciones"><a th:if="${tutor.disponible}"class="enlace"th:href="@{/reservas/nueva/{tutorId}(tutorId=${tutor.id})}">Reservar</a></td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(tutores)}">
-                        <td class="vacio" colspan="6">No hay tutores registrados.</td>
+                        <td class="vacio" colspan="7">No hay tutores registrados.</td>
                     </tr>
                 </tbody>
             </table>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva reserva</title>
+</head>
+
+<body>
+
+    <h1>Nueva reserva</h1>
+    <h2>Tutor seleccionado</h2>
+    <p>Nombre:<span th:text="|${tutor.cliente.nombre} ${tutor.cliente.apellido}|"></span></p>
+    <p>Materias:<span th:text="${#strings.listJoin(tutor.materias, ', ')}"></span></p>
+    <p>Tarifa por hora:<span th:text="${tutor.tarifaPorHora}"></span></p>
+    <p>Calificación:<span th:text="${tutor.calificacionPromedio ?: 'Sin calificar'}"></span></p>
+
+</body>
+</html>
