@@ -20,9 +20,9 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sentry.maven.plugin.version>0.11.0</sentry.maven.plugin.version>
-        <sentry.version>8.55.0</sentry.version>
+        <sentry.version>8.56.0</sentry.version>
         <testcontainers.version>2.0.5</testcontainers.version>
-        <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
+        <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.build.directory}/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
