@@ -1,6 +1,9 @@
 package com.typeerror.myt.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -93,6 +96,59 @@ class ClienteServiceImplTest {
         verify(estudianteRepository).save(captor.capture());
         assertEquals(15, captor.getValue().getCliente().getId());
         assertEquals("hash-anterior", captor.getValue().getCliente().getContrasena());
+    }
+
+    @Test
+    void detectaPerfilesDeEstudianteYDeTutor() {
+        when(estudianteRepository.findByClienteId(15)).thenReturn(Optional.of(mock(Estudiante.class)));
+        assertFalse(clienteService.puedeAsignarPerfil(15));
+
+        when(estudianteRepository.findByClienteId(15)).thenReturn(Optional.empty());
+        when(tutorRepository.findByClienteId(15)).thenReturn(Optional.of(mock(Tutor.class)));
+        assertFalse(clienteService.puedeAsignarPerfil(15));
+
+        when(tutorRepository.findByClienteId(15)).thenReturn(Optional.empty());
+        assertTrue(clienteService.puedeAsignarPerfil(15));
+    }
+
+    @Test
+    void rechazaDatosInvalidosDelPerfilDeEstudiante() {
+        Cliente cliente = cliente("estudiante-invalido@myt.test");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarEstudiante(cliente, null, "Universidad", "Sistemas", 4));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarEstudiante(cliente, " ", "Universidad", "Sistemas", 4));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", null));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 0));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 21));
+    }
+
+    @Test
+    void rechazaDatosInvalidosDelPerfilDeTutor() {
+        Cliente cliente = cliente("tutor-invalido@myt.test");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarTutor(cliente, null, null, BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarTutor(cliente, null, List.of(), BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarTutor(cliente, null, List.of("Cálculo"), null));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.registrarTutor(cliente, null, List.of("Cálculo"), BigDecimal.ZERO));
+    }
+
+    @Test
+    void normalizaLaBiografiaOpcionalDelTutor() {
+        Cliente sinBiografia = cliente("tutor-sin-biografia@myt.test");
+        clienteService.registrarTutor(sinBiografia, null, List.of("Cálculo"), BigDecimal.ONE);
+
+        ArgumentCaptor<Tutor> captor = ArgumentCaptor.forClass(Tutor.class);
+        verify(tutorRepository).save(captor.capture());
+        assertNull(captor.getValue().getBiografia());
     }
 
     private Cliente cliente(String correo) {
