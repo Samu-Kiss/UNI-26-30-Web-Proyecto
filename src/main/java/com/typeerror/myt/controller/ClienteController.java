@@ -38,7 +38,7 @@ public class ClienteController {
 
     @GetMapping("/nuevo")
     public String nuevoCliente(Model model) {
-        model.addAttribute("cliente", new Cliente());
+        model.addAttribute("cliente", new ClienteForm());
         model.addAttribute("perfil", new RegistroPerfilForm());
         model.addAttribute(PERMITE_ASIGNAR_PERFIL, true);
         return CLIENTE_FORM_VIEW;
@@ -48,32 +48,31 @@ public class ClienteController {
     public String editarCliente(@PathVariable Integer id, Model model) {
         Cliente existente = clienteService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El cliente no existe"));
-        Cliente formulario = new Cliente(existente.getId(), existente.getNombre(), existente.getApellido(),
-                existente.getCorreo(), null, existente.getTelefono(), existente.getActivo());
-        model.addAttribute("cliente", formulario);
+        model.addAttribute("cliente", ClienteForm.from(existente));
         model.addAttribute("perfil", new RegistroPerfilForm());
         model.addAttribute(PERMITE_ASIGNAR_PERFIL, clienteService.puedeAsignarPerfil(id));
         return CLIENTE_FORM_VIEW;
     }
 
     @PostMapping("/guardar")
-    public String guardarCliente(@Valid @ModelAttribute("cliente") Cliente cliente,
+    public String guardarCliente(@Valid @ModelAttribute("cliente") ClienteForm formulario,
             BindingResult bindingResult,
             @ModelAttribute("perfil") RegistroPerfilForm perfil,
             Model model) {
-        boolean permiteAsignarPerfil = cliente.getId() == null
-                || clienteService.puedeAsignarPerfil(cliente.getId());
+        boolean permiteAsignarPerfil = formulario.getId() == null
+                || clienteService.puedeAsignarPerfil(formulario.getId());
         model.addAttribute(PERMITE_ASIGNAR_PERFIL, permiteAsignarPerfil);
         if (bindingResult.hasErrors()) {
             return CLIENTE_FORM_VIEW;
         }
-        if (cliente.getId() == null && (cliente.getContrasena() == null
-                || cliente.getContrasena().isBlank())) {
+        if (formulario.getId() == null && (formulario.getContrasena() == null
+                || formulario.getContrasena().isBlank())) {
             bindingResult.rejectValue("contrasena", "contrasena.requerida",
                     "La contrasena es obligatoria para un cliente nuevo");
             return CLIENTE_FORM_VIEW;
         }
 
+        Cliente cliente = formulario.toEntity();
         try {
             if (permiteAsignarPerfil) {
                 guardarClienteNuevo(cliente, perfil);

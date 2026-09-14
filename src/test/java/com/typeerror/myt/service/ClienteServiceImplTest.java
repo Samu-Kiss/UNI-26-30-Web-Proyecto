@@ -130,15 +130,16 @@ class ClienteServiceImplTest {
     @Test
     void rechazaDatosInvalidosDelPerfilDeTutor() {
         Cliente cliente = cliente("tutor-invalido@myt.test");
+        List<String> materias = List.of("Cálculo");
 
         assertThrows(IllegalArgumentException.class,
                 () -> clienteService.registrarTutor(cliente, null, null, BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
                 () -> clienteService.registrarTutor(cliente, null, List.of(), BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, List.of("Cálculo"), null));
+                () -> clienteService.registrarTutor(cliente, null, materias, null));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, List.of("Cálculo"), BigDecimal.ZERO));
+                () -> clienteService.registrarTutor(cliente, null, materias, BigDecimal.ZERO));
     }
 
     @Test

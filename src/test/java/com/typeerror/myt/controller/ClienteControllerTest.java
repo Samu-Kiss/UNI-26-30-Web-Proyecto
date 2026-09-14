@@ -3,7 +3,7 @@ package com.typeerror.myt.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -51,7 +51,7 @@ class ClienteControllerTest {
 
     @Test
     void exigeContrasenaAlCrearUnaCuenta() {
-        Cliente cliente = clienteNuevo();
+        ClienteForm cliente = clienteNuevo();
         cliente.setContrasena(null);
 
         String vistaConContrasenaNula = controller.guardarCliente(cliente, bindingResult,
@@ -70,10 +70,10 @@ class ClienteControllerTest {
 
     @Test
     void presentaElCorreoDuplicadoEnSuCampo() {
-        Cliente cliente = clienteNuevo();
+        ClienteForm cliente = clienteNuevo();
         RegistroPerfilForm perfil = perfilEstudiante("4");
         doThrow(new IllegalArgumentException("Ya existe un cliente con ese correo"))
-                .when(clienteService).registrarEstudiante(same(cliente), eq("EST-1"),
+                .when(clienteService).registrarEstudiante(argThat(entidad -> coincide(entidad, cliente)), eq("EST-1"),
                         eq("Universidad"), eq("Sistemas"), eq(4));
 
         String vista = controller.guardarCliente(cliente, bindingResult, perfil, model);
@@ -123,20 +123,20 @@ class ClienteControllerTest {
 
     @Test
     void normalizaLasMateriasAntesDeRegistrarElTutor() {
-        Cliente cliente = clienteNuevo();
+        ClienteForm cliente = clienteNuevo();
         RegistroPerfilForm perfil = perfilTutor(" Cálculo, , Álgebra, Cálculo ", "50000");
 
         String resultado = controller.guardarCliente(cliente, bindingResult, perfil, model);
 
         assertEquals("redirect:/clientes", resultado);
-        verify(clienteService).registrarTutor(same(cliente), eq("Tutor de prueba"),
+        verify(clienteService).registrarTutor(argThat(entidad -> coincide(entidad, cliente)), eq("Tutor de prueba"),
                 eq(List.of("Cálculo", "Álgebra")), eq(new BigDecimal("50000")));
 
-        Cliente otroCliente = clienteNuevo();
+        ClienteForm otroCliente = clienteNuevo();
         RegistroPerfilForm perfilSinMaterias = perfilTutor(null, "45000");
         controller.guardarCliente(otroCliente, bindingResult, perfilSinMaterias, model);
 
-        verify(clienteService).registrarTutor(same(otroCliente), eq("Tutor de prueba"),
+        verify(clienteService).registrarTutor(argThat(entidad -> coincide(entidad, otroCliente)), eq("Tutor de prueba"),
                 eq(List.of()), eq(new BigDecimal("45000")));
     }
 
@@ -152,9 +152,19 @@ class ClienteControllerTest {
         assertEquals(mensajeEsperado, model.get("errorPerfil"));
     }
 
-    private Cliente clienteNuevo() {
-        return new Cliente(null, "Nombre", "Apellido", "cliente@myt.test",
+    private ClienteForm clienteNuevo() {
+        return new ClienteForm(null, "Nombre", "Apellido", "cliente@myt.test",
                 "clave-plana", null, true);
+    }
+
+    private boolean coincide(Cliente cliente, ClienteForm formulario) {
+        return cliente.getId() == formulario.getId()
+                && cliente.getNombre().equals(formulario.getNombre())
+                && cliente.getApellido().equals(formulario.getApellido())
+                && cliente.getCorreo().equals(formulario.getCorreo())
+                && cliente.getContrasena().equals(formulario.getContrasena())
+                && cliente.getTelefono() == formulario.getTelefono()
+                && cliente.getActivo().equals(formulario.getActivo());
     }
 
     private RegistroPerfilForm perfilEstudiante(String semestre) {

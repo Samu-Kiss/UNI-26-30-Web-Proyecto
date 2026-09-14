@@ -339,7 +339,7 @@ jobs:
           image_tag="$(printf '%s\n' "$IMAGE_TAGS" | head -n 1)"
           network_name="myt-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           database_name="myt-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          database_password="$(openssl rand -hex 32)"
+          database_secret="$(openssl rand -hex 32)"
 
           docker network create "$network_name" >/dev/null
           database_id="$(docker run --detach \
@@ -348,7 +348,7 @@ jobs:
             --network-alias database \
             --env POSTGRES_DB=myt \
             --env POSTGRES_USER=postgres \
-            --env POSTGRES_PASSWORD="$database_password" \
+            --env POSTGRES_PASSWORD="$database_secret" \
             --health-cmd 'pg_isready --username=postgres --dbname=myt' \
             --health-interval 1s \
             --health-timeout 5s \
@@ -387,7 +387,7 @@ jobs:
             --env SENTRY_DSN= \
             --env 'SUPABASE_DB_URL=jdbc:postgresql://database:5432/myt' \
             --env DB_USERNAME=postgres \
-            --env DB_PASSWORD="$database_password" \
+            --env DB_PASSWORD="$database_secret" \
             --env DB_SCHEMA=public \
             --env JPA_DDL_AUTO=create-drop \
             "$image_tag")"

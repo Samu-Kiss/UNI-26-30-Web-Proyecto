@@ -2,6 +2,7 @@ package com.typeerror.myt.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.data.domain.Sort;
@@ -136,11 +137,10 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     private void validarCorreoDisponible(Cliente cliente) {
-        clienteRepository.findByCorreoIgnoreCase(cliente.getCorreo())
-                .filter(encontrado -> !encontrado.getId().equals(cliente.getId()))
-                .ifPresent(encontrado -> {
-                    throw new IllegalArgumentException("Ya existe un cliente con ese correo");
-                });
+        Cliente encontrado = clienteRepository.findByCorreoIgnoreCase(cliente.getCorreo()).orElse(null);
+        if (encontrado != null && !Objects.equals(encontrado.getId(), cliente.getId())) {
+            throw new IllegalArgumentException("Ya existe un cliente con ese correo");
+        }
     }
 
     private Cliente guardarCuentaNueva(Cliente cliente) {
