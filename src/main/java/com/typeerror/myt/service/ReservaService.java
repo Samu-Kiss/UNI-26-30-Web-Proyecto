@@ -11,4 +11,6 @@ public interface ReservaService {
 
     List<Reserva> findAll();
 
+    List<Reserva> findByTutorId(Integer tutorId);
+
 }
