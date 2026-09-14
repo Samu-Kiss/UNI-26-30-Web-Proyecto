@@ -1,5 +1,6 @@
 package com.typeerror.myt.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,7 +12,15 @@ public interface ClienteService {
 
     List<Cliente> findAll();
 
-    Cliente guardar(Cliente cliente);
+    boolean puedeAsignarPerfil(Integer clienteId);
+
+    void guardar(Cliente cliente);
+
+    void registrarEstudiante(Cliente cliente, String codigoEstudiantil, String universidad,
+            String programaAcademico, Integer semestre);
+
+    void registrarTutor(Cliente cliente, String biografia, List<String> materias,
+            BigDecimal tarifaPorHora);
 
     void desactivar(Integer id);
 

@@ -191,7 +191,9 @@ label {
     font-weight: 700;
 }
 
-input {
+input,
+select,
+textarea {
     width: 100%;
     min-height: 46px;
     padding: 10px 12px;
@@ -202,7 +204,9 @@ input {
     font: inherit;
 }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
     border-color: #26846a;
     outline: 3px solid rgba(38, 132, 106, 0.14);
 }
@@ -211,6 +215,61 @@ input:focus {
     color: #b42318;
     font-size: 0.82rem;
     font-weight: 600;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.seccion-perfil {
+    display: grid;
+    gap: 18px;
+    padding-top: 8px;
+    border-top: 1px solid #e8ecf2;
+}
+
+.seccion-perfil h2 {
+    margin: 12px 0 -10px;
+    font-size: 1.25rem;
+}
+
+.campos-perfil {
+    display: grid;
+    gap: 18px;
+}
+
+.campos-perfil[hidden] {
+    display: none;
+}
+
+.alerta-error {
+    margin-top: 24px;
+    padding: 12px 14px;
+    border: 1px solid #f4b4ae;
+    border-radius: 9px;
+    color: #912018;
+    background: #fef3f2;
+    font-weight: 650;
+}
+
+.rejilla-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 18px;
+}
+
+.opcion-menu {
+    padding: 28px;
+    color: #176b52;
+    font-size: 1.1rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.opcion-menu:hover,
+.opcion-menu:focus-visible {
+    border-color: #26846a;
+    outline: 3px solid rgba(38, 132, 106, 0.14);
 }
 
 small {

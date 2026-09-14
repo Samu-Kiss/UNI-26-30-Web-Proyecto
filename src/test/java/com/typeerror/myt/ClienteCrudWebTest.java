@@ -48,7 +48,12 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "secreto-inicial")
-                        .param("telefono", "3101112233"))
+                        .param("telefono", "3101112233")
+                        .param("rol", "ESTUDIANTE")
+                        .param("codigoEstudiantil", "CRUD-001")
+                        .param("universidad", "Universidad de prueba")
+                        .param("programaAcademico", "Ingeniería")
+                        .param("semestre", "5"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/clientes"));
 

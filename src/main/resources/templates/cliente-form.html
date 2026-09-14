@@ -51,6 +51,63 @@
                     <span class="error" th:if="${#fields.hasErrors('telefono')}" th:errors="*{telefono}"></span>
                 </label>
 
+                <section class="seccion-perfil" th:if="${permiteAsignarPerfil}">
+                    <h2>Tipo de cuenta</h2>
+                    <p class="descripcion">Este perfil determina la página que verá al iniciar sesión.</p>
+                    <div class="alerta-error" role="alert" th:if="${errorPerfil}" th:text="${errorPerfil}"></div>
+
+                    <label>
+                        Perfil *
+                        <select id="rol" name="rol" required>
+                            <option value="">Selecciona un perfil</option>
+                            <option value="ESTUDIANTE" th:selected="${perfil.rol == 'ESTUDIANTE'}">Estudiante</option>
+                            <option value="TUTOR" th:selected="${perfil.rol == 'TUTOR'}">Tutor</option>
+                        </select>
+                    </label>
+
+                    <div class="campos-perfil rejilla" data-perfil="ESTUDIANTE" hidden>
+                        <label>
+                            Código estudiantil *
+                            <input type="text" name="codigoEstudiantil" maxlength="30"
+                                   th:value="${perfil.codigoEstudiantil}" data-required>
+                        </label>
+                        <label>
+                            Semestre *
+                            <input type="number" name="semestre" min="1" max="20"
+                                   th:value="${perfil.semestre}" data-required>
+                        </label>
+                        <label>
+                            Universidad *
+                            <input type="text" name="universidad" maxlength="150"
+                                   th:value="${perfil.universidad}" data-required>
+                        </label>
+                        <label>
+                            Programa académico *
+                            <input type="text" name="programaAcademico" maxlength="150"
+                                   th:value="${perfil.programaAcademico}" data-required>
+                        </label>
+                    </div>
+
+                    <div class="campos-perfil" data-perfil="TUTOR" hidden>
+                        <label>
+                            Materias *
+                            <input type="text" name="materias" maxlength="500" th:value="${perfil.materias}"
+                                   placeholder="Cálculo, Física, Programación" data-required>
+                            <small>Separa varias materias con comas.</small>
+                        </label>
+                        <label>
+                            Tarifa por hora *
+                            <input type="number" name="tarifaPorHora" min="0.01" step="0.01"
+                                   th:value="${perfil.tarifaPorHora}" data-required>
+                        </label>
+                        <label>
+                            Biografía
+                            <textarea name="biografia" maxlength="2000" rows="4"
+                                      th:text="${perfil.biografia}"></textarea>
+                        </label>
+                    </div>
+                </section>
+
                 <div class="acciones-formulario">
                     <a class="boton boton-secundario" th:href="@{/clientes}">Cancelar</a>
                     <button class="boton boton-primario" type="submit">Guardar</button>
@@ -58,5 +115,23 @@
             </form>
         </section>
     </main>
+    <script th:if="${permiteAsignarPerfil}">
+        const selectorRol = document.querySelector('#rol');
+        const gruposPerfil = document.querySelectorAll('[data-perfil]');
+
+        function actualizarPerfil() {
+            gruposPerfil.forEach((grupo) => {
+                const visible = grupo.dataset.perfil === selectorRol.value;
+                grupo.hidden = !visible;
+                grupo.querySelectorAll('input, textarea, select').forEach((campo) => {
+                    campo.disabled = !visible;
+                    campo.required = visible && campo.dataset.required !== undefined;
+                });
+            });
+        }
+
+        selectorRol.addEventListener('change', actualizarPerfil);
+        actualizarPerfil();
+    </script>
 </body>
 </html>
