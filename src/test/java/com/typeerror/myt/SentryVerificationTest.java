@@ -17,7 +17,7 @@ class SentryVerificationTest extends PostgreSqlIntegrationTest {
     void sendsIntentionalException() {
         assertTrue(Sentry.isEnabled(), "Sentry SDK must be enabled for verification");
 
-        SentryId eventId = SentryId.EMPTY_ID;
+        SentryId eventId;
         try {
             throw new Exception("This is a test.");
         } catch (Exception exception) {

@@ -18,4 +18,7 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
         "reservas.estudiante.cliente"})
     Optional<Tutor> findOneById(Integer id);
 
+    @EntityGraph(attributePaths = "cliente")
+    Optional<Tutor> findByClienteId(Integer clienteId);
+
 }

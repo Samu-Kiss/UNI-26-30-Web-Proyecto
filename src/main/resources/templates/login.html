@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresar - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+        <section class="tarjeta formulario-tarjeta">
+            <p class="marca">MyT</p>
+            <h1>Iniciar sesión</h1>
+            <p class="descripcion">Ingresa con el correo y la contraseña de tu cuenta.</p>
+
+            <div class="alerta-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+            <form class="formulario" th:action="@{/login}" method="post">
+                <label>
+                    Correo
+                    <input type="email" name="correo" th:value="${correo}" autocomplete="username" required>
+                </label>
+                <label>
+                    Contraseña
+                    <input type="password" name="contrasena" autocomplete="current-password" required>
+                </label>
+                <div class="acciones-formulario">
+                    <button class="boton boton-primario" type="submit">Ingresar</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

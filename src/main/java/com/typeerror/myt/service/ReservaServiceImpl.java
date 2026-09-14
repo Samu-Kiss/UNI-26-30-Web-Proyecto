@@ -29,4 +29,9 @@ public class ReservaServiceImpl implements ReservaService {
         return reservaRepository.findAll();
     }
 
+    @Override
+    public List<Reserva> findByTutorId(Integer tutorId) {
+        return reservaRepository.findByTutorIdOrderByFechaAscHoraInicioAsc(tutorId);
+    }
+
 }

@@ -17,4 +17,7 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, Integer>
     @EntityGraph(attributePaths = {"cliente", "reservas", "reservas.tutor", "reservas.tutor.cliente"})
     Optional<Estudiante> findOneById(Integer id);
 
+    @EntityGraph(attributePaths = "cliente")
+    Optional<Estudiante> findByClienteId(Integer clienteId);
+
 }
