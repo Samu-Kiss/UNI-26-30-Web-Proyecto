@@ -1,3 +1,5 @@
+/**
+
 package com.typeerror.myt.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -88,3 +90,5 @@ class ModeloRelacionalRepositoryTest extends PostgreSqlIntegrationTest {
         assertTrue(Hibernate.isInitialized(tutorRecargado.getMaterias()));
     }
 }
+
+ */

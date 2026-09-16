@@ -6,20 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.OrderColumn;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -73,6 +60,15 @@ public class Tutor {
     @ToString.Exclude
     private Set<Reserva> reservas = new HashSet<>();
 
+    @OneToMany(
+        mappedBy = "tutor",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    @ToString.Exclude
+    private List<DisponibilidadTutor> disponibilidades = new ArrayList<>();
+
     public Tutor(Integer id, Cliente cliente, String biografia, List<String> materias,
             BigDecimal tarifaPorHora, Double calificacionPromedio, Boolean disponible) {
         this.id = id;
@@ -90,5 +86,4 @@ public class Tutor {
             disponible = true;
         }
     }
-
 }
