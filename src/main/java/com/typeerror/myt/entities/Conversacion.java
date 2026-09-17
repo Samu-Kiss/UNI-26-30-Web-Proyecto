@@ -1,6 +1,7 @@
 package com.typeerror.myt.entities;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,6 +65,6 @@ public class Conversacion {
         if (estado == null) {
             estado = EstadoConversacion.ACTIVA;
         }
-        fechaCreacion = LocalDateTime.now();
+        fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

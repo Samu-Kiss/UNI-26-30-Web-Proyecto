@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -77,7 +78,7 @@ public class ReservaServiceImpl implements ReservaService {
                 throw new IllegalArgumentException("El motivo es obligatorio al cancelar o rechazar");
             }
             reserva.setMotivoCancelacion(motivo);
-            reserva.setFechaCancelacion(LocalDateTime.now());
+            reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
         }
         return reservaRepository.save(reserva);
     }

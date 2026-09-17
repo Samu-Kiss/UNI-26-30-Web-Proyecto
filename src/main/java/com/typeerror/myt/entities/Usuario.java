@@ -1,6 +1,7 @@
 package com.typeerror.myt.entities;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -89,7 +90,7 @@ public class Usuario {
 
     @PrePersist
     void prepararCreacion() {
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahora = LocalDateTime.now(ZoneOffset.UTC);
         if (activo == null) {
             activo = true;
         }
@@ -99,6 +100,6 @@ public class Usuario {
 
     @PreUpdate
     void prepararActualizacion() {
-        fechaActualizacion = LocalDateTime.now();
+        fechaActualizacion = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

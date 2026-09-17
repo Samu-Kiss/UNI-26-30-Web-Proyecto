@@ -1,5 +1,3 @@
-/**
-
 package com.typeerror.myt.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,86 +7,112 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.EntityManager;
-import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import com.typeerror.myt.PostgreSqlIntegrationTest;
-import com.typeerror.myt.entities.Administrador;
-import com.typeerror.myt.entities.Cliente;
-import com.typeerror.myt.entities.Estudiante;
+import com.typeerror.myt.entities.Conversacion;
+import com.typeerror.myt.entities.DiaSemana;
+import com.typeerror.myt.entities.DisponibilidadTutor;
 import com.typeerror.myt.entities.EstadoReserva;
+import com.typeerror.myt.entities.Estudiante;
+import com.typeerror.myt.entities.Materia;
+import com.typeerror.myt.entities.Mensaje;
+import com.typeerror.myt.entities.ModalidadReserva;
+import com.typeerror.myt.entities.Resena;
 import com.typeerror.myt.entities.Reserva;
+import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Tutor;
+import com.typeerror.myt.entities.Usuario;
 
 @DataJpaTest
 class ModeloRelacionalRepositoryTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
-
     @Autowired
-    private AdministradorRepository administradorRepository;
-
-    @Autowired
-    private ClienteRepository clienteRepository;
-
+    private UsuarioRepository usuarioRepository;
     @Autowired
     private EstudianteRepository estudianteRepository;
-
     @Autowired
     private TutorRepository tutorRepository;
-
     @Autowired
     private ReservaRepository reservaRepository;
+    @Autowired
+    private ResenaRepository resenaRepository;
+    @Autowired
+    private ConversacionRepository conversacionRepository;
+    @Autowired
+    private MensajeRepository mensajeRepository;
 
     @Test
-    void persisteTodasLasEntidadesYSusRelaciones() {
-        Administrador administrador = administradorRepository.save(new Administrador(null, "Mariana", "Rojas",
-                "mariana@myt.test", "hash-admin", "3001234567", true));
+    void persisteElModeloCompletoIncluidoElChat() {
+        Usuario cuentaEstudiante = usuarioRepository.save(usuario(
+                "estudiante@myt.test", RolUsuario.ESTUDIANTE));
+        Usuario cuentaTutor = usuarioRepository.save(usuario("tutor@myt.test", RolUsuario.TUTOR));
 
-        Cliente clienteEstudiante = clienteRepository.save(new Cliente(null, "Laura", "Gomez",
-                "laura-relacion@myt.test", "hash-estudiante", "3101112233", true));
-        Cliente clienteTutor = clienteRepository.save(new Cliente(null, "Sofia", "Martinez",
-                "sofia-relacion@myt.test", "hash-tutor", "3103334455", true));
+        Estudiante estudiante = new Estudiante(null, cuentaEstudiante, "EST-10",
+                "Universidad", "Sistemas", 5);
+        estudianteRepository.save(estudiante);
 
-        Estudiante estudiante = estudianteRepository.save(new Estudiante(null, clienteEstudiante,
-                "20241001", "Universidad Nacional", "Ingenieria de Sistemas", 5));
-        Tutor tutor = tutorRepository.save(new Tutor(null, clienteTutor,
-                "Tutora de matematicas", List.of("Calculo", "Algebra lineal"),
-                new BigDecimal("35000.00"), 4.8, true));
+        Materia materia = new Materia(null, "Calculo");
+        entityManager.persist(materia);
+        Tutor tutor = new Tutor(null, cuentaTutor, "Tutor de calculo", Set.of(materia),
+                new BigDecimal("50000"), true);
+        tutorRepository.save(tutor);
 
-        Reserva reserva = reservaRepository.save(new Reserva(null, estudiante, tutor,
-                LocalDate.of(2026, 9, 15), LocalTime.of(16, 0), 60,
-                "Preparacion para parcial", EstadoReserva.CONFIRMADA, new BigDecimal("35000.00")));
+        DisponibilidadTutor disponibilidad = new DisponibilidadTutor(null, tutor, DiaSemana.LUNES,
+                LocalTime.of(8, 0), LocalTime.of(12, 0));
+        entityManager.persist(disponibilidad);
+
+        Reserva reserva = reserva(estudiante, tutor, materia);
+        reservaRepository.save(reserva);
+        Resena resena = new Resena(null, reserva, 5, "Excelente", null);
+        resenaRepository.save(resena);
+        Conversacion conversacion = conversacionRepository.save(new Conversacion(reserva));
+        Mensaje mensaje = mensajeRepository.save(new Mensaje(conversacion, cuentaEstudiante, "Hola"));
 
         entityManager.flush();
         entityManager.clear();
 
-        Reserva recargada = reservaRepository.findAll().getFirst();
-        assertNotNull(administrador.getId());
-        assertNotNull(reserva.getId());
-        assertEquals(clienteEstudiante.getId(), recargada.getEstudiante().getCliente().getId());
-        assertEquals(clienteTutor.getId(), recargada.getTutor().getCliente().getId());
+        Reserva recargada = reservaRepository.findOneById(reserva.getId()).orElseThrow();
+        assertEquals("Calculo", recargada.getMateria().getNombre());
+        assertNotNull(recargada.getFechaCreacion());
+        assertNotNull(resenaRepository.findByReservaId(reserva.getId()).orElseThrow().getFechaCreacion());
+        assertEquals(1, mensajeRepository.findByConversacionIdOrderByFechaEnvioAsc(
+                conversacion.getId()).size());
+        assertNotNull(mensaje.getFechaEnvio());
+        assertTrue(disponibilidad.tieneHorarioValido());
+    }
 
-        Estudiante estudianteRecargado = estudianteRepository.findOneById(estudiante.getId()).orElseThrow();
-        entityManager.detach(estudianteRecargado);
-        assertEquals(1, estudianteRecargado.getReservas().size());
-        assertTrue(Hibernate.isInitialized(estudianteRecargado.getCliente()));
-        assertTrue(Hibernate.isInitialized(estudianteRecargado.getReservas()));
+    private Usuario usuario(String correo, RolUsuario rol) {
+        Usuario usuario = new Usuario();
+        usuario.setNombre("Nombre");
+        usuario.setApellido("Apellido");
+        usuario.setCorreo(correo);
+        usuario.setContrasena("hash");
+        usuario.setRoles(Set.of(rol));
+        return usuario;
+    }
 
-        Tutor tutorRecargado = tutorRepository.findOneById(tutor.getId()).orElseThrow();
-        entityManager.detach(tutorRecargado);
-        assertEquals(1, tutorRecargado.getReservas().size());
-        assertEquals(List.of("Calculo", "Algebra lineal"), tutorRecargado.getMaterias());
-        assertTrue(Hibernate.isInitialized(tutorRecargado.getCliente()));
-        assertTrue(Hibernate.isInitialized(tutorRecargado.getReservas()));
-        assertTrue(Hibernate.isInitialized(tutorRecargado.getMaterias()));
+    private Reserva reserva(Estudiante estudiante, Tutor tutor, Materia materia) {
+        Reserva reserva = new Reserva();
+        reserva.setEstudiante(estudiante);
+        reserva.setTutor(tutor);
+        reserva.setMateria(materia);
+        reserva.setFecha(LocalDate.of(2026, 9, 21));
+        reserva.setHoraInicio(LocalTime.of(9, 0));
+        reserva.setDuracionMinutos(60);
+        reserva.setTema("Limites");
+        reserva.setModalidad(ModalidadReserva.VIRTUAL);
+        reserva.setUbicacionOEnlace("https://meet.example.test/1");
+        reserva.setEstado(EstadoReserva.COMPLETADA);
+        reserva.setCostoTotal(new BigDecimal("50000"));
+        reserva.setMoneda("COP");
+        return reserva;
     }
 }
-
- */

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -129,7 +130,7 @@ public class Reserva {
 
     @PrePersist
     void prepararCreacion() {
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahora = LocalDateTime.now(ZoneOffset.UTC);
         if (estado == null) {
             estado = EstadoReserva.PENDIENTE;
         }
@@ -139,7 +140,7 @@ public class Reserva {
 
     @PreUpdate
     void prepararActualizacion() {
-        fechaActualizacion = LocalDateTime.now();
+        fechaActualizacion = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public LocalTime calcularHoraFin() {

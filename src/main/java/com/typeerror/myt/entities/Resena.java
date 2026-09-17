@@ -1,6 +1,7 @@
 package com.typeerror.myt.entities;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -55,7 +56,7 @@ public class Resena {
     @PrePersist
     void establecerFecha() {
         if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
+            fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
         }
     }
 }

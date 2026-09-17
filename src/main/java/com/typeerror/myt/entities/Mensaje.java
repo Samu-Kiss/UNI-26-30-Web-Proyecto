@@ -1,6 +1,7 @@
 package com.typeerror.myt.entities;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -70,7 +71,7 @@ public class Mensaje {
 
     @PrePersist
     void prepararEnvio() {
-        fechaEnvio = LocalDateTime.now();
+        fechaEnvio = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public boolean estaEliminado() {

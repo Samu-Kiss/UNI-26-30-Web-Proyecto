@@ -1,6 +1,7 @@
 package com.typeerror.myt.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -78,7 +79,7 @@ public class ChatServiceImpl implements ChatService {
             throw new IllegalStateException("No se puede editar un mensaje eliminado");
         }
         mensaje.setContenido(contenido.trim());
-        mensaje.setFechaEdicion(LocalDateTime.now());
+        mensaje.setFechaEdicion(LocalDateTime.now(ZoneOffset.UTC));
         return mensajeRepository.save(mensaje);
     }
 
@@ -88,7 +89,7 @@ public class ChatServiceImpl implements ChatService {
         Mensaje mensaje = obtenerMensaje(mensajeId);
         validarAutor(mensaje, remitenteId);
         if (!mensaje.estaEliminado()) {
-            mensaje.setFechaEliminacion(LocalDateTime.now());
+            mensaje.setFechaEliminacion(LocalDateTime.now(ZoneOffset.UTC));
         }
         return mensajeRepository.save(mensaje);
     }
@@ -102,7 +103,7 @@ public class ChatServiceImpl implements ChatService {
             throw new IllegalArgumentException("El remitente no marca su propio mensaje como leido");
         }
         if (!mensaje.estaEliminado() && mensaje.getLeidoEn() == null) {
-            mensaje.setLeidoEn(LocalDateTime.now());
+            mensaje.setLeidoEn(LocalDateTime.now(ZoneOffset.UTC));
         }
         return mensajeRepository.save(mensaje);
     }

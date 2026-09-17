@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.typeerror.myt.entities.RolUsuario;
-import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.service.UsuarioService;
 
 @Controller
@@ -39,31 +38,23 @@ public class UsuarioController {
 
     @GetMapping("/nuevo")
     public String nuevo(Model model) {
-        model.addAttribute("usuario", new Usuario());
+        model.addAttribute("usuario", new UsuarioForm());
         return FORM_VIEW;
     }
 
     @GetMapping("/editar/{id}")
     public String editar(@PathVariable Integer id, Model model) {
-        Usuario existente = usuarioService.findById(id)
+        var existente = usuarioService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
-        Usuario formulario = new Usuario();
-        formulario.setId(existente.getId());
-        formulario.setNombre(existente.getNombre());
-        formulario.setApellido(existente.getApellido());
-        formulario.setCorreo(existente.getCorreo());
-        formulario.setTelefono(existente.getTelefono());
-        formulario.setActivo(existente.getActivo());
-        formulario.setRoles(existente.getRoles());
-        model.addAttribute("usuario", formulario);
+        model.addAttribute("usuario", UsuarioForm.from(existente));
         return FORM_VIEW;
     }
 
     @PostMapping("/guardar")
-    public String guardar(@Valid @ModelAttribute("usuario") Usuario usuario,
+    public String guardar(@Valid @ModelAttribute("usuario") UsuarioForm formulario,
             BindingResult bindingResult) {
-        if (usuario.getId() == null && (usuario.getContrasena() == null
-                || usuario.getContrasena().isBlank())) {
+        if (formulario.getId() == null && (formulario.getContrasena() == null
+                || formulario.getContrasena().isBlank())) {
             bindingResult.rejectValue("contrasena", "contrasena.requerida",
                     "La contrasena es obligatoria para un usuario nuevo");
         }
@@ -71,7 +62,7 @@ public class UsuarioController {
             return FORM_VIEW;
         }
         try {
-            usuarioService.guardar(usuario);
+            usuarioService.guardar(formulario.toEntity());
         } catch (IllegalArgumentException exception) {
             bindingResult.reject("usuario.invalido", exception.getMessage());
             return FORM_VIEW;
