@@ -32,8 +32,8 @@
                 <fieldset>
                     <legend>Roles *</legend>
                     <div th:each="rol : ${rolesDisponibles}">
-                        <input type="checkbox" th:id="|rol-${rol}|" th:field="*{roles}" th:value="${rol}">
-                        <label th:for="|rol-${rol}|" th:text="${rol}">Rol</label>
+                        <input id="rol" type="checkbox" th:id="|rol-${rol}|" th:field="*{roles}" th:value="${rol}">
+                        <label for="rol" th:for="|rol-${rol}|" th:text="${rol}">Rol</label>
                     </div>
                     <span class="error" th:errors="*{roles}"></span>
                 </fieldset>
