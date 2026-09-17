@@ -102,6 +102,8 @@
                 <directory>supabase/migrations</directory>
                 <includes>
                     <include>20260831150000_create_app_schema.sql</include>
+                    <include>20260917160000_refactor_domain_model.sql</include>
+                    <include>20260917170000_add_chat.sql</include>
                 </includes>
                 <targetPath>db/supabase</targetPath>
             </testResource>

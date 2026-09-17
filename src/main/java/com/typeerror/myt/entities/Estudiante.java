@@ -12,6 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -23,6 +25,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/** Perfil academico de un usuario que solicita tutorias. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,13 +38,13 @@ public class Estudiante {
     private Integer id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cliente_id", nullable = false, unique = true)
+    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
     @ToString.Exclude
-    private Cliente cliente;
+    private Usuario usuario;
 
     @NotBlank
     @Size(max = 30)
-    @Column(name = "codigo_estudiantil", nullable = false, unique = true, length = 30)
+    @Column(name = "codigo_estudiantil", nullable = false, length = 30)
     private String codigoEstudiantil;
 
     @NotBlank
@@ -56,7 +59,7 @@ public class Estudiante {
 
     @NotNull
     @Min(1)
-    @Max(20)
+    @Max(30)
     @Column(nullable = false)
     private Integer semestre;
 
@@ -64,14 +67,22 @@ public class Estudiante {
     @ToString.Exclude
     private List<Reserva> reservas = new ArrayList<>();
 
-    public Estudiante(Integer id, Cliente cliente, String codigoEstudiantil, String universidad,
+    public Estudiante(Integer id, Usuario usuario, String codigoEstudiantil, String universidad,
             String programaAcademico, Integer semestre) {
         this.id = id;
-        this.cliente = cliente;
+        this.usuario = usuario;
         this.codigoEstudiantil = codigoEstudiantil;
         this.universidad = universidad;
         this.programaAcademico = programaAcademico;
         this.semestre = semestre;
+    }
+
+    @PrePersist
+    @PreUpdate
+    void validarRol() {
+        if (usuario == null || !usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
+            throw new IllegalStateException("El perfil de estudiante requiere el rol ESTUDIANTE");
+        }
     }
 
 }

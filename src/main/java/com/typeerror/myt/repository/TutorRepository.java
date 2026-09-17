@@ -10,12 +10,14 @@ import com.typeerror.myt.entities.Tutor;
 
 public interface TutorRepository extends JpaRepository<Tutor, Integer> {
 
+    boolean existsByUsuarioId(Integer usuarioId);
+
     @Override
-    @EntityGraph(attributePaths = {"cliente", "materias"})
+    @EntityGraph(attributePaths = {"usuario", "materias"})
     List<Tutor> findAll();
 
-    @EntityGraph(attributePaths = {"cliente", "materias", "reservas", "reservas.estudiante",
-        "reservas.estudiante.cliente"})
+    @EntityGraph(attributePaths = {"usuario", "materias", "reservas", "reservas.estudiante",
+        "reservas.estudiante.usuario"})
     Optional<Tutor> findOneById(Integer id);
 
 }

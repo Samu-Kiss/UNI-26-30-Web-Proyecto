@@ -35,10 +35,10 @@ backend desde el SQL Editor y configuralo con `DB_SCHEMA=app`:
 create schema if not exists app;
 ```
 
-Los dos proyectos ya tienen el esquema `app`, las seis tablas y sus llaves foraneas. RLS esta
-habilitado para impedir acceso directo desde clientes anonimos; el backend JDBC se conecta como
-propietario de la base. La definicion reproducible esta en
-`supabase/migrations/20260831150000_create_app_schema.sql`.
+Los proyectos usan el esquema `app`; las migraciones versionadas crean sus tablas, relaciones y
+restricciones. RLS esta habilitado para impedir acceso directo desde clientes anonimos; el backend
+JDBC se conecta como propietario de la base. La definicion reproducible esta en
+`supabase/migrations/` y debe aplicarse en orden cronologico.
 
 Para desarrollo, completa `SUPABASE_DEV_DB_PASSWORD` en `.env.local`. Conserva
 `SPRING_PROFILES_ACTIVE=dev`; Spring carga ese archivo automaticamente al iniciar desde IntelliJ o
@@ -57,10 +57,10 @@ El archivo `compose.yaml` ejecuta el backend local y carga la conexion de desarr
 docker compose up --build
 ```
 
-La aplicacion queda disponible en `http://localhost:8080/clientes`. Para detenerla usa
+La aplicacion queda disponible en `http://localhost:8080/usuarios`. Para detenerla usa
 `docker compose down`; este comando no elimina ni modifica el proyecto de Supabase.
 
-El CRUD de clientes esta disponible en `http://localhost:8080/clientes`. Crear y editar usan
+El CRUD de usuarios esta disponible en `http://localhost:8080/usuarios`. Crear y editar usan
 `save()`, mientras que desactivar o activar conserva la fila y cambia unicamente el campo `activo`.
 Las contrasenas se guardan como hashes BCrypt y nunca se vuelven a enviar al formulario de edicion.
 Los perfiles `dev` y `prod` usan `ddl-auto=validate`: las migraciones versionadas son la unica
@@ -70,14 +70,19 @@ fuente de cambios del esquema en cualquier entorno.
 
 Todas las entidades usan persistencia JPA y sus repositorios extienden `JpaRepository`:
 
-- `Estudiante` y `Tutor` se relacionan con su cuenta `Cliente` mediante `@OneToOne`.
+- `Usuario` es la identidad comun y puede tener roles de estudiante, tutor y administrador.
+- `Estudiante` y `Tutor` se relacionan con su cuenta `Usuario` mediante `@OneToOne`.
 - `Reserva` pertenece a un `Estudiante` y a un `Tutor` mediante `@ManyToOne` y `@JoinColumn`.
 - `Estudiante` y `Tutor` exponen sus reservas mediante el lado inverso `@OneToMany(mappedBy = ...)`.
-- Las materias de `Tutor` son valores simples persistidos con `@ElementCollection` y
-  `@CollectionTable`.
+- `Materia` se comparte mediante la relacion muchos-a-muchos `tutor_materias`.
+- Disponibilidad, bloqueos de agenda y resenas tienen entidades y tablas propias.
+- Cada reserva puede tener una conversacion privada con mensajes editables, lectura y borrado logico.
 
 Las asociaciones son `LAZY` y no propagan eliminaciones: una cuenta desactivada o una entidad
 eliminada por error no debe borrar en cascada el historial de reservas.
+
+El modelo y el contrato preparado para implementar el chat se documentan en
+[docs/domain-model.md](docs/domain-model.md).
 
 La configuracion completa del pipeline, Sonar, Sentry, GHCR y la futura aplicacion Angular esta en
 [docs/ci-cd.md](docs/ci-cd.md).
