@@ -1,7 +1,7 @@
 package com.typeerror.myt.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -97,7 +97,8 @@ class UsuarioControllerTest {
         verify(usuarioService).activar(1);
 
         when(usuarioService.findById(99)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> controller.editar(99, new ConcurrentModel()));
+        ConcurrentModel model = new ConcurrentModel();
+        assertThrows(IllegalArgumentException.class, () -> controller.editar(99, model));
     }
 
     @Test
@@ -108,7 +109,7 @@ class UsuarioControllerTest {
 
         assertEquals(usuario.getId(), convertido.getId());
         assertEquals(usuario.getRoles(), convertido.getRoles());
-        assertFalse(usuario.getRoles() == convertido.getRoles());
+        assertNotSame(usuario.getRoles(), convertido.getRoles());
     }
 
     private BeanPropertyBindingResult errores(UsuarioForm formulario) {
