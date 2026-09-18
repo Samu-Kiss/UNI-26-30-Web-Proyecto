@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${cliente.id == null ? 'Registrar estudiante o tutor - MyT' : 'Editar perfil - MyT'}"></title>
-    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+    <title>Nuevo usuario - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
 </head>
 <body>
     <main class="contenedor contenedor-formulario">
-        <a class="volver" th:href="@{/clientes}">Volver a usuarios</a>
+        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
         <section class="tarjeta formulario-tarjeta">
             <p class="marca">MyT</p>
-            <h1 th:text="${cliente.id == null ? 'Registrar estudiante o tutor' : 'Editar perfil'}">Registro de perfil</h1>
+            <h1>Nuevo usuario</h1>
             <p class="descripcion">Los campos marcados con * son obligatorios.</p>
 
-            <form class="formulario" th:action="@{/clientes/guardar}" th:object="${cliente}" method="post">
-                <input type="hidden" th:field="*{id}">
-
+            <form class="formulario" th:action="@{/usuarios/registrar}" th:object="${usuario}" method="post">
                 <div class="rejilla">
                     <label>
                         Nombre *
@@ -37,10 +35,9 @@
                 </label>
 
                 <label>
-                    <span th:text="${cliente.id == null ? 'Contrasena *' : 'Nueva contrasena'}"></span>
+                    Contraseña *
                     <input type="password" th:field="*{contrasena}" maxlength="72"
-                           th:attr="required=${cliente.id == null}" autocomplete="new-password">
-                    <small th:if="${cliente.id != null}">Dejala vacia para conservar la actual.</small>
+                           required autocomplete="new-password">
                     <span class="error" th:if="${#fields.hasErrors('contrasena')}"
                           th:errors="*{contrasena}"></span>
                 </label>
@@ -51,7 +48,7 @@
                     <span class="error" th:if="${#fields.hasErrors('telefono')}" th:errors="*{telefono}"></span>
                 </label>
 
-                <section class="seccion-perfil" th:if="${permiteAsignarPerfil}">
+                <section class="seccion-perfil">
                     <h2>Tipo de cuenta</h2>
                     <p class="descripcion">Este perfil determina la página que verá al iniciar sesión.</p>
                     <div class="alerta-error" role="alert" th:if="${errorPerfil}" th:text="${errorPerfil}"></div>
@@ -60,8 +57,8 @@
                         Perfil *
                         <select id="rol" name="rol" required>
                             <option value="">Selecciona un perfil</option>
-                            <option value="ESTUDIANTE" th:selected="${perfil.rol == 'ESTUDIANTE'}">Estudiante</option>
-                            <option value="TUTOR" th:selected="${perfil.rol == 'TUTOR'}">Tutor</option>
+                            <option th:each="rol : ${rolesPerfilDisponibles}" th:value="${rol}"
+                                    th:text="${rol}" th:selected="${perfil.rol == rol.name()}"></option>
                         </select>
                     </label>
 
@@ -109,13 +106,13 @@
                 </section>
 
                 <div class="acciones-formulario">
-                    <a class="boton boton-secundario" th:href="@{/clientes}">Cancelar</a>
+                    <a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
                     <button class="boton boton-primario" type="submit">Guardar</button>
                 </div>
             </form>
         </section>
     </main>
-    <script th:if="${permiteAsignarPerfil}">
+    <script>
         const selectorRol = document.querySelector('#rol');
         const gruposPerfil = document.querySelectorAll('[data-perfil]');
 

@@ -31,54 +31,54 @@ import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.repository.EstudianteRepository;
 import com.typeerror.myt.repository.TutorRepository;
 
-class ClienteServiceImplTest {
+class RegistroUsuarioServiceImplTest {
 
-    private UsuarioRepository clienteRepository;
+    private UsuarioRepository usuarioRepository;
     private EstudianteRepository estudianteRepository;
     private TutorRepository tutorRepository;
-    private ClienteServiceImpl clienteService;
+    private RegistroUsuarioServiceImpl usuarioService;
 
     @BeforeEach
     void configurar() {
-        clienteRepository = mock(UsuarioRepository.class);
+        usuarioRepository = mock(UsuarioRepository.class);
         estudianteRepository = mock(EstudianteRepository.class);
         tutorRepository = mock(TutorRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         MateriaRepository materiaRepository = mock(MateriaRepository.class);
         when(materiaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
-        clienteService = new ClienteServiceImpl(clienteRepository, estudianteRepository,
+        usuarioService = new RegistroUsuarioServiceImpl(usuarioRepository, estudianteRepository,
                 tutorRepository, passwordEncoder, materiaRepository);
 
-        when(clienteRepository.findByCorreoIgnoreCase(any())).thenReturn(Optional.empty());
+        when(usuarioRepository.findByCorreoIgnoreCase(any())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hash-seguro");
-        when(clienteRepository.save(any())).thenAnswer(invocacion -> {
-            Usuario cliente = invocacion.getArgument(0);
-            if (cliente.getId() == null) {
-                cliente.setId(10);
+        when(usuarioRepository.save(any())).thenAnswer(invocacion -> {
+            Usuario usuario = invocacion.getArgument(0);
+            if (usuario.getId() == null) {
+                usuario.setId(10);
             }
-            return cliente;
+            return usuario;
         });
     }
 
     @Test
     void registraCuentaYPerfilDeEstudianteEnUnaOperacion() {
-        Usuario cliente = cliente("estudiante-nuevo@myt.test");
+        Usuario usuario = usuario("estudiante-nuevo@myt.test");
 
-        clienteService.registrarEstudiante(cliente, "EST-10", "Universidad", "Sistemas", 4);
+        usuarioService.registrarEstudiante(usuario, "EST-10", "Universidad", "Sistemas", 4);
 
         ArgumentCaptor<Estudiante> captor = ArgumentCaptor.forClass(Estudiante.class);
         verify(estudianteRepository).save(captor.capture());
         assertEquals(10, captor.getValue().getUsuario().getId());
         assertEquals("EST-10", captor.getValue().getCodigoEstudiantil());
-        assertEquals("hash-seguro", cliente.getContrasena());
-        assertTrue(cliente.getActivo());
+        assertEquals("hash-seguro", usuario.getContrasena());
+        assertTrue(usuario.getActivo());
     }
 
     @Test
     void registraCuentaYPerfilDeTutorEnUnaOperacion() {
-        Usuario cliente = cliente("tutor-nuevo@myt.test");
+        Usuario usuario = usuario("tutor-nuevo@myt.test");
 
-        clienteService.registrarTutor(cliente, "Enseña matemáticas", List.of("Cálculo", "Álgebra"),
+        usuarioService.registrarTutor(usuario, "Enseña matemáticas", List.of("Cálculo", "Álgebra"),
                 new BigDecimal("50000"));
 
         ArgumentCaptor<Tutor> captor = ArgumentCaptor.forClass(Tutor.class);
@@ -87,18 +87,18 @@ class ClienteServiceImplTest {
         assertEquals(Set.of("Cálculo", "Álgebra"), captor.getValue().getMaterias().stream()
                 .map(Materia::getNombre).collect(Collectors.toSet()));
         assertEquals(new BigDecimal("50000"), captor.getValue().getTarifaPorHora());
-        assertEquals("hash-seguro", cliente.getContrasena());
+        assertEquals("hash-seguro", usuario.getContrasena());
     }
 
     @Test
     void permiteAsignarPerfilAUnaCuentaAntigua() {
-        Usuario cliente = cliente("cuenta-antigua@myt.test");
-        cliente.setId(15);
-        cliente.setContrasena("");
-        when(clienteRepository.findById(15)).thenReturn(Optional.of(new Usuario(15, "Anterior", "Usuario",
-                cliente.getCorreo(), "hash-anterior", null, true, new HashSet<>(), null, null, null)));
+        Usuario usuario = usuario("cuenta-antigua@myt.test");
+        usuario.setId(15);
+        usuario.setContrasena("");
+        when(usuarioRepository.findById(15)).thenReturn(Optional.of(new Usuario(15, "Anterior", "Usuario",
+                usuario.getCorreo(), "hash-anterior", null, true, new HashSet<>(), null, null, null)));
 
-        clienteService.registrarEstudiante(cliente, "ANT-15", "Universidad", "Derecho", 2);
+        usuarioService.registrarEstudiante(usuario, "ANT-15", "Universidad", "Derecho", 2);
 
         ArgumentCaptor<Estudiante> captor = ArgumentCaptor.forClass(Estudiante.class);
         verify(estudianteRepository).save(captor.capture());
@@ -108,59 +108,83 @@ class ClienteServiceImplTest {
 
     @Test
     void detectaPerfilesDeEstudianteYDeTutor() {
-        when(estudianteRepository.findByUsuarioId(15)).thenReturn(Optional.of(mock(Estudiante.class)));
-        assertFalse(clienteService.puedeAsignarPerfil(15));
+        when(estudianteRepository.existsByUsuarioId(15)).thenReturn(true);
+        assertTrue(usuarioService.puedeAsignarPerfil(15));
+        assertEquals(Set.of(com.typeerror.myt.entities.RolUsuario.TUTOR),
+                usuarioService.perfilesDisponibles(15));
 
-        when(estudianteRepository.findByUsuarioId(15)).thenReturn(Optional.empty());
-        when(tutorRepository.findByUsuarioId(15)).thenReturn(Optional.of(mock(Tutor.class)));
-        assertFalse(clienteService.puedeAsignarPerfil(15));
-
-        when(tutorRepository.findByUsuarioId(15)).thenReturn(Optional.empty());
-        assertTrue(clienteService.puedeAsignarPerfil(15));
+        when(tutorRepository.existsByUsuarioId(15)).thenReturn(true);
+        assertFalse(usuarioService.puedeAsignarPerfil(15));
     }
 
     @Test
     void rechazaDatosInvalidosDelPerfilDeEstudiante() {
-        Usuario cliente = cliente("estudiante-invalido@myt.test");
+        Usuario usuario = usuario("estudiante-invalido@myt.test");
 
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, null, "Universidad", "Sistemas", 4));
+                () -> usuarioService.registrarEstudiante(usuario, null, "Universidad", "Sistemas", 4));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, " ", "Universidad", "Sistemas", 4));
+                () -> usuarioService.registrarEstudiante(usuario, " ", "Universidad", "Sistemas", 4));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", null));
+                () -> usuarioService.registrarEstudiante(usuario, "EST-1", "Universidad", "Sistemas", null));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 0));
+                () -> usuarioService.registrarEstudiante(usuario, "EST-1", "Universidad", "Sistemas", 0));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 31));
+                () -> usuarioService.registrarEstudiante(usuario, "EST-1", "Universidad", "Sistemas", 31));
     }
 
     @Test
     void rechazaDatosInvalidosDelPerfilDeTutor() {
-        Usuario cliente = cliente("tutor-invalido@myt.test");
+        Usuario usuario = usuario("tutor-invalido@myt.test");
         List<String> materias = List.of("Cálculo");
 
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, null, BigDecimal.ONE));
+                () -> usuarioService.registrarTutor(usuario, null, null, BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, List.of(), BigDecimal.ONE));
+                () -> usuarioService.registrarTutor(usuario, null, List.of(), BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, materias, null));
+                () -> usuarioService.registrarTutor(usuario, null, materias, null));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarTutor(cliente, null, materias, BigDecimal.ZERO));
+                () -> usuarioService.registrarTutor(usuario, null, materias, BigDecimal.ZERO));
     }
 
     @Test
     void normalizaLaBiografiaOpcionalDelTutor() {
-        Usuario sinBiografia = cliente("tutor-sin-biografia@myt.test");
-        clienteService.registrarTutor(sinBiografia, null, List.of("Cálculo"), BigDecimal.ONE);
+        Usuario sinBiografia = usuario("tutor-sin-biografia@myt.test");
+        usuarioService.registrarTutor(sinBiografia, null, List.of("Cálculo"), BigDecimal.ONE);
 
         ArgumentCaptor<Tutor> captor = ArgumentCaptor.forClass(Tutor.class);
         verify(tutorRepository).save(captor.capture());
         assertNull(captor.getValue().getBiografia());
     }
 
-    private Usuario cliente(String correo) {
+    @Test
+    void agregaElSegundoPerfilSinEliminarElPrimero() {
+        Usuario existente = usuario("doble@myt.test");
+        existente.setId(15);
+        existente.getRoles().add(com.typeerror.myt.entities.RolUsuario.ESTUDIANTE);
+        when(usuarioRepository.findById(15)).thenReturn(Optional.of(existente));
+
+        usuarioService.registrarTutor(existente, null, List.of("Cálculo"), BigDecimal.ONE);
+
+        assertEquals(Set.of(com.typeerror.myt.entities.RolUsuario.ESTUDIANTE,
+                com.typeerror.myt.entities.RolUsuario.TUTOR), existente.getRoles());
+        verify(usuarioRepository).save(existente);
+        verify(tutorRepository).save(any(Tutor.class));
+    }
+
+    @Test
+    void rechazaDuplicarUnPerfilDelMismoTipo() {
+        Usuario existente = usuario("duplicado@myt.test");
+        existente.setId(15);
+        when(estudianteRepository.existsByUsuarioId(15)).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> usuarioService.registrarEstudiante(
+                        existente, "E-15", "Universidad", "Sistemas", 5));
+    }
+
+    private Usuario usuario(String correo) {
         return new Usuario(null, "Nombre", "Apellido", correo, "clave-plana", null, true,
                 new HashSet<>(), null, null, null);
     }

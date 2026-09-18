@@ -27,17 +27,19 @@ public class LoginController {
     public String iniciarSesion(@RequestParam String correo,
             @RequestParam String contrasena,
             Model model) {
-        return loginService.autenticar(correo, contrasena)
-                .map(this::rutaSegunRol)
-                .orElseGet(() -> mostrarCredencialesInvalidas(correo, model));
+        var opciones = loginService.autenticar(correo, contrasena);
+        if (opciones.isEmpty()) {
+            return mostrarCredencialesInvalidas(correo, model);
+        }
+        if (opciones.size() == 1) {
+            return rutaSegunRol(opciones.getFirst());
+        }
+        model.addAttribute("opciones", opciones);
+        return "seleccionar-rol";
     }
 
     private String rutaSegunRol(UsuarioAutenticado usuario) {
-        return switch (usuario.rol()) {
-            case ADMINISTRADOR -> "redirect:/admin";
-            case ESTUDIANTE -> "redirect:/tutores";
-            case TUTOR -> "redirect:/tutores/" + usuario.perfilId() + "/reservas";
-        };
+        return "redirect:" + usuario.ruta();
     }
 
     private String mostrarCredencialesInvalidas(String correo, Model model) {

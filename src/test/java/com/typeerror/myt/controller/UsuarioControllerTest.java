@@ -24,6 +24,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.service.RegistroUsuarioService;
 import com.typeerror.myt.service.UsuarioService;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,24 +32,24 @@ class UsuarioControllerTest {
 
     @Mock
     private UsuarioService usuarioService;
+    @Mock
+    private RegistroUsuarioService registroUsuarioService;
 
     private UsuarioController controller;
 
     @BeforeEach
     void preparar() {
-        controller = new UsuarioController(usuarioService);
+        controller = new UsuarioController(usuarioService, registroUsuarioService);
     }
 
     @Test
-    void publicaListadosYFormularioNuevo() {
+    void publicaListadoConDisponibilidadDePerfiles() {
         ConcurrentModel model = new ConcurrentModel();
         when(usuarioService.findAll()).thenReturn(List.of());
 
         assertEquals("usuarios", controller.listar(model));
         assertTrue(model.containsAttribute("usuarios"));
-        assertEquals("usuario-form", controller.nuevo(model));
-        assertTrue(model.getAttribute("usuario") instanceof UsuarioForm);
-        assertEquals(3, controller.rolesDisponibles().length);
+        assertTrue(model.containsAttribute("puedeAgregarPerfil"));
     }
 
     @Test
@@ -65,27 +66,28 @@ class UsuarioControllerTest {
     }
 
     @Test
-    void exigeContrasenaParaCreacionYConservaErrores() {
-        UsuarioForm formulario = formulario(null);
-        formulario.setContrasena(null);
+    void conservaLosErroresDeEdicion() {
+        UsuarioForm formulario = formulario(1);
+        formulario.setNombre("");
         BeanPropertyBindingResult errores = errores(formulario);
+        errores.rejectValue("nombre", "nombre.requerido");
 
-        assertEquals("usuario-form", controller.guardar(formulario, errores));
-        assertTrue(errores.hasFieldErrors("contrasena"));
+        assertEquals("usuario-form", controller.guardar(1, formulario, errores));
+        assertTrue(errores.hasFieldErrors("nombre"));
     }
 
     @Test
     void guardaYReportaErroresDelServicio() {
-        UsuarioForm formulario = formulario(null);
+        UsuarioForm formulario = formulario(1);
         BeanPropertyBindingResult sinErrores = errores(formulario);
 
-        assertEquals("redirect:/usuarios", controller.guardar(formulario, sinErrores));
+        assertEquals("redirect:/usuarios", controller.guardar(1, formulario, sinErrores));
         verify(usuarioService).guardar(any(Usuario.class));
 
         doThrow(new IllegalArgumentException("Correo duplicado"))
                 .when(usuarioService).guardar(any(Usuario.class));
         BeanPropertyBindingResult erroresServicio = errores(formulario);
-        assertEquals("usuario-form", controller.guardar(formulario, erroresServicio));
+        assertEquals("usuario-form", controller.guardar(1, formulario, erroresServicio));
         assertTrue(erroresServicio.hasGlobalErrors());
     }
 

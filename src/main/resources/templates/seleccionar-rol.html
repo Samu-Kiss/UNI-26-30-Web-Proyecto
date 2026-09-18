@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleccionar perfil - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+        <section class="tarjeta formulario-tarjeta">
+            <p class="marca">MyT</p>
+            <h1>¿Cómo quieres ingresar?</h1>
+            <p class="descripcion">Tu cuenta tiene más de un perfil disponible.</p>
+            <div class="acciones-formulario">
+                <a class="boton boton-primario" th:each="opcion : ${opciones}"
+                   th:href="${opcion.ruta}"
+                   th:text="${opcion.rol}"></a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

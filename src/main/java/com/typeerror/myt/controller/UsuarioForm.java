@@ -5,7 +5,6 @@ import java.util.Set;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,7 +42,6 @@ public class UsuarioForm {
     @Size(max = 30)
     private String telefono;
 
-    @NotEmpty(message = "El usuario debe tener al menos un rol")
     private Set<RolUsuario> roles = new HashSet<>();
 
     public static UsuarioForm from(Usuario usuario) {

@@ -14,9 +14,7 @@ import com.typeerror.myt.entities.Usuario;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ClienteForm {
-
-    private Integer id;
+public class RegistroUsuarioForm {
 
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
@@ -37,22 +35,14 @@ public class ClienteForm {
     @Size(max = 30, message = "El telefono no puede superar 30 caracteres")
     private String telefono;
 
-    private Boolean activo = true;
-
-    public static ClienteForm from(Usuario cliente) {
-        return new ClienteForm(cliente.getId(), cliente.getNombre(), cliente.getApellido(),
-                cliente.getCorreo(), null, cliente.getTelefono(), cliente.getActivo());
-    }
-
     public Usuario toEntity() {
         Usuario usuario = new Usuario();
-        usuario.setId(id);
         usuario.setNombre(nombre);
         usuario.setApellido(apellido);
         usuario.setCorreo(correo);
         usuario.setContrasena(contrasena);
         usuario.setTelefono(telefono);
-        usuario.setActivo(activo);
+        usuario.setActivo(true);
         return usuario;
     }
 }

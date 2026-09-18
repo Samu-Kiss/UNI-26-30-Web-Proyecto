@@ -25,7 +25,7 @@ import com.typeerror.myt.repository.UsuarioRepository;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
+class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,13 +43,17 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void completaElCrudLogicoSinExponerLaContrasena() throws Exception {
-        mockMvc.perform(post("/usuarios/guardar")
+        mockMvc.perform(post("/usuarios/registrar")
                         .param("nombre", "Laura")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "secreto-inicial")
                         .param("telefono", "3101112233")
-                        .param("roles", "ESTUDIANTE"))
+                        .param("rol", "ESTUDIANTE")
+                        .param("codigoEstudiantil", "CRUD-001")
+                        .param("universidad", "Universidad de prueba")
+                        .param("programaAcademico", "Ingeniería")
+                        .param("semestre", "5"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/usuarios"));
 
@@ -67,7 +71,7 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
         assertFalse(desactivado.getActivo());
         assertEquals(1, usuarioRepository.count());
 
-        String formulario = mockMvc.perform(get("/usuarios/editar/{id}", creado.getId()))
+        String formulario = mockMvc.perform(get("/usuarios/{id}/editar", creado.getId()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("usuario-form"))
                 .andReturn()
@@ -75,14 +79,12 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
                 .getContentAsString();
         assertFalse(formulario.contains("secreto-inicial"));
 
-        mockMvc.perform(post("/usuarios/guardar")
-                        .param("id", creado.getId().toString())
+        mockMvc.perform(post("/usuarios/{id}/editar", creado.getId())
                         .param("nombre", "Laura Maria")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "")
-                        .param("telefono", "3101112233")
-                        .param("roles", "ESTUDIANTE"))
+                        .param("telefono", "3101112233"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/usuarios"));
 

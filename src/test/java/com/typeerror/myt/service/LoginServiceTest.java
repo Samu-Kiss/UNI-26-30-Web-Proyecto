@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Optional;
@@ -49,7 +50,7 @@ class LoginServiceTest {
                 .thenReturn(Optional.of(administrador));
         when(passwordEncoder.matches("clave", "hash-administrador")).thenReturn(true);
 
-        UsuarioAutenticado usuario = loginService.autenticar(" admin@myt.test ", "clave").orElseThrow();
+        UsuarioAutenticado usuario = loginService.autenticar(" admin@myt.test ", "clave").getFirst();
 
         assertEquals(RolUsuario.ADMINISTRADOR, usuario.rol());
         assertEquals(7, usuario.perfilId());
@@ -75,9 +76,9 @@ class LoginServiceTest {
         when(tutorRepository.findByUsuarioId(12)).thenReturn(Optional.of(tutor));
 
         UsuarioAutenticado usuarioEstudiante = loginService
-                .autenticar("estudiante@myt.test", "clave-estudiante").orElseThrow();
+                .autenticar("estudiante@myt.test", "clave-estudiante").getFirst();
         UsuarioAutenticado usuarioTutor = loginService
-                .autenticar("tutor@myt.test", "clave-tutor").orElseThrow();
+                .autenticar("tutor@myt.test", "clave-tutor").getFirst();
 
         assertEquals(new UsuarioAutenticado(RolUsuario.ESTUDIANTE, 21), usuarioEstudiante);
         assertEquals(new UsuarioAutenticado(RolUsuario.TUTOR, 22), usuarioTutor);
@@ -91,6 +92,24 @@ class LoginServiceTest {
 
         assertTrue(loginService.autenticar("cliente@myt.test", "incorrecta").isEmpty());
         verify(passwordEncoder).matches("incorrecta", "hash-guardado");
+    }
+
+    @Test
+    void conservaTodosLosDestinosDeUnaCuentaConVariosRoles() {
+        Usuario usuario = cliente(20, "multi@myt.test", "hash-multi");
+        usuario.getRoles().add(RolUsuario.ADMINISTRADOR);
+        Estudiante estudiante = new Estudiante(30, usuario, "M-1", "Universidad", "Sistemas", 5);
+        Tutor tutor = new Tutor(40, usuario, "Tutor", Set.of(), BigDecimal.ONE, true);
+        when(clienteRepository.findByCorreoIgnoreCase("multi@myt.test")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("clave", "hash-multi")).thenReturn(true);
+        when(estudianteRepository.findByUsuarioId(20)).thenReturn(Optional.of(estudiante));
+        when(tutorRepository.findByUsuarioId(20)).thenReturn(Optional.of(tutor));
+
+        assertEquals(List.of(
+                new UsuarioAutenticado(RolUsuario.ADMINISTRADOR, 20),
+                new UsuarioAutenticado(RolUsuario.ESTUDIANTE, 30),
+                new UsuarioAutenticado(RolUsuario.TUTOR, 40)),
+                loginService.autenticar("multi@myt.test", "clave"));
     }
 
     private Usuario cliente(Integer id, String correo, String hash) {

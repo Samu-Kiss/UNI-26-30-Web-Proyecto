@@ -30,7 +30,7 @@ class ListingControllersTest {
     private ReservaService reservaService;
 
     @Test
-    void publicaTodosLosListadosYLaRedireccionHistorica() {
+    void publicaTodosLosListados() {
         when(administradorService.findAll()).thenReturn(List.of());
         when(estudianteService.findAll()).thenReturn(List.of());
         when(tutorService.findAll()).thenReturn(List.of());
@@ -43,6 +43,5 @@ class ListingControllersTest {
         assertEquals("estudiantes", new EstudianteController(estudianteService).listarEstudiantes(model));
         assertEquals("tutores", new TutorController(tutorService, reservaService).listarTutores(model));
         assertEquals("mostrar_reservas", new ReservaController(reservaService).listarReservas(model));
-        assertEquals("redirect:/usuarios", new ClienteController(null).listarClientes(model));
     }
 }

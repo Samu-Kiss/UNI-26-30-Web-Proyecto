@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.util.Set;
@@ -47,6 +48,49 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Test
+    void nuevoUsuarioAbreElRegistroConUnSoloBoton() throws Exception {
+        String listado = mockMvc.perform(get("/usuarios"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(1, listado.split("href=\"/usuarios/nuevo\"", -1).length - 1);
+        assertTrue(listado.contains(">Nuevo usuario</a>"));
+        assertFalse(listado.contains("Registrar estudiante o tutor"));
+        String formulario = mockMvc.perform(get("/usuarios/nuevo"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("registro-usuario-form"))
+                .andReturn().getResponse().getContentAsString();
+        assertTrue(formulario.contains("action=\"/usuarios/registrar\""));
+        assertTrue(formulario.contains("value=\"ESTUDIANTE\""));
+        assertTrue(formulario.contains("value=\"TUTOR\""));
+    }
+
+    @Test
+    void eliminaLasRutasAntiguasDeClientes() throws Exception {
+        for (String ruta : new String[] {"/clientes", "/clientes/nuevo", "/clientes/editar/1"}) {
+            mockMvc.perform(get(ruta)).andExpect(status().isNotFound());
+        }
+        for (String ruta : new String[] {"/clientes/guardar", "/clientes/1/activar", "/clientes/1/desactivar"}) {
+            mockMvc.perform(post(ruta)).andExpect(status().isNotFound());
+        }
+        mockMvc.perform(post("/usuarios/guardar")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void conservaElRegistroYElPerfilCuandoFaltanDatosAcademicos() throws Exception {
+        String formulario = mockMvc.perform(post("/usuarios/registrar")
+                        .param("nombre", "Nora")
+                        .param("apellido", "Nueva")
+                        .param("correo", "nora-invalida@myt.test")
+                        .param("contrasena", "clave-dashboard")
+                        .param("rol", "ESTUDIANTE"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("registro-usuario-form"))
+                .andReturn().getResponse().getContentAsString();
+        assertTrue(formulario.contains("value=\"ESTUDIANTE\" selected=\"selected\""));
+        assertTrue(formulario.contains("action=\"/usuarios/registrar\""));
+    }
 
     @Test
     void dirigeCadaRolASuPagina() throws Exception {
@@ -113,7 +157,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void clienteCreadoDesdeElDashboardPuedeIniciarSesion() throws Exception {
-        mockMvc.perform(post("/clientes/guardar")
+        mockMvc.perform(post("/usuarios/registrar")
                         .param("nombre", "Nora")
                         .param("apellido", "Nueva")
                         .param("correo", "nora-dashboard@myt.test")
@@ -125,7 +169,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                         .param("programaAcademico", "Ingeniería")
                         .param("semestre", "6"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
         mockMvc.perform(post("/login")
                         .param("correo", "nora-dashboard@myt.test")
@@ -135,31 +179,27 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
-    void permiteAsignarPerfilAUnClienteExistente() throws Exception {
+    void permiteAgregarElSegundoPerfilYSeleccionarDestino() throws Exception {
         Usuario cliente = clienteRepository.save(new Usuario(null, "Carlos", "Cuenta",
                 "carlos-existente@myt.test", passwordEncoder.encode("clave-existente"), null, true,
                 new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null));
+        estudianteRepository.save(new Estudiante(null, cliente, "LOGIN-DOBLE",
+                "Universidad de prueba", "Ingeniería", 6));
 
-        mockMvc.perform(post("/clientes/guardar")
-                        .param("id", cliente.getId().toString())
-                        .param("nombre", cliente.getNombre())
-                        .param("apellido", cliente.getApellido())
-                        .param("correo", cliente.getCorreo())
-                        .param("contrasena", "")
-                        .param("telefono", "")
+        mockMvc.perform(post("/usuarios/{id}/perfil", cliente.getId())
                         .param("rol", "TUTOR")
                         .param("materias", "Cálculo, Álgebra")
                         .param("tarifaPorHora", "48000")
                         .param("biografia", "Tutor de matemáticas"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
         Tutor tutor = tutorRepository.findByUsuarioId(cliente.getId()).orElseThrow();
         mockMvc.perform(post("/login")
                         .param("correo", cliente.getCorreo())
                         .param("contrasena", "clave-existente"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/tutores/" + tutor.getId() + "/reservas"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("seleccionar-rol"));
     }
 
     private Estudiante crearEstudiante() {

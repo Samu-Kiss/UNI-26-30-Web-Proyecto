@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.service.RegistroUsuarioService;
 import com.typeerror.myt.service.UsuarioService;
 
 @Controller
@@ -20,29 +21,25 @@ public class UsuarioController {
     private static final String FORM_VIEW = "usuario-form";
     private static final String REDIRECT_USUARIOS = "redirect:/usuarios";
     private final UsuarioService usuarioService;
+    private final RegistroUsuarioService registroUsuarioService;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    public UsuarioController(UsuarioService usuarioService,
+            RegistroUsuarioService registroUsuarioService) {
         this.usuarioService = usuarioService;
-    }
-
-    @ModelAttribute("rolesDisponibles")
-    public RolUsuario[] rolesDisponibles() {
-        return RolUsuario.values();
+        this.registroUsuarioService = registroUsuarioService;
     }
 
     @GetMapping
     public String listar(Model model) {
-        model.addAttribute("usuarios", usuarioService.findAll());
+        var usuarios = usuarioService.findAll();
+        model.addAttribute("usuarios", usuarios);
+        model.addAttribute("puedeAgregarPerfil", usuarios.stream().collect(
+                java.util.stream.Collectors.toMap(Usuario::getId,
+                        usuario -> registroUsuarioService.puedeAsignarPerfil(usuario.getId()))));
         return "usuarios";
     }
 
-    @GetMapping("/nuevo")
-    public String nuevo(Model model) {
-        model.addAttribute("usuario", new UsuarioForm());
-        return FORM_VIEW;
-    }
-
-    @GetMapping("/editar/{id}")
+    @GetMapping("/{id}/editar")
     public String editar(@PathVariable Integer id, Model model) {
         var existente = usuarioService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
@@ -50,14 +47,11 @@ public class UsuarioController {
         return FORM_VIEW;
     }
 
-    @PostMapping("/guardar")
-    public String guardar(@Valid @ModelAttribute("usuario") UsuarioForm formulario,
+    @PostMapping("/{id}/editar")
+    public String guardar(@PathVariable Integer id,
+            @Valid @ModelAttribute("usuario") UsuarioForm formulario,
             BindingResult bindingResult) {
-        if (formulario.getId() == null && (formulario.getContrasena() == null
-                || formulario.getContrasena().isBlank())) {
-            bindingResult.rejectValue("contrasena", "contrasena.requerida",
-                    "La contrasena es obligatoria para un usuario nuevo");
-        }
+        formulario.setId(id);
         if (bindingResult.hasErrors()) {
             return FORM_VIEW;
         }

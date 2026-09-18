@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Usuarios - MyT</title>
-    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
 </head>
 <body>
     <main class="contenedor">
         <header class="encabezado">
             <div><p class="marca">MyT</p><h1>Usuarios</h1>
                 <p class="descripcion">Identidad comun para estudiantes, tutores y administradores.</p></div>
-            <a class="boton boton-secundario" th:href="@{/clientes/nuevo}">Registrar estudiante o tutor</a>
             <a class="boton boton-primario" th:href="@{/usuarios/nuevo}">Nuevo usuario</a>
         </header>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de usuarios">
@@ -25,8 +24,9 @@
                         <td th:text="${#strings.listJoin(usuario.roles, ', ')}"></td>
                         <td th:text="${usuario.activo} ? 'Activo' : 'Inactivo'"></td>
                         <td class="acciones">
-                            <a class="enlace" th:href="@{/clientes/editar/{id}(id=${usuario.id})}">Perfil académico</a>
-                            <a class="enlace" th:href="@{/usuarios/editar/{id}(id=${usuario.id})}">Editar</a>
+                            <a class="enlace" th:if="${puedeAgregarPerfil[usuario.id]}"
+                               th:href="@{/usuarios/{id}/perfil/nuevo(id=${usuario.id})}">Agregar perfil</a>
+                            <a class="enlace" th:href="@{/usuarios/{id}/editar(id=${usuario.id})}">Editar</a>
                             <form th:if="${usuario.activo}" th:action="@{/usuarios/{id}/desactivar(id=${usuario.id})}" method="post">
                                 <button class="enlace enlace-peligro" type="submit">Desactivar</button>
                             </form>

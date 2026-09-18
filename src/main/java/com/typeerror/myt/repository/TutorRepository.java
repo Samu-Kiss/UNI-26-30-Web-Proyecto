@@ -21,6 +21,6 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
     Optional<Tutor> findOneById(Integer id);
 
     @EntityGraph(attributePaths = "usuario")
-    Optional<Tutor> findByUsuarioId(Integer clienteId);
+    Optional<Tutor> findByUsuarioId(Integer usuarioId);
 
 }

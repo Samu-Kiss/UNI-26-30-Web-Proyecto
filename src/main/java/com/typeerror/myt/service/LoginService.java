@@ -1,6 +1,7 @@
 package com.typeerror.myt.service;
 
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,30 +31,32 @@ public class LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public Optional<UsuarioAutenticado> autenticar(String correo, String contrasena) {
+    public List<UsuarioAutenticado> autenticar(String correo, String contrasena) {
         if (correo == null || contrasena == null || correo.isBlank() || contrasena.isBlank()) {
-            return Optional.empty();
+            return List.of();
         }
         return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
                 .filter(usuario -> Boolean.TRUE.equals(usuario.getActivo()))
                 .filter(usuario -> passwordEncoder.matches(contrasena, usuario.getContrasena()))
-                .flatMap(this::resolverPerfil);
+                .map(this::resolverPerfiles)
+                .orElseGet(List::of);
     }
 
-    private Optional<UsuarioAutenticado> resolverPerfil(Usuario usuario) {
+    private List<UsuarioAutenticado> resolverPerfiles(Usuario usuario) {
+        List<UsuarioAutenticado> accesos = new ArrayList<>();
         if (usuario.getRoles().contains(RolUsuario.ADMINISTRADOR)) {
-            return Optional.of(new UsuarioAutenticado(RolUsuario.ADMINISTRADOR, usuario.getId()));
+            accesos.add(new UsuarioAutenticado(RolUsuario.ADMINISTRADOR, usuario.getId()));
         }
         if (usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
-            var estudiante = estudianteRepository.findByUsuarioId(usuario.getId());
-            if (estudiante.isPresent()) {
-                return Optional.of(new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.get().getId()));
-            }
+            estudianteRepository.findByUsuarioId(usuario.getId())
+                    .ifPresent(estudiante -> accesos.add(
+                            new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.getId())));
         }
         if (usuario.getRoles().contains(RolUsuario.TUTOR)) {
-            return tutorRepository.findByUsuarioId(usuario.getId())
-                    .map(tutor -> new UsuarioAutenticado(RolUsuario.TUTOR, tutor.getId()));
+            tutorRepository.findByUsuarioId(usuario.getId())
+                    .ifPresent(tutor -> accesos.add(
+                            new UsuarioAutenticado(RolUsuario.TUTOR, tutor.getId())));
         }
-        return Optional.empty();
+        return List.copyOf(accesos);
     }
 }

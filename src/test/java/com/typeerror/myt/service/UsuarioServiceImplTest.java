@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -22,8 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
-import com.typeerror.myt.repository.EstudianteRepository;
-import com.typeerror.myt.repository.TutorRepository;
 import com.typeerror.myt.repository.UsuarioRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,31 +30,17 @@ class UsuarioServiceImplTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
-    @Mock
-    private EstudianteRepository estudianteRepository;
-    @Mock
-    private TutorRepository tutorRepository;
-
     private UsuarioService servicio;
 
     @BeforeEach
     void preparar() {
-        servicio = new UsuarioServiceImpl(usuarioRepository, passwordEncoder,
-                estudianteRepository, tutorRepository);
+        servicio = new UsuarioServiceImpl(usuarioRepository, passwordEncoder);
     }
 
     @Test
-    void creaUsuarioConContrasenaCodificada() {
+    void rechazaCrearUsuarioSinPerfil() {
         Usuario usuario = usuario(null, "nuevo@myt.test", Set.of(RolUsuario.ESTUDIANTE));
-        when(usuarioRepository.findByCorreoIgnoreCase(usuario.getCorreo())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode("plana")).thenReturn("hash");
-        when(usuarioRepository.save(usuario)).thenReturn(usuario);
-
-        Usuario guardado = servicio.guardar(usuario);
-
-        assertEquals("hash", guardado.getContrasena());
-        assertTrue(guardado.getActivo());
-        verify(usuarioRepository).save(usuario);
+        assertThrows(IllegalArgumentException.class, () -> servicio.guardar(usuario));
     }
 
     @Test
@@ -67,6 +50,7 @@ class UsuarioServiceImplTest {
         Usuario cambios = usuario(1, "nuevo@myt.test", Set.of(RolUsuario.ESTUDIANTE));
         cambios.setNombre("Actualizado");
         cambios.setContrasena("");
+        cambios.setRoles(Set.of(RolUsuario.ADMINISTRADOR));
         when(usuarioRepository.findByCorreoIgnoreCase(cambios.getCorreo())).thenReturn(Optional.empty());
         when(usuarioRepository.findById(1)).thenReturn(Optional.of(existente));
         when(usuarioRepository.save(existente)).thenReturn(existente);
@@ -75,22 +59,17 @@ class UsuarioServiceImplTest {
 
         assertEquals("Actualizado", actualizado.getNombre());
         assertEquals("hash-anterior", actualizado.getContrasena());
+        assertEquals(Set.of(RolUsuario.ESTUDIANTE), actualizado.getRoles());
     }
 
     @Test
-    void protegeRolesDePerfilesExistentesYCorreosUnicos() {
+    void protegeCorreosUnicos() {
         Usuario encontrado = usuario(2, "duplicado@myt.test", Set.of(RolUsuario.TUTOR));
-        Usuario nuevo = usuario(null, "duplicado@myt.test", Set.of(RolUsuario.ESTUDIANTE));
+        Usuario nuevo = usuario(1, "duplicado@myt.test", Set.of(RolUsuario.ESTUDIANTE));
         when(usuarioRepository.findByCorreoIgnoreCase(nuevo.getCorreo()))
                 .thenReturn(Optional.of(encontrado));
         assertThrows(IllegalArgumentException.class, () -> servicio.guardar(nuevo));
 
-        Usuario existente = usuario(1, "usuario@myt.test", Set.of(RolUsuario.ADMINISTRADOR));
-        when(usuarioRepository.findByCorreoIgnoreCase(existente.getCorreo()))
-                .thenReturn(Optional.of(existente));
-        when(usuarioRepository.findById(1)).thenReturn(Optional.of(existente));
-        when(estudianteRepository.existsByUsuarioId(1)).thenReturn(true);
-        assertThrows(IllegalArgumentException.class, () -> servicio.guardar(existente));
     }
 
     @Test
