@@ -88,7 +88,8 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("registro-usuario-form"))
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(formulario.contains("value=\"ESTUDIANTE\" selected=\"selected\""));
+        assertTrue(formulario.matches(
+                "(?s).*<option\\s+value=\"ESTUDIANTE\"\\s+selected=\"selected\">.*"));
         assertTrue(formulario.contains("action=\"/usuarios/registrar\""));
     }
 
