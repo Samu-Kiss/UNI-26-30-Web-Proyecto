@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${usuario.id == null ? 'Nuevo usuario - MyT' : 'Editar usuario - MyT'}"></title>
+    <link rel="stylesheet" th:href="@{/css/clientes.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
+        <section class="tarjeta formulario-tarjeta">
+            <p class="marca">MyT</p>
+            <h1 th:text="${usuario.id == null ? 'Nuevo usuario' : 'Editar usuario'}">Formulario de usuario</h1>
+            <form class="formulario" th:action="@{/usuarios/guardar}" th:object="${usuario}" method="post">
+                <div class="error" th:if="${#fields.hasGlobalErrors()}" th:each="error : ${#fields.globalErrors()}"
+                     th:text="${error}"></div>
+                <input type="hidden" th:field="*{id}">
+                <div class="rejilla">
+                    <div><label for="nombre">Nombre *</label><input id="nombre" type="text" th:field="*{nombre}" maxlength="100" required>
+                        <span class="error" th:errors="*{nombre}"></span></div>
+                    <div><label for="apellido">Apellido *</label><input id="apellido" type="text" th:field="*{apellido}" maxlength="100" required>
+                        <span class="error" th:errors="*{apellido}"></span></div>
+                </div>
+                <label for="correo">Correo *</label><input id="correo" type="email" th:field="*{correo}" maxlength="120" required>
+                <span class="error" th:errors="*{correo}"></span>
+                <label for="contrasena"><span th:text="${usuario.id == null ? 'Contrasena *' : 'Nueva contrasena'}">Contrasena</span></label>
+                <input id="contrasena" type="password" th:field="*{contrasena}" maxlength="72"
+                       th:attr="required=${usuario.id == null}" autocomplete="new-password">
+                <span class="error" th:errors="*{contrasena}"></span>
+                <label for="telefono">Telefono</label><input id="telefono" type="tel" th:field="*{telefono}" maxlength="30">
+                <fieldset>
+                    <legend>Roles *</legend>
+                    <div th:each="rol : ${rolesDisponibles}">
+                        <input id="rol" type="checkbox" th:id="|rol-${rol}|" th:field="*{roles}" th:value="${rol}">
+                        <label for="rol" th:for="|rol-${rol}|" th:text="${rol}">Rol</label>
+                    </div>
+                    <span class="error" th:errors="*{roles}"></span>
+                </fieldset>
+                <div class="acciones-formulario"><a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
+                    <button class="boton boton-primario" type="submit">Guardar</button></div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

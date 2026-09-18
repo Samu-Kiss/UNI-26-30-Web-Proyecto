@@ -10,11 +10,13 @@ import com.typeerror.myt.entities.Estudiante;
 
 public interface EstudianteRepository extends JpaRepository<Estudiante, Integer> {
 
+    boolean existsByUsuarioId(Integer usuarioId);
+
     @Override
-    @EntityGraph(attributePaths = "cliente")
+    @EntityGraph(attributePaths = "usuario")
     List<Estudiante> findAll();
 
-    @EntityGraph(attributePaths = {"cliente", "reservas", "reservas.tutor", "reservas.tutor.cliente"})
+    @EntityGraph(attributePaths = {"usuario", "reservas", "reservas.tutor", "reservas.tutor.usuario"})
     Optional<Estudiante> findOneById(Integer id);
 
 }
