@@ -19,8 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Cliente;
-import com.typeerror.myt.repository.ClienteRepository;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.repository.UsuarioRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -31,75 +31,72 @@ class ClienteCrudWebTest extends PostgreSqlIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ClienteRepository clienteRepository;
+    private UsuarioRepository usuarioRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void limpiarClientes() {
-        clienteRepository.deleteAll();
+    void limpiarUsuarios() {
+        usuarioRepository.deleteAll();
     }
 
     @Test
     void completaElCrudLogicoSinExponerLaContrasena() throws Exception {
-        mockMvc.perform(post("/clientes/guardar")
+        mockMvc.perform(post("/usuarios/guardar")
                         .param("nombre", "Laura")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "secreto-inicial")
                         .param("telefono", "3101112233")
-                        .param("rol", "ESTUDIANTE")
-                        .param("codigoEstudiantil", "CRUD-001")
-                        .param("universidad", "Universidad de prueba")
-                        .param("programaAcademico", "Ingeniería")
-                        .param("semestre", "5"))
+                        .param("roles", "ESTUDIANTE"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
-        Cliente creado = clienteRepository.findByCorreoIgnoreCase("LAURA@MYT.TEST").orElseThrow();
+        Usuario creado = usuarioRepository.findByCorreoIgnoreCase("LAURA@MYT.TEST").orElseThrow();
         assertTrue(creado.getActivo());
         assertNotEquals("secreto-inicial", creado.getContrasena());
         assertTrue(passwordEncoder.matches("secreto-inicial", creado.getContrasena()));
         String hashInicial = creado.getContrasena();
 
-        mockMvc.perform(post("/clientes/{id}/desactivar", creado.getId()))
+        mockMvc.perform(post("/usuarios/{id}/desactivar", creado.getId()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
-        Cliente desactivado = clienteRepository.findById(creado.getId()).orElseThrow();
+        Usuario desactivado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertFalse(desactivado.getActivo());
-        assertEquals(1, clienteRepository.count());
+        assertEquals(1, usuarioRepository.count());
 
-        String formulario = mockMvc.perform(get("/clientes/editar/{id}", creado.getId()))
+        String formulario = mockMvc.perform(get("/usuarios/editar/{id}", creado.getId()))
                 .andExpect(status().isOk())
-                .andExpect(view().name("cliente-form"))
+                .andExpect(view().name("usuario-form"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
         assertFalse(formulario.contains("secreto-inicial"));
 
-        mockMvc.perform(post("/clientes/guardar")
+        mockMvc.perform(post("/usuarios/guardar")
                         .param("id", creado.getId().toString())
                         .param("nombre", "Laura Maria")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "")
-                        .param("telefono", "3101112233"))
+                        .param("telefono", "3101112233")
+                        .param("roles", "ESTUDIANTE"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
-        Cliente editado = clienteRepository.findById(creado.getId()).orElseThrow();
+        Usuario editado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertEquals("Laura Maria", editado.getNombre());
         assertEquals(hashInicial, editado.getContrasena());
         assertFalse(editado.getActivo());
 
-        mockMvc.perform(post("/clientes/{id}/activar", creado.getId()))
+        mockMvc.perform(post("/usuarios/{id}/activar", creado.getId()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/clientes"));
+                .andExpect(redirectedUrl("/usuarios"));
 
-        assertTrue(clienteRepository.findById(creado.getId()).orElseThrow().getActivo());
-        assertEquals(1, clienteRepository.count());
+        assertTrue(usuarioRepository.findById(creado.getId()).orElseThrow().getActivo());
+        assertEquals(1, usuarioRepository.count());
     }
 
     @Test

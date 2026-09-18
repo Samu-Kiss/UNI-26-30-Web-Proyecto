@@ -10,33 +10,41 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import com.typeerror.myt.PostgreSqlIntegrationTest;
-import com.typeerror.myt.entities.Cliente;
+import java.util.Set;
+
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
 
 @DataJpaTest
-class ClienteRepositoryTest extends PostgreSqlIntegrationTest {
+class UsuarioRepositoryTest extends PostgreSqlIntegrationTest {
 
     @Autowired
-    private ClienteRepository clienteRepository;
+    private UsuarioRepository usuarioRepository;
 
     @Test
     void persisteYActualizaElEstadoSinEliminarLaFila() {
-        Cliente cliente = new Cliente(null, "Laura", "Gomez", "laura@myt.test",
-                "secreto", "3101112233", true);
+        Usuario usuario = new Usuario();
+        usuario.setNombre("Laura");
+        usuario.setApellido("Gomez");
+        usuario.setCorreo("laura@myt.test");
+        usuario.setContrasena("secreto");
+        usuario.setTelefono("3101112233");
+        usuario.setRoles(Set.of(RolUsuario.ESTUDIANTE));
 
-        Cliente guardado = clienteRepository.saveAndFlush(cliente);
+        Usuario guardado = usuarioRepository.saveAndFlush(usuario);
         assertNotNull(guardado.getId());
 
         guardado.setActivo(false);
-        clienteRepository.saveAndFlush(guardado);
+        usuarioRepository.saveAndFlush(guardado);
 
-        Cliente desactivado = clienteRepository.findById(guardado.getId()).orElseThrow();
+        Usuario desactivado = usuarioRepository.findById(guardado.getId()).orElseThrow();
         assertFalse(desactivado.getActivo());
-        assertEquals(1, clienteRepository.count());
+        assertEquals(1, usuarioRepository.count());
 
         desactivado.setActivo(true);
-        clienteRepository.saveAndFlush(desactivado);
+        usuarioRepository.saveAndFlush(desactivado);
 
-        assertTrue(clienteRepository.findById(guardado.getId()).orElseThrow().getActivo());
-        assertEquals(1, clienteRepository.count());
+        assertTrue(usuarioRepository.findById(guardado.getId()).orElseThrow().getActivo());
+        assertEquals(1, usuarioRepository.count());
     }
 }

@@ -12,7 +12,7 @@
             <div>
                 <p class="marca">MyT</p>
                 <h1>Mis reservas</h1>
-                <p class="descripcion" th:text="|Tutor: ${tutor.cliente.nombre} ${tutor.cliente.apellido}|"></p>
+                <p class="descripcion" th:text="|Tutor: ${tutor.usuario.nombre} ${tutor.usuario.apellido}|"></p>
             </div>
         </header>
         <section class="tarjeta tabla-contenedor" aria-label="Reservas del tutor">
@@ -26,7 +26,7 @@
                     <tr th:each="reserva : ${reservas}">
                         <td th:text="${reserva.fecha}"></td>
                         <td th:text="${reserva.horaInicio}"></td>
-                        <td th:text="|${reserva.estudiante.cliente.nombre} ${reserva.estudiante.cliente.apellido}|"></td>
+                        <td th:text="|${reserva.estudiante.usuario.nombre} ${reserva.estudiante.usuario.apellido}|"></td>
                         <td th:text="${reserva.tema}"></td>
                         <td th:text="|${reserva.duracionMinutos} minutos|"></td>
                         <td th:text="${reserva.estado}"></td>

@@ -6,10 +6,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Administrador;
-import com.typeerror.myt.entities.Cliente;
-import com.typeerror.myt.repository.AdministradorRepository;
-import com.typeerror.myt.repository.ClienteRepository;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.repository.EstudianteRepository;
 import com.typeerror.myt.repository.TutorRepository;
 
@@ -17,19 +16,15 @@ import com.typeerror.myt.repository.TutorRepository;
 @Transactional(readOnly = true)
 public class LoginService {
 
-    private final AdministradorRepository administradorRepository;
-    private final ClienteRepository clienteRepository;
+    private final UsuarioRepository usuarioRepository;
     private final EstudianteRepository estudianteRepository;
     private final TutorRepository tutorRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public LoginService(AdministradorRepository administradorRepository,
-            ClienteRepository clienteRepository,
-            EstudianteRepository estudianteRepository,
-            TutorRepository tutorRepository,
+    public LoginService(UsuarioRepository usuarioRepository,
+            EstudianteRepository estudianteRepository, TutorRepository tutorRepository,
             PasswordEncoder passwordEncoder) {
-        this.administradorRepository = administradorRepository;
-        this.clienteRepository = clienteRepository;
+        this.usuarioRepository = usuarioRepository;
         this.estudianteRepository = estudianteRepository;
         this.tutorRepository = tutorRepository;
         this.passwordEncoder = passwordEncoder;
@@ -39,33 +34,26 @@ public class LoginService {
         if (correo == null || contrasena == null || correo.isBlank() || contrasena.isBlank()) {
             return Optional.empty();
         }
-
-        Optional<Administrador> administrador = administradorRepository.findByCorreoIgnoreCase(correo.trim());
-        if (administrador.filter(this::estaActivo)
+        return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
+                .filter(usuario -> Boolean.TRUE.equals(usuario.getActivo()))
                 .filter(usuario -> passwordEncoder.matches(contrasena, usuario.getContrasena()))
-                .isPresent()) {
-            return Optional.of(new UsuarioAutenticado(RolUsuario.ADMINISTRADOR,
-                    administrador.orElseThrow().getId()));
-        }
-
-        return clienteRepository.findByCorreoIgnoreCase(correo.trim())
-                .filter(this::estaActivo)
-                .filter(cliente -> passwordEncoder.matches(contrasena, cliente.getContrasena()))
                 .flatMap(this::resolverPerfil);
     }
 
-    private Optional<UsuarioAutenticado> resolverPerfil(Cliente cliente) {
-        return estudianteRepository.findByClienteId(cliente.getId())
-                .map(estudiante -> new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.getId()))
-                .or(() -> tutorRepository.findByClienteId(cliente.getId())
-                        .map(tutor -> new UsuarioAutenticado(RolUsuario.TUTOR, tutor.getId())));
-    }
-
-    private boolean estaActivo(Administrador administrador) {
-        return Boolean.TRUE.equals(administrador.getActivo());
-    }
-
-    private boolean estaActivo(Cliente cliente) {
-        return Boolean.TRUE.equals(cliente.getActivo());
+    private Optional<UsuarioAutenticado> resolverPerfil(Usuario usuario) {
+        if (usuario.getRoles().contains(RolUsuario.ADMINISTRADOR)) {
+            return Optional.of(new UsuarioAutenticado(RolUsuario.ADMINISTRADOR, usuario.getId()));
+        }
+        if (usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
+            var estudiante = estudianteRepository.findByUsuarioId(usuario.getId());
+            if (estudiante.isPresent()) {
+                return Optional.of(new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.get().getId()));
+            }
+        }
+        if (usuario.getRoles().contains(RolUsuario.TUTOR)) {
+            return tutorRepository.findByUsuarioId(usuario.getId())
+                    .map(tutor -> new UsuarioAutenticado(RolUsuario.TUTOR, tutor.getId()));
+        }
+        return Optional.empty();
     }
 }

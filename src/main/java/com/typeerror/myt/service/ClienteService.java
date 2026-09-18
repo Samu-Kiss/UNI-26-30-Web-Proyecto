@@ -4,22 +4,22 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.Usuario;
 
 public interface ClienteService {
 
-    Optional<Cliente> findById(Integer id);
+    Optional<Usuario> findById(Integer id);
 
-    List<Cliente> findAll();
+    List<Usuario> findAll();
 
     boolean puedeAsignarPerfil(Integer clienteId);
 
-    void guardar(Cliente cliente);
+    void guardar(Usuario cliente);
 
-    void registrarEstudiante(Cliente cliente, String codigoEstudiantil, String universidad,
+    void registrarEstudiante(Usuario cliente, String codigoEstudiantil, String universidad,
             String programaAcademico, Integer semestre);
 
-    void registrarTutor(Cliente cliente, String biografia, List<String> materias,
+    void registrarTutor(Usuario cliente, String biografia, List<String> materias,
             BigDecimal tarifaPorHora);
 
     void desactivar(Integer id);

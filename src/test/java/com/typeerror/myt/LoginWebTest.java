@@ -9,7 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +20,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Administrador;
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.Tutor;
-import com.typeerror.myt.repository.AdministradorRepository;
-import com.typeerror.myt.repository.ClienteRepository;
+import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.repository.EstudianteRepository;
 import com.typeerror.myt.repository.TutorRepository;
 
@@ -37,10 +37,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private AdministradorRepository administradorRepository;
-
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private UsuarioRepository clienteRepository;
 
     @Autowired
     private EstudianteRepository estudianteRepository;
@@ -53,8 +50,9 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void dirigeCadaRolASuPagina() throws Exception {
-        Administrador administrador = administradorRepository.save(new Administrador(null, "Ana", "Admin",
-                "admin-login@myt.test", passwordEncoder.encode("clave-admin"), null, true));
+        Usuario administrador = clienteRepository.save(new Usuario(null, "Ana", "Admin",
+                "admin-login@myt.test", passwordEncoder.encode("clave-admin"), null, true,
+                new HashSet<>(Set.of(RolUsuario.ADMINISTRADOR)), null, null, null));
         Estudiante estudiante = crearEstudiante();
         Tutor tutor = crearTutor();
 
@@ -65,13 +63,13 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 .andExpect(redirectedUrl("/admin"));
 
         mockMvc.perform(post("/login")
-                        .param("correo", estudiante.getCliente().getCorreo().toUpperCase())
+                        .param("correo", estudiante.getUsuario().getCorreo().toUpperCase())
                         .param("contrasena", "clave-estudiante"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tutores"));
 
         mockMvc.perform(post("/login")
-                        .param("correo", tutor.getCliente().getCorreo())
+                        .param("correo", tutor.getUsuario().getCorreo())
                         .param("contrasena", "clave-tutor"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tutores/" + tutor.getId() + "/reservas"));
@@ -79,8 +77,9 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void conservaElLoginAnteCredencialesInvalidasSinExponerElHash() throws Exception {
-        Cliente cliente = clienteRepository.save(new Cliente(null, "Eva", "Error",
-                "eva-login@myt.test", passwordEncoder.encode("clave-real"), null, true));
+        Usuario cliente = clienteRepository.save(new Usuario(null, "Eva", "Error",
+                "eva-login@myt.test", passwordEncoder.encode("clave-real"), null, true,
+                new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null));
         estudianteRepository.save(new Estudiante(null, cliente, "LOGIN-02",
                 "Universidad de prueba", "Matemáticas", 3));
 
@@ -137,8 +136,9 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void permiteAsignarPerfilAUnClienteExistente() throws Exception {
-        Cliente cliente = clienteRepository.save(new Cliente(null, "Carlos", "Cuenta",
-                "carlos-existente@myt.test", passwordEncoder.encode("clave-existente"), null, true));
+        Usuario cliente = clienteRepository.save(new Usuario(null, "Carlos", "Cuenta",
+                "carlos-existente@myt.test", passwordEncoder.encode("clave-existente"), null, true,
+                new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null));
 
         mockMvc.perform(post("/clientes/guardar")
                         .param("id", cliente.getId().toString())
@@ -154,7 +154,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/clientes"));
 
-        Tutor tutor = tutorRepository.findByClienteId(cliente.getId()).orElseThrow();
+        Tutor tutor = tutorRepository.findByUsuarioId(cliente.getId()).orElseThrow();
         mockMvc.perform(post("/login")
                         .param("correo", cliente.getCorreo())
                         .param("contrasena", "clave-existente"))
@@ -163,16 +163,18 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     }
 
     private Estudiante crearEstudiante() {
-        Cliente cliente = clienteRepository.save(new Cliente(null, "Estela", "Estudiante",
-                "estudiante-login@myt.test", passwordEncoder.encode("clave-estudiante"), null, true));
+        Usuario cliente = clienteRepository.save(new Usuario(null, "Estela", "Estudiante",
+                "estudiante-login@myt.test", passwordEncoder.encode("clave-estudiante"), null, true,
+                new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null));
         return estudianteRepository.save(new Estudiante(null, cliente, "LOGIN-01",
                 "Universidad de prueba", "Ingeniería", 4));
     }
 
     private Tutor crearTutor() {
-        Cliente cliente = clienteRepository.save(new Cliente(null, "Tomás", "Tutor",
-                "tutor-login@myt.test", passwordEncoder.encode("clave-tutor"), null, true));
-        return tutorRepository.save(new Tutor(null, cliente, "Tutor de prueba", List.of("Cálculo"),
-                new BigDecimal("45000.00"), 4.9, true));
+        Usuario cliente = clienteRepository.save(new Usuario(null, "Tomás", "Tutor",
+                "tutor-login@myt.test", passwordEncoder.encode("clave-tutor"), null, true,
+                new HashSet<>(Set.of(RolUsuario.TUTOR)), null, null, null));
+        return tutorRepository.save(new Tutor(null, cliente, "Tutor de prueba", Set.of(),
+                new BigDecimal("45000.00"), true));
     }
 }

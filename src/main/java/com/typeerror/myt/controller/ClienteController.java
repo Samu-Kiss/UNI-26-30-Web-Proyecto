@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.service.ClienteService;
 
 @Controller
@@ -32,8 +32,7 @@ public class ClienteController {
 
     @GetMapping
     public String listarClientes(Model model) {
-        model.addAttribute("clientes", clienteService.findAll());
-        return "clientes";
+        return "redirect:/usuarios";
     }
 
     @GetMapping("/nuevo")
@@ -46,7 +45,7 @@ public class ClienteController {
 
     @GetMapping("/editar/{id}")
     public String editarCliente(@PathVariable Integer id, Model model) {
-        Cliente existente = clienteService.findById(id)
+        Usuario existente = clienteService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El cliente no existe"));
         model.addAttribute("cliente", ClienteForm.from(existente));
         model.addAttribute("perfil", new RegistroPerfilForm());
@@ -72,7 +71,7 @@ public class ClienteController {
             return CLIENTE_FORM_VIEW;
         }
 
-        Cliente cliente = formulario.toEntity();
+        Usuario cliente = formulario.toEntity();
         try {
             if (permiteAsignarPerfil) {
                 guardarClienteNuevo(cliente, perfil);
@@ -102,7 +101,7 @@ public class ClienteController {
         return REDIRECT_CLIENTES;
     }
 
-    private void guardarClienteNuevo(Cliente cliente, RegistroPerfilForm perfil) {
+    private void guardarClienteNuevo(Usuario cliente, RegistroPerfilForm perfil) {
         if (perfil.getRol() == null || perfil.getRol().isBlank()) {
             throw new IllegalArgumentException("Selecciona si la cuenta es de estudiante o tutor");
         }

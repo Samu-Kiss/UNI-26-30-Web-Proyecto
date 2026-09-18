@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.validation.BindingResult;
 
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.service.ClienteService;
 
 class ClienteControllerTest {
@@ -157,7 +157,7 @@ class ClienteControllerTest {
                 "clave-plana", null, true);
     }
 
-    private boolean coincide(Cliente cliente, ClienteForm formulario) {
+    private boolean coincide(Usuario cliente, ClienteForm formulario) {
         return cliente.getId() == formulario.getId()
                 && cliente.getNombre().equals(formulario.getNombre())
                 && cliente.getApellido().equals(formulario.getApellido())

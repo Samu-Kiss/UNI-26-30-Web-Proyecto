@@ -2,6 +2,8 @@ package com.typeerror.myt.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -10,40 +12,45 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Materia;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.Tutor;
-import com.typeerror.myt.repository.ClienteRepository;
+import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.repository.EstudianteRepository;
 import com.typeerror.myt.repository.TutorRepository;
 
 @Service
 public class ClienteServiceImpl implements ClienteService {
 
-    private final ClienteRepository clienteRepository;
+    private final UsuarioRepository clienteRepository;
     private final EstudianteRepository estudianteRepository;
     private final TutorRepository tutorRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MateriaRepository materiaRepository;
 
-    public ClienteServiceImpl(ClienteRepository clienteRepository,
+    public ClienteServiceImpl(UsuarioRepository clienteRepository,
             EstudianteRepository estudianteRepository,
             TutorRepository tutorRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, MateriaRepository materiaRepository) {
         this.clienteRepository = clienteRepository;
         this.estudianteRepository = estudianteRepository;
         this.tutorRepository = tutorRepository;
         this.passwordEncoder = passwordEncoder;
+        this.materiaRepository = materiaRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Cliente> findById(Integer id) {
+    public Optional<Usuario> findById(Integer id) {
         return clienteRepository.findById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Cliente> findAll() {
+    public List<Usuario> findAll() {
         return clienteRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
     }
 
@@ -54,24 +61,24 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     private boolean tienePerfilInterno(Integer clienteId) {
-        return estudianteRepository.findByClienteId(clienteId).isPresent()
-                || tutorRepository.findByClienteId(clienteId).isPresent();
+        return estudianteRepository.findByUsuarioId(clienteId).isPresent()
+                || tutorRepository.findByUsuarioId(clienteId).isPresent();
     }
 
     @Override
     @Transactional
-    public void guardar(Cliente cliente) {
+    public void guardar(Usuario cliente) {
         guardarInterno(cliente);
     }
 
-    private Cliente guardarInterno(Cliente cliente) {
+    private Usuario guardarInterno(Usuario cliente) {
         validarCorreoDisponible(cliente);
 
         if (cliente.getId() == null) {
             return guardarCuentaNueva(cliente);
         }
 
-        Cliente existente = clienteRepository.findById(cliente.getId())
+        Usuario existente = clienteRepository.findById(cliente.getId())
                 .orElseThrow(() -> new IllegalArgumentException("El cliente no existe"));
         existente.setNombre(cliente.getNombre());
         existente.setApellido(cliente.getApellido());
@@ -85,24 +92,24 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     @Transactional
-    public void registrarEstudiante(Cliente cliente, String codigoEstudiantil, String universidad,
+    public void registrarEstudiante(Usuario cliente, String codigoEstudiantil, String universidad,
             String programaAcademico, Integer semestre) {
         validarPerfilDisponible(cliente);
         validarTexto(codigoEstudiantil, "El código estudiantil es obligatorio");
         validarTexto(universidad, "La universidad es obligatoria");
         validarTexto(programaAcademico, "El programa académico es obligatorio");
-        if (semestre == null || semestre < 1 || semestre > 20) {
-            throw new IllegalArgumentException("El semestre debe estar entre 1 y 20");
+        if (semestre == null || semestre < 1 || semestre > 30) {
+            throw new IllegalArgumentException("El semestre debe estar entre 1 y 30");
         }
 
-        Cliente guardado = guardarCuentaParaPerfil(cliente);
+        Usuario guardado = guardarCuentaParaPerfil(cliente, RolUsuario.ESTUDIANTE);
         estudianteRepository.save(new Estudiante(null, guardado, codigoEstudiantil.trim(),
                 universidad.trim(), programaAcademico.trim(), semestre));
     }
 
     @Override
     @Transactional
-    public void registrarTutor(Cliente cliente, String biografia, List<String> materias,
+    public void registrarTutor(Usuario cliente, String biografia, List<String> materias,
             BigDecimal tarifaPorHora) {
         validarPerfilDisponible(cliente);
         if (materias == null || materias.isEmpty()) {
@@ -112,9 +119,19 @@ public class ClienteServiceImpl implements ClienteService {
             throw new IllegalArgumentException("La tarifa por hora debe ser mayor que cero");
         }
 
-        Cliente guardado = guardarCuentaParaPerfil(cliente);
-        tutorRepository.save(new Tutor(null, guardado, normalizarOpcional(biografia), materias,
-                tarifaPorHora, null, true));
+        Set<Materia> asignaturas = new HashSet<>();
+        for (String nombre : materias) {
+            validarTexto(nombre, "El nombre de la materia es obligatorio");
+            String normalizado = nombre.trim();
+            if (normalizado.length() > 100) {
+                throw new IllegalArgumentException("La materia no puede superar 100 caracteres");
+            }
+            asignaturas.add(materiaRepository.findByNombre(normalizado)
+                    .orElseGet(() -> materiaRepository.save(new Materia(null, normalizado))));
+        }
+        Usuario guardado = guardarCuentaParaPerfil(cliente, RolUsuario.TUTOR);
+        tutorRepository.save(new Tutor(null, guardado, normalizarOpcional(biografia), asignaturas,
+                tarifaPorHora, true));
     }
 
     @Override
@@ -136,20 +153,27 @@ public class ClienteServiceImpl implements ClienteService {
         });
     }
 
-    private void validarCorreoDisponible(Cliente cliente) {
-        Cliente encontrado = clienteRepository.findByCorreoIgnoreCase(cliente.getCorreo()).orElse(null);
+    private void validarCorreoDisponible(Usuario cliente) {
+        Usuario encontrado = clienteRepository.findByCorreoIgnoreCase(cliente.getCorreo()).orElse(null);
         if (encontrado != null && !Objects.equals(encontrado.getId(), cliente.getId())) {
             throw new IllegalArgumentException("Ya existe un cliente con ese correo");
         }
     }
 
-    private Cliente guardarCuentaNueva(Cliente cliente) {
+    private Usuario guardarCuentaNueva(Usuario cliente) {
         cliente.setActivo(true);
         cliente.setContrasena(passwordEncoder.encode(cliente.getContrasena()));
         return clienteRepository.save(cliente);
     }
 
-    private Cliente guardarCuentaParaPerfil(Cliente cliente) {
+    private Usuario guardarCuentaParaPerfil(Usuario cliente, RolUsuario rol) {
+        if (cliente.getId() != null) {
+            Usuario existente = clienteRepository.findById(cliente.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+            existente.getRoles().add(rol);
+        } else {
+            cliente.getRoles().add(rol);
+        }
         if (cliente.getId() == null) {
             validarCorreoDisponible(cliente);
             return guardarCuentaNueva(cliente);
@@ -157,7 +181,7 @@ public class ClienteServiceImpl implements ClienteService {
         return guardarInterno(cliente);
     }
 
-    private void validarPerfilDisponible(Cliente cliente) {
+    private void validarPerfilDisponible(Usuario cliente) {
         if (cliente.getId() != null && tienePerfilInterno(cliente.getId())) {
             throw new IllegalArgumentException("La cuenta ya tiene un perfil asignado");
         }

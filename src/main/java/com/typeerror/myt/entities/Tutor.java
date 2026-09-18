@@ -6,22 +6,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.persistence.CollectionTable;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.OrderColumn;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -30,6 +29,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/** Perfil profesional de un usuario que ofrece tutorias. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -42,29 +42,26 @@ public class Tutor {
     private Integer id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "cliente_id", nullable = false, unique = true)
+    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
     @ToString.Exclude
-    private Cliente cliente;
+    private Usuario usuario;
 
     @Size(max = 2000)
     @Column(length = 2000)
     private String biografia;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "tutor_materias", joinColumns = @JoinColumn(name = "tutor_id"))
-    @OrderColumn(name = "orden")
-    @Column(name = "materia", nullable = false, length = 100)
-    private List<String> materias = new ArrayList<>();
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "tutor_materias",
+        joinColumns = @JoinColumn(name = "tutor_id"),
+        inverseJoinColumns = @JoinColumn(name = "materia_id")
+    )
+    private Set<Materia> materias = new HashSet<>();
 
     @NotNull
     @Positive
     @Column(name = "tarifa_por_hora", nullable = false, precision = 12, scale = 2)
     private BigDecimal tarifaPorHora;
-
-    @DecimalMin("0.0")
-    @DecimalMax("5.0")
-    @Column(name = "calificacion_promedio")
-    private Double calificacionPromedio;
 
     @Column(nullable = false)
     private Boolean disponible = true;
@@ -73,22 +70,33 @@ public class Tutor {
     @ToString.Exclude
     private Set<Reserva> reservas = new HashSet<>();
 
-    public Tutor(Integer id, Cliente cliente, String biografia, List<String> materias,
-            BigDecimal tarifaPorHora, Double calificacionPromedio, Boolean disponible) {
+    @OneToMany(
+        mappedBy = "tutor",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    @ToString.Exclude
+    private List<DisponibilidadTutor> disponibilidades = new ArrayList<>();
+
+    public Tutor(Integer id, Usuario usuario, String biografia, Set<Materia> materias,
+            BigDecimal tarifaPorHora, Boolean disponible) {
         this.id = id;
-        this.cliente = cliente;
+        this.usuario = usuario;
         this.biografia = biografia;
-        this.materias = new ArrayList<>(materias);
+        this.materias = new HashSet<>(materias);
         this.tarifaPorHora = tarifaPorHora;
-        this.calificacionPromedio = calificacionPromedio;
         this.disponible = disponible;
     }
 
     @PrePersist
+    @PreUpdate
     void asegurarDisponibilidadInicial() {
+        if (usuario == null || !usuario.getRoles().contains(RolUsuario.TUTOR)) {
+            throw new IllegalStateException("El perfil de tutor requiere el rol TUTOR");
+        }
         if (disponible == null) {
             disponible = true;
         }
     }
-
 }

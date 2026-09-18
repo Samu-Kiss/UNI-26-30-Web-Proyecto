@@ -1,5 +1,10 @@
 package com.typeerror.myt;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -14,6 +19,23 @@ public abstract class PostgreSqlIntegrationTest {
 
     static {
         POSTGRES.start();
+        aplicarMigracion("/db/supabase/20260903120000_add_domain_constraints_and_indexes.sql");
+        aplicarMigracion("/db/supabase/20260917160000_refactor_domain_model.sql");
+        aplicarMigracion("/db/supabase/20260917170000_add_chat.sql");
+    }
+
+    private static void aplicarMigracion(String recurso) {
+        try (var entrada = PostgreSqlIntegrationTest.class.getResourceAsStream(recurso);
+                var conexion = DriverManager.getConnection(
+                        POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                var sentencia = conexion.createStatement()) {
+            if (entrada == null) {
+                throw new IllegalStateException("No se encontro la migracion de prueba " + recurso);
+            }
+            sentencia.execute(new String(entrada.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException | SQLException exception) {
+            throw new IllegalStateException("No fue posible preparar el esquema de prueba", exception);
+        }
     }
 
     @DynamicPropertySource

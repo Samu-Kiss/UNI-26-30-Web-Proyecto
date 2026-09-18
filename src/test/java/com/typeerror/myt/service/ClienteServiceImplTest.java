@@ -12,6 +12,9 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,33 +22,37 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.typeerror.myt.entities.Cliente;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.entities.Materia;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.Tutor;
-import com.typeerror.myt.repository.ClienteRepository;
+import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.repository.EstudianteRepository;
 import com.typeerror.myt.repository.TutorRepository;
 
 class ClienteServiceImplTest {
 
-    private ClienteRepository clienteRepository;
+    private UsuarioRepository clienteRepository;
     private EstudianteRepository estudianteRepository;
     private TutorRepository tutorRepository;
     private ClienteServiceImpl clienteService;
 
     @BeforeEach
     void configurar() {
-        clienteRepository = mock(ClienteRepository.class);
+        clienteRepository = mock(UsuarioRepository.class);
         estudianteRepository = mock(EstudianteRepository.class);
         tutorRepository = mock(TutorRepository.class);
         PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        MateriaRepository materiaRepository = mock(MateriaRepository.class);
+        when(materiaRepository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
         clienteService = new ClienteServiceImpl(clienteRepository, estudianteRepository,
-                tutorRepository, passwordEncoder);
+                tutorRepository, passwordEncoder, materiaRepository);
 
         when(clienteRepository.findByCorreoIgnoreCase(any())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hash-seguro");
         when(clienteRepository.save(any())).thenAnswer(invocacion -> {
-            Cliente cliente = invocacion.getArgument(0);
+            Usuario cliente = invocacion.getArgument(0);
             if (cliente.getId() == null) {
                 cliente.setId(10);
             }
@@ -55,13 +62,13 @@ class ClienteServiceImplTest {
 
     @Test
     void registraCuentaYPerfilDeEstudianteEnUnaOperacion() {
-        Cliente cliente = cliente("estudiante-nuevo@myt.test");
+        Usuario cliente = cliente("estudiante-nuevo@myt.test");
 
         clienteService.registrarEstudiante(cliente, "EST-10", "Universidad", "Sistemas", 4);
 
         ArgumentCaptor<Estudiante> captor = ArgumentCaptor.forClass(Estudiante.class);
         verify(estudianteRepository).save(captor.capture());
-        assertEquals(10, captor.getValue().getCliente().getId());
+        assertEquals(10, captor.getValue().getUsuario().getId());
         assertEquals("EST-10", captor.getValue().getCodigoEstudiantil());
         assertEquals("hash-seguro", cliente.getContrasena());
         assertTrue(cliente.getActivo());
@@ -69,51 +76,52 @@ class ClienteServiceImplTest {
 
     @Test
     void registraCuentaYPerfilDeTutorEnUnaOperacion() {
-        Cliente cliente = cliente("tutor-nuevo@myt.test");
+        Usuario cliente = cliente("tutor-nuevo@myt.test");
 
         clienteService.registrarTutor(cliente, "Enseña matemáticas", List.of("Cálculo", "Álgebra"),
                 new BigDecimal("50000"));
 
         ArgumentCaptor<Tutor> captor = ArgumentCaptor.forClass(Tutor.class);
         verify(tutorRepository).save(captor.capture());
-        assertEquals(10, captor.getValue().getCliente().getId());
-        assertEquals(List.of("Cálculo", "Álgebra"), captor.getValue().getMaterias());
+        assertEquals(10, captor.getValue().getUsuario().getId());
+        assertEquals(Set.of("Cálculo", "Álgebra"), captor.getValue().getMaterias().stream()
+                .map(Materia::getNombre).collect(Collectors.toSet()));
         assertEquals(new BigDecimal("50000"), captor.getValue().getTarifaPorHora());
         assertEquals("hash-seguro", cliente.getContrasena());
     }
 
     @Test
     void permiteAsignarPerfilAUnaCuentaAntigua() {
-        Cliente cliente = cliente("cuenta-antigua@myt.test");
+        Usuario cliente = cliente("cuenta-antigua@myt.test");
         cliente.setId(15);
         cliente.setContrasena("");
-        when(clienteRepository.findById(15)).thenReturn(Optional.of(new Cliente(15, "Anterior", "Usuario",
-                cliente.getCorreo(), "hash-anterior", null, true)));
+        when(clienteRepository.findById(15)).thenReturn(Optional.of(new Usuario(15, "Anterior", "Usuario",
+                cliente.getCorreo(), "hash-anterior", null, true, new HashSet<>(), null, null, null)));
 
         clienteService.registrarEstudiante(cliente, "ANT-15", "Universidad", "Derecho", 2);
 
         ArgumentCaptor<Estudiante> captor = ArgumentCaptor.forClass(Estudiante.class);
         verify(estudianteRepository).save(captor.capture());
-        assertEquals(15, captor.getValue().getCliente().getId());
-        assertEquals("hash-anterior", captor.getValue().getCliente().getContrasena());
+        assertEquals(15, captor.getValue().getUsuario().getId());
+        assertEquals("hash-anterior", captor.getValue().getUsuario().getContrasena());
     }
 
     @Test
     void detectaPerfilesDeEstudianteYDeTutor() {
-        when(estudianteRepository.findByClienteId(15)).thenReturn(Optional.of(mock(Estudiante.class)));
+        when(estudianteRepository.findByUsuarioId(15)).thenReturn(Optional.of(mock(Estudiante.class)));
         assertFalse(clienteService.puedeAsignarPerfil(15));
 
-        when(estudianteRepository.findByClienteId(15)).thenReturn(Optional.empty());
-        when(tutorRepository.findByClienteId(15)).thenReturn(Optional.of(mock(Tutor.class)));
+        when(estudianteRepository.findByUsuarioId(15)).thenReturn(Optional.empty());
+        when(tutorRepository.findByUsuarioId(15)).thenReturn(Optional.of(mock(Tutor.class)));
         assertFalse(clienteService.puedeAsignarPerfil(15));
 
-        when(tutorRepository.findByClienteId(15)).thenReturn(Optional.empty());
+        when(tutorRepository.findByUsuarioId(15)).thenReturn(Optional.empty());
         assertTrue(clienteService.puedeAsignarPerfil(15));
     }
 
     @Test
     void rechazaDatosInvalidosDelPerfilDeEstudiante() {
-        Cliente cliente = cliente("estudiante-invalido@myt.test");
+        Usuario cliente = cliente("estudiante-invalido@myt.test");
 
         assertThrows(IllegalArgumentException.class,
                 () -> clienteService.registrarEstudiante(cliente, null, "Universidad", "Sistemas", 4));
@@ -124,12 +132,12 @@ class ClienteServiceImplTest {
         assertThrows(IllegalArgumentException.class,
                 () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 0));
         assertThrows(IllegalArgumentException.class,
-                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 21));
+                () -> clienteService.registrarEstudiante(cliente, "EST-1", "Universidad", "Sistemas", 31));
     }
 
     @Test
     void rechazaDatosInvalidosDelPerfilDeTutor() {
-        Cliente cliente = cliente("tutor-invalido@myt.test");
+        Usuario cliente = cliente("tutor-invalido@myt.test");
         List<String> materias = List.of("Cálculo");
 
         assertThrows(IllegalArgumentException.class,
@@ -144,7 +152,7 @@ class ClienteServiceImplTest {
 
     @Test
     void normalizaLaBiografiaOpcionalDelTutor() {
-        Cliente sinBiografia = cliente("tutor-sin-biografia@myt.test");
+        Usuario sinBiografia = cliente("tutor-sin-biografia@myt.test");
         clienteService.registrarTutor(sinBiografia, null, List.of("Cálculo"), BigDecimal.ONE);
 
         ArgumentCaptor<Tutor> captor = ArgumentCaptor.forClass(Tutor.class);
@@ -152,7 +160,8 @@ class ClienteServiceImplTest {
         assertNull(captor.getValue().getBiografia());
     }
 
-    private Cliente cliente(String correo) {
-        return new Cliente(null, "Nombre", "Apellido", correo, "clave-plana", null, true);
+    private Usuario cliente(String correo) {
+        return new Usuario(null, "Nombre", "Apellido", correo, "clave-plana", null, true,
+                new HashSet<>(), null, null, null);
     }
 }

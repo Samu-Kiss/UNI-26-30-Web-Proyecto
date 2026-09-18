@@ -6,27 +6,29 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Administrador;
-import com.typeerror.myt.repository.AdministradorRepository;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.repository.UsuarioRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class AdministradorServiceImpl implements AdministradorService {
 
-    private final AdministradorRepository administradorRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public AdministradorServiceImpl(AdministradorRepository administradorRepository) {
-        this.administradorRepository = administradorRepository;
+    public AdministradorServiceImpl(UsuarioRepository usuarioRepository) {
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
-    public Optional<Administrador> findById(Integer id) {
-        return administradorRepository.findById(id);
+    public Optional<Usuario> findById(Integer id) {
+        return usuarioRepository.findById(id)
+                .filter(usuario -> usuario.getRoles().contains(RolUsuario.ADMINISTRADOR));
     }
 
     @Override
-    public List<Administrador> findAll() {
-        return administradorRepository.findAll();
+    public List<Usuario> findAll() {
+        return usuarioRepository.findDistinctByRolesContainingOrderByIdAsc(RolUsuario.ADMINISTRADOR);
     }
 
 }
