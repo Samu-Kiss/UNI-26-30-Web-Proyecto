@@ -187,6 +187,14 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         estudianteRepository.save(new Estudiante(null, cliente, "LOGIN-DOBLE",
                 "Universidad de prueba", "Ingeniería", 6));
 
+        String formulario = mockMvc.perform(get("/usuarios/{id}/perfil/nuevo", cliente.getId()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("perfil-usuario-form"))
+                .andReturn().getResponse().getContentAsString();
+        assertTrue(formulario.contains("action=\"/usuarios/" + cliente.getId() + "/perfil\""));
+        assertTrue(formulario.contains("value=\"TUTOR\""));
+        assertFalse(formulario.contains("value=\"ESTUDIANTE\""));
+
         mockMvc.perform(post("/usuarios/{id}/perfil", cliente.getId())
                         .param("rol", "TUTOR")
                         .param("materias", "Cálculo, Álgebra")
@@ -195,7 +203,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/usuarios"));
 
-        Tutor tutor = tutorRepository.findByUsuarioId(cliente.getId()).orElseThrow();
+        tutorRepository.findByUsuarioId(cliente.getId()).orElseThrow();
         mockMvc.perform(post("/login")
                         .param("correo", cliente.getCorreo())
                         .param("contrasena", "clave-existente"))

@@ -51,12 +51,16 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
     @Override
     @Transactional(readOnly = true)
     public boolean puedeAsignarPerfil(Integer usuarioId) {
-        return !perfilesDisponibles(usuarioId).isEmpty();
+        return !consultarPerfilesDisponibles(usuarioId).isEmpty();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Set<RolUsuario> perfilesDisponibles(Integer usuarioId) {
+        return consultarPerfilesDisponibles(usuarioId);
+    }
+
+    private Set<RolUsuario> consultarPerfilesDisponibles(Integer usuarioId) {
         Set<RolUsuario> disponibles = EnumSet.of(RolUsuario.ESTUDIANTE, RolUsuario.TUTOR);
         if (estudianteRepository.existsByUsuarioId(usuarioId)) {
             disponibles.remove(RolUsuario.ESTUDIANTE);

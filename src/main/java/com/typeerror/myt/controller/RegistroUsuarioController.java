@@ -25,6 +25,8 @@ public class RegistroUsuarioController {
 
     private static final String REGISTRO_FORM_VIEW = "registro-usuario-form";
     private static final String REDIRECT_USUARIOS = "redirect:/usuarios";
+    private static final String MODEL_USUARIO = "usuario";
+    private static final String MODEL_ROLES_PERFIL = "rolesPerfilDisponibles";
     private final RegistroUsuarioService usuarioService;
 
     public RegistroUsuarioController(RegistroUsuarioService usuarioService) {
@@ -33,9 +35,9 @@ public class RegistroUsuarioController {
 
     @GetMapping("/nuevo")
     public String nuevoUsuario(Model model) {
-        model.addAttribute("usuario", new RegistroUsuarioForm());
+        model.addAttribute(MODEL_USUARIO, new RegistroUsuarioForm());
         model.addAttribute("perfil", new RegistroPerfilForm());
-        model.addAttribute("rolesPerfilDisponibles",
+        model.addAttribute(MODEL_ROLES_PERFIL,
                 Set.of(RolUsuario.ESTUDIANTE, RolUsuario.TUTOR));
         return REGISTRO_FORM_VIEW;
     }
@@ -48,18 +50,18 @@ public class RegistroUsuarioController {
         if (disponibles.isEmpty()) {
             throw new IllegalArgumentException("El usuario ya tiene todos los perfiles disponibles");
         }
-        model.addAttribute("usuario", existente);
+        model.addAttribute(MODEL_USUARIO, existente);
         model.addAttribute("perfil", new RegistroPerfilForm());
-        model.addAttribute("rolesPerfilDisponibles", disponibles);
+        model.addAttribute(MODEL_ROLES_PERFIL, disponibles);
         return "perfil-usuario-form";
     }
 
     @PostMapping("/registrar")
-    public String guardarUsuario(@Valid @ModelAttribute("usuario") RegistroUsuarioForm formulario,
+    public String guardarUsuario(@Valid @ModelAttribute(MODEL_USUARIO) RegistroUsuarioForm formulario,
             BindingResult bindingResult,
             @ModelAttribute("perfil") RegistroPerfilForm perfil,
             Model model) {
-        model.addAttribute("rolesPerfilDisponibles",
+        model.addAttribute(MODEL_ROLES_PERFIL,
                 Set.of(RolUsuario.ESTUDIANTE, RolUsuario.TUTOR));
         if (bindingResult.hasErrors()) {
             return REGISTRO_FORM_VIEW;
@@ -94,8 +96,8 @@ public class RegistroUsuarioController {
             guardarPerfil(usuario, perfil);
             return REDIRECT_USUARIOS;
         } catch (IllegalArgumentException exception) {
-            model.addAttribute("usuario", usuario);
-            model.addAttribute("rolesPerfilDisponibles", usuarioService.perfilesDisponibles(id));
+            model.addAttribute(MODEL_USUARIO, usuario);
+            model.addAttribute(MODEL_ROLES_PERFIL, usuarioService.perfilesDisponibles(id));
             model.addAttribute("errorPerfil", exception.getMessage());
             return "perfil-usuario-form";
         }
