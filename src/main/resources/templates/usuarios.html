@@ -8,9 +8,10 @@
 </head>
 <body>
     <main class="contenedor">
+        <a class="volver" th:href="@{/admin}">Volver al menú</a>
         <header class="encabezado">
             <div><p class="marca">MyT</p><h1>Usuarios</h1>
-                <p class="descripcion">Identidad comun para estudiantes, tutores y administradores.</p></div>
+                <p class="descripcion">Identidad común para estudiantes, tutores y administradores.</p></div>
             <a class="boton boton-primario" th:href="@{/usuarios/nuevo}">Nuevo usuario</a>
         </header>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de usuarios">
@@ -21,8 +22,11 @@
                         <td th:text="${usuario.id}"></td>
                         <td th:text="|${usuario.nombre} ${usuario.apellido}|"></td>
                         <td th:text="${usuario.correo}"></td>
-                        <td th:text="${#strings.listJoin(usuario.roles, ', ')}"></td>
-                        <td th:text="${usuario.activo} ? 'Activo' : 'Inactivo'"></td>
+                        <td><div class="lista-etiquetas">
+                            <span class="etiqueta-rol" th:each="rol : ${usuario.roles}" th:text="${rol}"></span>
+                        </div></td>
+                        <td><span class="estado" th:classappend="${usuario.activo ? 'estado-activo' : 'estado-inactivo'}"
+                                  th:text="${usuario.activo ? 'Activo' : 'Inactivo'}"></span></td>
                         <td class="acciones">
                             <a class="enlace" th:if="${puedeAgregarPerfil[usuario.id]}"
                                th:href="@{/usuarios/{id}/perfil/nuevo(id=${usuario.id})}">Agregar perfil</a>

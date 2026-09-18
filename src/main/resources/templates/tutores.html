@@ -12,6 +12,7 @@
             <div>
                 <p class="marca">MyT</p>
                 <h1>Tutores</h1>
+                <p class="descripcion">Consulta materias, tarifas y disponibilidad.</p>
             </div>
         </header>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de tutores">
@@ -25,7 +26,9 @@
                         <td th:text="|${tutor.usuario.nombre} ${tutor.usuario.apellido}|"></td>
                         <td th:text="${#strings.listJoin(tutor.materias.![nombre], ', ')}"></td>
                         <td th:text="${tutor.tarifaPorHora}"></td>
-                        <td th:text="${tutor.disponible} ? 'Disponible' : 'No disponible'"></td>
+                        <td><span class="estado"
+                                  th:classappend="${tutor.disponible ? 'estado-activo' : 'estado-inactivo'}"
+                                  th:text="${tutor.disponible ? 'Disponible' : 'No disponible'}"></span></td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(tutores)}">
                         <td class="vacio" colspan="5">No hay tutores registrados.</td>

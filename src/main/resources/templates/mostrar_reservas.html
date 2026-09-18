@@ -3,45 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reservas</title>
+    <title>Reservas - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
 </head>
 <body>
-    <h1>Listado de reservas</h1>
-
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Estudiante</th>
-                <th>Tutor</th>
-                <th>Materia</th>
-                <th>Fecha</th>
-                <th>Hora de inicio</th>
-                <th>Duración</th>
-                <th>Tema</th>
-                <th>Modalidad</th>
-                <th>Estado</th>
-                <th>Costo total</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="reserva : ${reservas}">
-                <td th:text="${reserva.id}"></td>
-                <td th:text="|${reserva.estudiante.usuario.nombre} ${reserva.estudiante.usuario.apellido}|"></td>
-                <td th:text="|${reserva.tutor.usuario.nombre} ${reserva.tutor.usuario.apellido}|"></td>
-                <td th:text="${reserva.materia.nombre}"></td>
-                <td th:text="${reserva.fecha}"></td>
-                <td th:text="${reserva.horaInicio}"></td>
-                <td th:text="|${reserva.duracionMinutos} minutos|"></td>
-                <td th:text="${reserva.tema}"></td>
-                <td th:text="${reserva.modalidad}"></td>
-                <td th:text="${reserva.estado}"></td>
-                <td th:text="${reserva.costoTotal}"></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(reservas)}">
-                <td colspan="11">No hay reservas registradas.</td>
-            </tr>
-        </tbody>
-    </table>
+    <main class="contenedor">
+        <a class="volver" th:href="@{/admin}">Volver al menú</a>
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1>Reservas</h1>
+                <p class="descripcion">Consulta las sesiones registradas en la plataforma.</p>
+            </div>
+        </header>
+        <section class="tarjeta tabla-contenedor" aria-label="Listado de reservas">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Estudiante</th><th>Tutor</th><th>Materia</th><th>Fecha</th>
+                        <th>Hora</th><th>Duración</th><th>Tema</th><th>Modalidad</th><th>Estado</th><th>Costo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="reserva : ${reservas}">
+                        <td th:text="${reserva.id}"></td>
+                        <td th:text="|${reserva.estudiante.usuario.nombre} ${reserva.estudiante.usuario.apellido}|"></td>
+                        <td th:text="|${reserva.tutor.usuario.nombre} ${reserva.tutor.usuario.apellido}|"></td>
+                        <td th:text="${reserva.materia.nombre}"></td>
+                        <td th:text="${reserva.fecha}"></td>
+                        <td th:text="${reserva.horaInicio}"></td>
+                        <td th:text="|${reserva.duracionMinutos} min|"></td>
+                        <td th:text="${reserva.tema}"></td>
+                        <td><span class="etiqueta-neutral" th:text="${reserva.modalidad}"></span></td>
+                        <td><span class="etiqueta-neutral" th:text="${reserva.estado}"></span></td>
+                        <td th:text="${reserva.costoTotal}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservas)}">
+                        <td class="vacio" colspan="11">No hay reservas registradas.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
 </body>
 </html>
