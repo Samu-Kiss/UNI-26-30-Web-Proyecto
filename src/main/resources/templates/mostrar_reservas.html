@@ -68,9 +68,19 @@
             <input type="hidden" name="estado" value="CANCELADA">
             <input type="hidden" name="sesion" th:value="${sesion}">
 
-            <label class="sr-only" th:for="|motivo-${reserva.id}|"> Motivo de cancelación </label>
-            <input class="campo-motivo" type="text" name="motivo" th:id="|motivo-${reserva.id}|" placeholder="Motivo de cancelación">
-            
+            <label class="sr-only"
+                for="motivo"
+                th:for="|motivo-${reserva.id}|">
+                Motivo de cancelación
+            </label>
+
+            <input id="motivo"
+                class="campo-motivo"
+                type="text"
+                name="motivo"
+                th:id="|motivo-${reserva.id}|"
+                placeholder="Motivo de cancelación">
+
                         <button type="submit" class="boton boton-cancelar">
                         Cancelar
                         </button>
