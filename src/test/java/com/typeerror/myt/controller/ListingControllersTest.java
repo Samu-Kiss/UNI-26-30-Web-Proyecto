@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
 import com.typeerror.myt.entities.Estudiante;
+import com.typeerror.myt.entities.EstadoReserva;
 
 @ExtendWith(MockitoExtension.class)
 class ListingControllersTest {
@@ -61,5 +63,27 @@ class ListingControllersTest {
                         .listarReservas(7, model));
         assertEquals(estudiante, model.getAttribute("estudiante"));
         assertTrue(model.containsAttribute("reservas"));
+    }
+
+    @Test
+    void cambiaEstadoReservaYRedirecciona() {
+        ConcurrentModel model = new ConcurrentModel();
+        ReservaController controller = new ReservaController(reservaService);
+
+        String resultado = controller.cambiarEstado(
+                5,
+                EstadoReserva.CONFIRMADA,
+                null,
+                "ADMINISTRADOR:7",
+                model);
+
+        assertEquals(
+                "redirect:/reservas?sesion=ADMINISTRADOR:7",
+                resultado);
+
+        verify(reservaService).cambiarEstado(
+                5,
+                EstadoReserva.CONFIRMADA,
+                null);
     }
 }
