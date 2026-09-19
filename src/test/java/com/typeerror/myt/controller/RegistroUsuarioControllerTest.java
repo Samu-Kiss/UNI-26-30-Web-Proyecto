@@ -26,6 +26,8 @@ import com.typeerror.myt.service.RegistroUsuarioService;
 
 class RegistroUsuarioControllerTest {
 
+    private static final String SESION = "ADMINISTRADOR:1";
+
     private RegistroUsuarioService usuarioService;
     private RegistroUsuarioController controller;
     private BindingResult bindingResult;
@@ -44,7 +46,7 @@ class RegistroUsuarioControllerTest {
         when(bindingResult.hasErrors()).thenReturn(true);
 
         String vista = controller.guardarUsuario(usuarioNuevo(), bindingResult,
-                perfilEstudiante("4"), model);
+                perfilEstudiante("4"), model, SESION);
 
         assertEquals("registro-usuario-form", vista);
         assertTrue(model.containsAttribute("rolesPerfilDisponibles"));
@@ -57,11 +59,11 @@ class RegistroUsuarioControllerTest {
         usuario.setContrasena(null);
 
         String vistaConContrasenaNula = controller.guardarUsuario(usuario, bindingResult,
-                perfilEstudiante("4"), model);
+                perfilEstudiante("4"), model, SESION);
 
         usuario.setContrasena(" ");
         String vistaConContrasenaVacia = controller.guardarUsuario(usuario, bindingResult,
-                perfilEstudiante("4"), model);
+                perfilEstudiante("4"), model, SESION);
 
         assertEquals("registro-usuario-form", vistaConContrasenaNula);
         assertEquals("registro-usuario-form", vistaConContrasenaVacia);
@@ -78,7 +80,7 @@ class RegistroUsuarioControllerTest {
                 .when(usuarioService).registrarEstudiante(argThat(entidad -> coincide(entidad, usuario)), eq("EST-1"),
                         eq("Universidad"), eq("Sistemas"), eq(4));
 
-        String vista = controller.guardarUsuario(usuario, bindingResult, perfil, model);
+        String vista = controller.guardarUsuario(usuario, bindingResult, perfil, model, SESION);
 
         assertEquals("registro-usuario-form", vista);
         verify(bindingResult).rejectValue("correo", "correo.duplicado",
@@ -90,7 +92,7 @@ class RegistroUsuarioControllerTest {
         RegistroPerfilForm perfilSinRol = new RegistroPerfilForm();
 
         String vista = controller.guardarUsuario(usuarioNuevo(), bindingResult,
-                perfilSinRol, model);
+                perfilSinRol, model, SESION);
 
         assertEquals("registro-usuario-form", vista);
         assertEquals("Selecciona si la cuenta es de estudiante o tutor",
@@ -98,13 +100,13 @@ class RegistroUsuarioControllerTest {
 
         RegistroPerfilForm perfilConRolVacio = new RegistroPerfilForm();
         perfilConRolVacio.setRol(" ");
-        controller.guardarUsuario(usuarioNuevo(), bindingResult, perfilConRolVacio, model);
+        controller.guardarUsuario(usuarioNuevo(), bindingResult, perfilConRolVacio, model, SESION);
         assertEquals("Selecciona si la cuenta es de estudiante o tutor",
                 model.get("errorPerfil"));
 
         RegistroPerfilForm perfilDesconocido = new RegistroPerfilForm();
         perfilDesconocido.setRol("ADMIN");
-        controller.guardarUsuario(usuarioNuevo(), bindingResult, perfilDesconocido, model);
+        controller.guardarUsuario(usuarioNuevo(), bindingResult, perfilDesconocido, model, SESION);
 
         assertEquals("El tipo de cuenta seleccionado no es válido", model.get("errorPerfil"));
     }
@@ -128,15 +130,15 @@ class RegistroUsuarioControllerTest {
         RegistroUsuarioForm usuario = usuarioNuevo();
         RegistroPerfilForm perfil = perfilTutor(" Cálculo, , Álgebra, Cálculo ", "50000");
 
-        String resultado = controller.guardarUsuario(usuario, bindingResult, perfil, model);
+        String resultado = controller.guardarUsuario(usuario, bindingResult, perfil, model, SESION);
 
-        assertEquals("redirect:/usuarios", resultado);
+        assertEquals("redirect:/usuarios?sesion=" + SESION, resultado);
         verify(usuarioService).registrarTutor(argThat(entidad -> coincide(entidad, usuario)), eq("Tutor de prueba"),
                 eq(List.of("Cálculo", "Álgebra")), eq(new BigDecimal("50000")));
 
         RegistroUsuarioForm otroUsuario = usuarioNuevo();
         RegistroPerfilForm perfilSinMaterias = perfilTutor(null, "45000");
-        controller.guardarUsuario(otroUsuario, bindingResult, perfilSinMaterias, model);
+        controller.guardarUsuario(otroUsuario, bindingResult, perfilSinMaterias, model, SESION);
 
         verify(usuarioService).registrarTutor(argThat(entidad -> coincide(entidad, otroUsuario)), eq("Tutor de prueba"),
                 eq(List.of()), eq(new BigDecimal("45000")));
@@ -157,13 +159,13 @@ class RegistroUsuarioControllerTest {
 
     private void verificarErrorDeSemestre(String semestre, String mensajeEsperado) {
         controller.guardarUsuario(usuarioNuevo(), bindingResult,
-                perfilEstudiante(semestre), model);
+                perfilEstudiante(semestre), model, SESION);
         assertEquals(mensajeEsperado, model.get("errorPerfil"));
     }
 
     private void verificarErrorDeTarifa(String tarifa, String mensajeEsperado) {
         controller.guardarUsuario(usuarioNuevo(), bindingResult,
-                perfilTutor("Cálculo", tarifa), model);
+                perfilTutor("Cálculo", tarifa), model, SESION);
         assertEquals(mensajeEsperado, model.get("errorPerfil"));
     }
 

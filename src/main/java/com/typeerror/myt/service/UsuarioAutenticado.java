@@ -5,10 +5,11 @@ import com.typeerror.myt.entities.RolUsuario;
 public record UsuarioAutenticado(RolUsuario rol, Integer perfilId) {
 
     public String ruta() {
-        return switch (rol) {
+        String inicio = switch (rol) {
             case ADMINISTRADOR -> "/admin";
-            case ESTUDIANTE -> "/tutores";
-            case TUTOR -> "/tutores/" + perfilId + "/reservas";
+            case ESTUDIANTE -> "/estudiante";
+            case TUTOR -> "/tutor";
         };
+        return inicio + "?sesion=" + rol.name() + ":" + perfilId;
     }
 }

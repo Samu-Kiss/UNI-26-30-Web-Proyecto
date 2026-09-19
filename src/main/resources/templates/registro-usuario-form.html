@@ -8,13 +8,15 @@
 </head>
 <body>
     <main class="contenedor contenedor-formulario">
-        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
+        <a class="volver" th:href="@{/admin(sesion=${sesion})}">Volver al menú</a>
+        <a class="volver" th:href="@{/usuarios(sesion=${sesion})}">Volver a clientes</a>
         <section class="tarjeta formulario-tarjeta">
             <p class="marca">MyT</p>
             <h1>Nuevo usuario</h1>
             <p class="descripcion">Los campos marcados con * son obligatorios.</p>
 
-            <form class="formulario" th:action="@{/usuarios/registrar}" th:object="${usuario}" method="post">
+            <form class="formulario" th:action="@{/usuarios/registrar(sesion=${sesion})}"
+                  th:object="${usuario}" method="post">
                 <div class="rejilla">
                     <label>
                         Nombre *
@@ -55,7 +57,8 @@
                 </section>
 
                 <div class="acciones-formulario">
-                    <a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
+                    <a class="boton boton-secundario"
+                       th:href="@{/usuarios(sesion=${sesion})}">Cancelar</a>
                     <button class="boton boton-primario" type="submit">Guardar</button>
                 </div>
             </form>

@@ -61,6 +61,11 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
+    public List<Reserva> findByEstudianteId(Integer estudianteId) {
+        return reservaRepository.findByEstudianteIdOrderByFechaAscHoraInicioAsc(estudianteId);
+    }
+
+    @Override
     @Transactional
     public Reserva guardar(Reserva reserva) {
         validarDatos(reserva);

@@ -14,17 +14,18 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.service.RegistroUsuarioService;
+import com.typeerror.myt.service.ContextoSesion;
 
 @Controller
 @RequestMapping("/usuarios")
 public class RegistroUsuarioController {
 
     private static final String REGISTRO_FORM_VIEW = "registro-usuario-form";
-    private static final String REDIRECT_USUARIOS = "redirect:/usuarios";
     private static final String MODEL_USUARIO = "usuario";
     private static final String MODEL_ROLES_PERFIL = "rolesPerfilDisponibles";
     private final RegistroUsuarioService usuarioService;
@@ -60,7 +61,7 @@ public class RegistroUsuarioController {
     public String guardarUsuario(@Valid @ModelAttribute(MODEL_USUARIO) RegistroUsuarioForm formulario,
             BindingResult bindingResult,
             @ModelAttribute("perfil") RegistroPerfilForm perfil,
-            Model model) {
+            Model model, @RequestParam String sesion) {
         model.addAttribute(MODEL_ROLES_PERFIL,
                 Set.of(RolUsuario.ESTUDIANTE, RolUsuario.TUTOR));
         if (bindingResult.hasErrors()) {
@@ -84,17 +85,18 @@ public class RegistroUsuarioController {
             }
             return REGISTRO_FORM_VIEW;
         }
-        return REDIRECT_USUARIOS;
+        return ContextoSesion.redireccion("/usuarios", sesion);
     }
 
     @PostMapping("/{id}/perfil")
     public String guardarPerfil(@PathVariable Integer id,
-            @ModelAttribute("perfil") RegistroPerfilForm perfil, Model model) {
+            @ModelAttribute("perfil") RegistroPerfilForm perfil, Model model,
+            @RequestParam String sesion) {
         Usuario usuario = usuarioService.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
         try {
             guardarPerfil(usuario, perfil);
-            return REDIRECT_USUARIOS;
+            return ContextoSesion.redireccion("/usuarios", sesion);
         } catch (IllegalArgumentException exception) {
             model.addAttribute(MODEL_USUARIO, usuario);
             model.addAttribute(MODEL_ROLES_PERFIL, usuarioService.perfilesDisponibles(id));
