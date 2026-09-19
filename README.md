@@ -73,6 +73,47 @@ Las contrasenas se guardan como hashes BCrypt y nunca se vuelven a enviar al for
 Los perfiles `dev` y `prod` usan `ddl-auto=validate`: las migraciones versionadas son la unica
 fuente de cambios del esquema en cualquier entorno.
 
+## Scripts SQL de Administración de Datos (`app`)
+
+El proyecto incluye tres scripts SQL deterministas y transaccionales para la gestión de datos de prueba en la base de datos PostgreSQL / Supabase:
+
+- **`dev_seed.sql`**: Carga de datos de prueba coherentes.
+- **`truncate_myt.sql`**: Limpieza de datos en todas las tablas preservando estructura y reiniciando secuencias identity.
+- **`drop_myt.sql`**: Eliminación completa de las 12 tablas en orden estricto de dependencias sin usar `CASCADE`.
+
+### Ejecución de los scripts
+
+Desde el cliente psql o SQL Editor de Supabase:
+
+```bash
+# Cargar datos de prueba
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f seed_myt.sql
+
+# Vaciar datos de las tablas reiniciando secuencias
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f truncate_myt.sql
+
+# Eliminar todas las tablas del esquema app
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f drop_myt.sql
+```
+
+### Credenciales y Datos de Prueba
+
+Todos los usuarios creados por el seed tienen la misma contraseña predeterminada:
+- **Contraseña de prueba:** `1ManzanaGrande!` 
+
+Cuentas representativas creadas por tipo de rol:
+
+| Rol | Correo de Prueba | Nombre Completo |
+| --- | --- | --- |
+| `ADMINISTRADOR` | `admin.ortiz@myt.edu.co` | Juan David Ortiz |
+| `ADMINISTRADOR` | `admin.pico@myt.edu.co` | Samuel Pico |
+| `ADMINISTRADOR` | `admin.coco@myt.edu.co` | Santiago Bautista |
+| `ADMINISTRADOR` | `admin.maleja@myt.edu.co` | Alejandra Garcia |
+| `ESTUDIANTE` | `estudiante01@myt.edu.co` | Juan Pérez |
+| `ESTUDIANTE` | `estudiante02@myt.edu.co` | Maria Rodríguez |
+| `TUTOR` | `tutor01@myt.edu.co` | Felipe Morales |
+| `TUTOR` | `tutor02@myt.edu.co` | Elena Guerrero |
+
 ## Modelo relacional JPA
 
 Todas las entidades usan persistencia JPA y sus repositorios extienden `JpaRepository`:
@@ -93,3 +134,4 @@ El modelo y el contrato preparado para implementar el chat se documentan en
 
 La configuracion completa del pipeline, Sonar, Sentry, GHCR y la futura aplicacion Angular esta en
 [docs/ci-cd.md](docs/ci-cd.md).
+
