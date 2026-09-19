@@ -24,6 +24,9 @@ public interface ReservaRepository extends JpaRepository<Reserva, Integer> {
     @EntityGraph(attributePaths = {"estudiante", "estudiante.usuario", "tutor", "tutor.usuario"})
     List<Reserva> findByTutorIdOrderByFechaAscHoraInicioAsc(Integer tutorId);
 
+    @EntityGraph(attributePaths = {"estudiante", "estudiante.usuario", "tutor", "tutor.usuario", "materia"})
+    List<Reserva> findByEstudianteIdOrderByFechaAscHoraInicioAsc(Integer estudianteId);
+
     List<Reserva> findByTutorIdAndFechaAndEstadoNotIn(
             Integer tutorId, LocalDate fecha, Collection<EstadoReserva> estados);
 }

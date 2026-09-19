@@ -14,6 +14,8 @@ public interface ReservaService {
 
     List<Reserva> findByTutorId(Integer tutorId);
 
+    List<Reserva> findByEstudianteId(Integer estudianteId);
+
     Reserva guardar(Reserva reserva);
 
     Reserva cambiarEstado(Integer id, EstadoReserva nuevoEstado, String motivo);
