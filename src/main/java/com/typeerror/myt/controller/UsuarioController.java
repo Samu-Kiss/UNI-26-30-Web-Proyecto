@@ -21,6 +21,7 @@ import com.typeerror.myt.service.UsuarioService;
 public class UsuarioController {
 
     private static final String FORM_VIEW = "usuario-form";
+    private static final String USUARIOS_PATH = "/usuarios";
     private final UsuarioService usuarioService;
     private final RegistroUsuarioService registroUsuarioService;
 
@@ -62,18 +63,18 @@ public class UsuarioController {
             bindingResult.reject("usuario.invalido", exception.getMessage());
             return FORM_VIEW;
         }
-        return ContextoSesion.redireccion("/usuarios", sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 
     @PostMapping("/{id}/desactivar")
     public String desactivar(@PathVariable Integer id, @RequestParam String sesion) {
         usuarioService.desactivar(id);
-        return ContextoSesion.redireccion("/usuarios", sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 
     @PostMapping("/{id}/activar")
     public String activar(@PathVariable Integer id, @RequestParam String sesion) {
         usuarioService.activar(id);
-        return ContextoSesion.redireccion("/usuarios", sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 }
