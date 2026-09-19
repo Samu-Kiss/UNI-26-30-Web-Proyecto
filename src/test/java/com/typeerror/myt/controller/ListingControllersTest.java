@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.EstadoReserva;
+
 
 @ExtendWith(MockitoExtension.class)
 class ListingControllersTest {
@@ -85,5 +87,36 @@ class ListingControllersTest {
                 5,
                 EstadoReserva.CONFIRMADA,
                 null);
+    }
+
+    @Test
+    void muestraErrorCuandoNoPuedeCambiarEstado() {
+        doThrow(new IllegalArgumentException(
+                "El motivo es obligatorio al cancelar o rechazar"))
+                .when(reservaService)
+                .cambiarEstado(
+                        5,
+                        EstadoReserva.CANCELADA,
+                        null);
+
+        when(reservaService.findAll()).thenReturn(List.of());
+
+        ConcurrentModel model = new ConcurrentModel();
+        ReservaController controller = new ReservaController(reservaService);
+
+        String resultado = controller.cambiarEstado(
+                5,
+                EstadoReserva.CANCELADA,
+                null,
+                "ADMINISTRADOR:7",
+                model);
+
+        assertEquals("mostrar_reservas", resultado);
+
+        assertEquals(
+                "El motivo es obligatorio al cancelar o rechazar",
+                model.getAttribute("error"));
+
+        assertTrue(model.containsAttribute("reservas"));
     }
 }
