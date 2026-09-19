@@ -20,7 +20,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.repository.UsuarioRepository;
+
+import java.util.Set;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -35,15 +38,21 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    private String sesion;
 
     @BeforeEach
     void limpiarUsuarios() {
         usuarioRepository.deleteAll();
+        Usuario administrador = usuarioRepository.save(new Usuario(null, "Admin", "Pruebas",
+                "admin-crud@myt.test", passwordEncoder.encode("clave-admin"), null, true,
+                Set.of(RolUsuario.ADMINISTRADOR), null, null, null));
+        sesion = "ADMINISTRADOR:" + administrador.getId();
     }
 
     @Test
     void completaElCrudLogicoSinExponerLaContrasena() throws Exception {
         mockMvc.perform(post("/usuarios/registrar")
+                        .param("sesion", sesion)
                         .param("nombre", "Laura")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
@@ -55,7 +64,7 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
                         .param("programaAcademico", "Ingeniería")
                         .param("semestre", "5"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios"));
+                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
 
         Usuario creado = usuarioRepository.findByCorreoIgnoreCase("LAURA@MYT.TEST").orElseThrow();
         assertTrue(creado.getActivo());
@@ -63,15 +72,17 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
         assertTrue(passwordEncoder.matches("secreto-inicial", creado.getContrasena()));
         String hashInicial = creado.getContrasena();
 
-        mockMvc.perform(post("/usuarios/{id}/desactivar", creado.getId()))
+        mockMvc.perform(post("/usuarios/{id}/desactivar", creado.getId())
+                        .param("sesion", sesion))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios"));
+                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
 
         Usuario desactivado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertFalse(desactivado.getActivo());
-        assertEquals(1, usuarioRepository.count());
+        assertEquals(2, usuarioRepository.count());
 
-        String formulario = mockMvc.perform(get("/usuarios/{id}/editar", creado.getId()))
+        String formulario = mockMvc.perform(get("/usuarios/{id}/editar", creado.getId())
+                        .param("sesion", sesion))
                 .andExpect(status().isOk())
                 .andExpect(view().name("usuario-form"))
                 .andReturn()
@@ -80,39 +91,41 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
         assertFalse(formulario.contains("secreto-inicial"));
 
         mockMvc.perform(post("/usuarios/{id}/editar", creado.getId())
+                        .param("sesion", sesion)
                         .param("nombre", "Laura Maria")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "")
                         .param("telefono", "3101112233"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios"));
+                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
 
         Usuario editado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertEquals("Laura Maria", editado.getNombre());
         assertEquals(hashInicial, editado.getContrasena());
         assertFalse(editado.getActivo());
 
-        mockMvc.perform(post("/usuarios/{id}/activar", creado.getId()))
+        mockMvc.perform(post("/usuarios/{id}/activar", creado.getId())
+                        .param("sesion", sesion))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios"));
+                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
 
         assertTrue(usuarioRepository.findById(creado.getId()).orElseThrow().getActivo());
-        assertEquals(1, usuarioRepository.count());
+        assertEquals(2, usuarioRepository.count());
     }
 
     @Test
     void renderizaLosListadosPublicados() throws Exception {
-        mockMvc.perform(get("/administradores"))
+        mockMvc.perform(get("/administradores").param("sesion", sesion))
                 .andExpect(status().isOk())
                 .andExpect(view().name("administradores"));
-        mockMvc.perform(get("/estudiantes"))
+        mockMvc.perform(get("/estudiantes").param("sesion", sesion))
                 .andExpect(status().isOk())
                 .andExpect(view().name("estudiantes"));
-        mockMvc.perform(get("/tutores"))
+        mockMvc.perform(get("/tutores").param("sesion", sesion))
                 .andExpect(status().isOk())
                 .andExpect(view().name("tutores"));
-        mockMvc.perform(get("/reservas"))
+        mockMvc.perform(get("/reservas").param("sesion", sesion))
                 .andExpect(status().isOk())
                 .andExpect(view().name("mostrar_reservas"));
     }
