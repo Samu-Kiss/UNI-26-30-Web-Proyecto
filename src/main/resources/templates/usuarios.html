@@ -8,11 +8,12 @@
 </head>
 <body>
     <main class="contenedor">
-        <a class="volver" th:href="@{/admin}">Volver al menú</a>
+        <a class="volver" th:href="@{/admin(sesion=${sesion})}">Volver al menú</a>
         <header class="encabezado">
             <div><p class="marca">MyT</p><h1>Usuarios</h1>
                 <p class="descripcion">Identidad común para estudiantes, tutores y administradores.</p></div>
-            <a class="boton boton-primario" th:href="@{/usuarios/nuevo}">Nuevo usuario</a>
+            <a class="boton boton-primario"
+               th:href="@{/usuarios/nuevo(sesion=${sesion})}">Nuevo usuario</a>
         </header>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de usuarios">
             <table>
@@ -29,12 +30,17 @@
                                   th:text="${usuario.activo ? 'Activo' : 'Inactivo'}"></span></td>
                         <td class="acciones">
                             <a class="enlace" th:if="${puedeAgregarPerfil[usuario.id]}"
-                               th:href="@{/usuarios/{id}/perfil/nuevo(id=${usuario.id})}">Agregar perfil</a>
-                            <a class="enlace" th:href="@{/usuarios/{id}/editar(id=${usuario.id})}">Editar</a>
-                            <form th:if="${usuario.activo}" th:action="@{/usuarios/{id}/desactivar(id=${usuario.id})}" method="post">
+                               th:href="@{/usuarios/{id}/perfil/nuevo(id=${usuario.id},sesion=${sesion})}">Agregar perfil</a>
+                            <a class="enlace"
+                               th:href="@{/usuarios/{id}/editar(id=${usuario.id},sesion=${sesion})}">Editar</a>
+                            <form th:if="${usuario.activo}"
+                                  th:action="@{/usuarios/{id}/desactivar(id=${usuario.id},sesion=${sesion})}"
+                                  method="post">
                                 <button class="enlace enlace-peligro" type="submit">Desactivar</button>
                             </form>
-                            <form th:unless="${usuario.activo}" th:action="@{/usuarios/{id}/activar(id=${usuario.id})}" method="post">
+                            <form th:unless="${usuario.activo}"
+                                  th:action="@{/usuarios/{id}/activar(id=${usuario.id},sesion=${sesion})}"
+                                  method="post">
                                 <button class="enlace" type="submit">Activar</button>
                             </form>
                         </td>

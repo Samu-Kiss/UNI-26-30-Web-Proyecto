@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio de estudiante - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor">
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1 th:text="|Hola, ${nombreSesion}|">Inicio de estudiante</h1>
+                <p class="descripcion">Explora tutores y administra tus tutorías.</p>
+            </div>
+        </header>
+        <nav class="rejilla-menu" aria-label="Opciones de estudiante">
+            <a class="tarjeta opcion-menu" th:href="@{/tutores(sesion=${sesion})}">
+                Consultar tutores
+                <small>Compara materias, tarifas y disponibilidad.</small>
+            </a>
+            <a class="tarjeta opcion-menu" th:href="@{/tutores(sesion=${sesion})}">
+                Crear reserva
+                <small>Empieza seleccionando el tutor ideal.</small>
+            </a>
+            <a class="tarjeta opcion-menu"
+               th:href="@{/estudiantes/{id}/reservas(id=${perfilIdSesion},sesion=${sesion})}">
+                Mis tutorías
+                <small>Consulta tus reservas programadas y anteriores.</small>
+            </a>
+        </nav>
+    </main>
+</body>
+</html>
