@@ -8,10 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
-import com.typeerror.myt.repository.EstudianteRepository;
-import com.typeerror.myt.repository.TutorRepository;
 import com.typeerror.myt.repository.UsuarioRepository;
 
 @Service
@@ -19,15 +16,10 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EstudianteRepository estudianteRepository;
-    private final TutorRepository tutorRepository;
 
-    public UsuarioServiceImpl(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-            EstudianteRepository estudianteRepository, TutorRepository tutorRepository) {
+    public UsuarioServiceImpl(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
-        this.estudianteRepository = estudianteRepository;
-        this.tutorRepository = tutorRepository;
     }
 
     @Override
@@ -45,21 +37,16 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     @Transactional
     public Usuario guardar(Usuario usuario) {
-        validarCorreoDisponible(usuario);
         if (usuario.getId() == null) {
-            usuario.setActivo(true);
-            usuario.setContrasena(passwordEncoder.encode(usuario.getContrasena()));
-            return usuarioRepository.save(usuario);
+            throw new IllegalArgumentException("Los usuarios nuevos deben registrarse con un perfil");
         }
-
+        validarCorreoDisponible(usuario);
         Usuario existente = usuarioRepository.findById(usuario.getId())
                 .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
-        validarPerfilesExistentes(usuario);
         existente.setNombre(usuario.getNombre());
         existente.setApellido(usuario.getApellido());
         existente.setCorreo(usuario.getCorreo());
         existente.setTelefono(usuario.getTelefono());
-        existente.setRoles(usuario.getRoles());
         if (usuario.getContrasena() != null && !usuario.getContrasena().isBlank()) {
             existente.setContrasena(passwordEncoder.encode(usuario.getContrasena()));
         }
@@ -93,14 +80,4 @@ public class UsuarioServiceImpl implements UsuarioService {
                 });
     }
 
-    private void validarPerfilesExistentes(Usuario usuario) {
-        if (estudianteRepository.existsByUsuarioId(usuario.getId())
-                && !usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
-            throw new IllegalArgumentException("No se puede retirar el rol de un perfil estudiante");
-        }
-        if (tutorRepository.existsByUsuarioId(usuario.getId())
-                && !usuario.getRoles().contains(RolUsuario.TUTOR)) {
-            throw new IllegalArgumentException("No se puede retirar el rol de un perfil tutor");
-        }
-    }
 }

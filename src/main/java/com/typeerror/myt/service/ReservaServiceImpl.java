@@ -56,6 +56,11 @@ public class ReservaServiceImpl implements ReservaService {
     }
 
     @Override
+    public List<Reserva> findByTutorId(Integer tutorId) {
+        return reservaRepository.findByTutorIdOrderByFechaAscHoraInicioAsc(tutorId);
+    }
+
+    @Override
     @Transactional
     public Reserva guardar(Reserva reserva) {
         validarDatos(reserva);

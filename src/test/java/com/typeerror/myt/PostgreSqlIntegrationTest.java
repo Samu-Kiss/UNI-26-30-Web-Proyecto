@@ -19,6 +19,7 @@ public abstract class PostgreSqlIntegrationTest {
 
     static {
         POSTGRES.start();
+        aplicarMigracion("/db/supabase/20260903120000_add_domain_constraints_and_indexes.sql");
         aplicarMigracion("/db/supabase/20260917160000_refactor_domain_model.sql");
         aplicarMigracion("/db/supabase/20260917170000_add_chat.sql");
     }

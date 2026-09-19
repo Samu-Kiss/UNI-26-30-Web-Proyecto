@@ -60,6 +60,13 @@ docker compose up --build
 La aplicacion queda disponible en `http://localhost:8080/usuarios`. Para detenerla usa
 `docker compose down`; este comando no elimina ni modifica el proyecto de Supabase.
 
+El boton «Nuevo usuario» abre `/usuarios/nuevo`, donde se registra la cuenta con su primer perfil
+de estudiante o tutor. El formulario se envia a `/usuarios/registrar`. Una cuenta puede tener
+ambos perfiles: `/usuarios/{id}/perfil/nuevo` muestra el perfil que falta y
+`/usuarios/{id}/perfil` lo registra. Todas estas rutas usan `Usuario`, roles y el catalogo
+normalizado de `Materia`. Cuando una cuenta tiene varios perfiles, el inicio de sesion permite
+elegir el destino correspondiente.
+
 El CRUD de usuarios esta disponible en `http://localhost:8080/usuarios`. Crear y editar usan
 `save()`, mientras que desactivar o activar conserva la fila y cambia unicamente el campo `activo`.
 Las contrasenas se guardan como hashes BCrypt y nunca se vuelven a enviar al formulario de edicion.

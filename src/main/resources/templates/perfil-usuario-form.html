@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar perfil - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
+        <section class="tarjeta formulario-tarjeta">
+            <p class="marca">MyT</p>
+            <h1>Agregar perfil</h1>
+            <p class="descripcion" th:text="|Usuario: ${usuario.nombre} ${usuario.apellido} (${usuario.correo})|"></p>
+
+            <form class="formulario" th:action="@{/usuarios/{id}/perfil(id=${usuario.id})}" method="post">
+                <th:block th:replace="~{fragments/campos-perfil :: campos}"></th:block>
+
+                <div class="acciones-formulario">
+                    <a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
+                    <button class="boton boton-primario" type="submit">Agregar perfil</button>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script th:replace="~{fragments/campos-perfil :: script}"></script>
+</body>
+</html>

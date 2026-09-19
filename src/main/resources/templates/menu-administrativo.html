@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú administrativo - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor">
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1>Menú administrativo</h1>
+                <p class="descripcion">Selecciona la información que deseas consultar.</p>
+            </div>
+        </header>
+        <nav class="rejilla-menu" aria-label="Opciones administrativas">
+            <a class="tarjeta opcion-menu" th:href="@{/usuarios}">Usuarios</a>
+            <a class="tarjeta opcion-menu" th:href="@{/estudiantes}">Estudiantes</a>
+            <a class="tarjeta opcion-menu" th:href="@{/tutores}">Tutores</a>
+            <a class="tarjeta opcion-menu" th:href="@{/reservas}">Reservas</a>
+            <a class="tarjeta opcion-menu" th:href="@{/administradores}">Administradores</a>
+        </nav>
+    </main>
+</body>
+</html>

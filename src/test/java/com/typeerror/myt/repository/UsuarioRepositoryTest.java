@@ -16,7 +16,7 @@ import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
 
 @DataJpaTest
-class ClienteRepositoryTest extends PostgreSqlIntegrationTest {
+class UsuarioRepositoryTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
