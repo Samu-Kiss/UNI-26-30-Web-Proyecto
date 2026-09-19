@@ -121,6 +121,34 @@ tbody tr:last-child td {
     flex-wrap: wrap;
 }
 
+.acciones-reserva {
+    display: flex;
+    min-width: 300px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.acciones-reserva form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-cancelacion {
+    width: 100%;
+}
+
+.campo-motivo {
+    min-width: 190px;
+    min-height: 44px;
+}
+
+.boton-cancelar {
+    color: white;
+    background: #b34343;
+}
+
 .enlace {
     padding: 0;
     border: 0;

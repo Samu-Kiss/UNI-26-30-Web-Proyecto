@@ -16,12 +16,15 @@
                 <p class="descripcion">Consulta las sesiones registradas en la plataforma.</p>
             </div>
         </header>
+            <div class="alerta-error" th:if="${error != null}">
+                <p th:text="${error}"></p>
+            </div>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de reservas">
             <table>
                 <thead>
                     <tr>
                         <th>ID</th><th>Estudiante</th><th>Tutor</th><th>Materia</th><th>Fecha</th>
-                        <th>Hora</th><th>Duración</th><th>Tema</th><th>Modalidad</th><th>Estado</th><th>Costo</th>
+                        <th>Hora</th><th>Duración</th><th>Tema</th><th>Modalidad</th><th>Estado</th><th>Costo</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,9 +40,53 @@
                         <td><span class="etiqueta-neutral" th:text="${reserva.modalidad}"></span></td>
                         <td><span class="etiqueta-neutral" th:text="${reserva.estado}"></span></td>
                         <td th:text="${reserva.costoTotal}"></td>
+
+                <td>
+                    <div class="acciones-reserva">
+
+                    <form th:if="${reserva.estado.name() == 'PENDIENTE'}"
+                        th:action="@{/reservas}"
+                        method="post">
+
+                    <input type="hidden" name="id" th:value="${reserva.id}">
+                    <input type="hidden" name="estado" value="CONFIRMADA">
+                    <input type="hidden" name="sesion" th:value="${sesion}">
+
+                    <button type="submit" class="boton boton-primario">
+                         Confirmar
+                    </button>
+                     </form>
+
+                    <form th:if="${reserva.estado.name() == 'PENDIENTE'
+                        or reserva.estado.name() == 'CONFIRMADA'
+                        or reserva.estado.name() == 'EN_CURSO'}"
+                    class="form-cancelacion"
+                    th:action="@{/reservas}"
+                    method="post">
+
+            <input type="hidden" name="id" th:value="${reserva.id}">
+            <input type="hidden" name="estado" value="CANCELADA">
+            <input type="hidden" name="sesion" th:value="${sesion}">
+
+            <input class="campo-motivo" type="text" name="motivo" placeholder="Motivo de cancelación">
+
+                        <button type="submit" class="boton boton-cancelar">
+                        Cancelar
+                        </button>
+                    </form>
+
+                            <span th:if="${reserva.estado.name() == 'CANCELADA'
+                                or reserva.estado.name() == 'COMPLETADA'
+                                or reserva.estado.name() == 'RECHAZADA'}">
+                                Sin acciones disponibles
+                            </span>
+
+                        </div>
+                    </td>
+
                     </tr>
                     <tr th:if="${#lists.isEmpty(reservas)}">
-                        <td class="vacio" colspan="11">No hay reservas registradas.</td>
+                        <td class="vacio" colspan="12">No hay reservas registradas.</td>
                     </tr>
                 </tbody>
             </table>
