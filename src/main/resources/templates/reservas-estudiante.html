@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis tutorías - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor">
+        <a class="volver" th:href="@{/estudiante(sesion=${sesion})}">Volver al menú</a>
+        <header class="encabezado">
+            <div>
+                <p class="marca">MyT</p>
+                <h1>Mis tutorías</h1>
+                <p class="descripcion"
+                   th:text="|Estudiante: ${estudiante.usuario.nombre} ${estudiante.usuario.apellido}|"></p>
+            </div>
+            <a class="boton boton-primario" th:href="@{/tutores(sesion=${sesion})}">Buscar tutor</a>
+        </header>
+        <section class="tarjeta tabla-contenedor" aria-label="Reservas del estudiante">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th><th>Hora</th><th>Tutor</th><th>Materia</th>
+                        <th>Modalidad</th><th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="reserva : ${reservas}">
+                        <td th:text="${reserva.fecha}"></td>
+                        <td th:text="${reserva.horaInicio}"></td>
+                        <td th:text="|${reserva.tutor.usuario.nombre} ${reserva.tutor.usuario.apellido}|"></td>
+                        <td th:text="${reserva.materia.nombre}"></td>
+                        <td><span class="etiqueta-neutral" th:text="${reserva.modalidad}"></span></td>
+                        <td><span class="etiqueta-neutral" th:text="${reserva.estado}"></span></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservas)}">
+                        <td class="vacio" colspan="6">Aún no tienes tutorías reservadas.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

@@ -3,8 +3,10 @@ package com.typeerror.myt.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +18,7 @@ import com.typeerror.myt.service.AdministradorService;
 import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
+import com.typeerror.myt.entities.Estudiante;
 
 @ExtendWith(MockitoExtension.class)
 class ListingControllersTest {
@@ -40,8 +43,23 @@ class ListingControllersTest {
         assertEquals("administradores", new AdministradorController(administradorService)
                 .listarAdministradores(model));
         assertTrue(model.containsAttribute("administradores"));
-        assertEquals("estudiantes", new EstudianteController(estudianteService).listarEstudiantes(model));
+        assertEquals("estudiantes", new EstudianteController(estudianteService, reservaService)
+                .listarEstudiantes(model));
         assertEquals("tutores", new TutorController(tutorService, reservaService).listarTutores(model));
         assertEquals("mostrar_reservas", new ReservaController(reservaService).listarReservas(model));
+    }
+
+    @Test
+    void publicaLasReservasDelEstudiante() {
+        Estudiante estudiante = mock(Estudiante.class);
+        when(estudianteService.findById(7)).thenReturn(Optional.of(estudiante));
+        when(reservaService.findByEstudianteId(7)).thenReturn(List.of());
+        ConcurrentModel model = new ConcurrentModel();
+
+        assertEquals("reservas-estudiante",
+                new EstudianteController(estudianteService, reservaService)
+                        .listarReservas(7, model));
+        assertEquals(estudiante, model.getAttribute("estudiante"));
+        assertTrue(model.containsAttribute("reservas"));
     }
 }

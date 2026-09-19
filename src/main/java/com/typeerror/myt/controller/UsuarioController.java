@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.service.RegistroUsuarioService;
+import com.typeerror.myt.service.ContextoSesion;
 import com.typeerror.myt.service.UsuarioService;
 
 @Controller
@@ -19,7 +21,7 @@ import com.typeerror.myt.service.UsuarioService;
 public class UsuarioController {
 
     private static final String FORM_VIEW = "usuario-form";
-    private static final String REDIRECT_USUARIOS = "redirect:/usuarios";
+    private static final String USUARIOS_PATH = "/usuarios";
     private final UsuarioService usuarioService;
     private final RegistroUsuarioService registroUsuarioService;
 
@@ -50,7 +52,7 @@ public class UsuarioController {
     @PostMapping("/{id}/editar")
     public String guardar(@PathVariable Integer id,
             @Valid @ModelAttribute("usuario") UsuarioForm formulario,
-            BindingResult bindingResult) {
+            BindingResult bindingResult, @RequestParam String sesion) {
         formulario.setId(id);
         if (bindingResult.hasErrors()) {
             return FORM_VIEW;
@@ -61,18 +63,18 @@ public class UsuarioController {
             bindingResult.reject("usuario.invalido", exception.getMessage());
             return FORM_VIEW;
         }
-        return REDIRECT_USUARIOS;
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 
     @PostMapping("/{id}/desactivar")
-    public String desactivar(@PathVariable Integer id) {
+    public String desactivar(@PathVariable Integer id, @RequestParam String sesion) {
         usuarioService.desactivar(id);
-        return REDIRECT_USUARIOS;
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 
     @PostMapping("/{id}/activar")
-    public String activar(@PathVariable Integer id) {
+    public String activar(@PathVariable Integer id, @RequestParam String sesion) {
         usuarioService.activar(id);
-        return REDIRECT_USUARIOS;
+        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 }

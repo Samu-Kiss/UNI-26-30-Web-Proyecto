@@ -8,17 +8,21 @@
 </head>
 <body>
     <main class="contenedor contenedor-formulario">
-        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
+        <a class="volver" th:href="@{/admin(sesion=${sesion})}">Volver al menú</a>
+        <a class="volver" th:href="@{/usuarios(sesion=${sesion})}">Volver a clientes</a>
         <section class="tarjeta formulario-tarjeta">
             <p class="marca">MyT</p>
             <h1>Agregar perfil</h1>
             <p class="descripcion" th:text="|Usuario: ${usuario.nombre} ${usuario.apellido} (${usuario.correo})|"></p>
 
-            <form class="formulario" th:action="@{/usuarios/{id}/perfil(id=${usuario.id})}" method="post">
+            <form class="formulario"
+                  th:action="@{/usuarios/{id}/perfil(id=${usuario.id},sesion=${sesion})}"
+                  method="post">
                 <th:block th:replace="~{fragments/campos-perfil :: campos}"></th:block>
 
                 <div class="acciones-formulario">
-                    <a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
+                    <a class="boton boton-secundario"
+                       th:href="@{/usuarios(sesion=${sesion})}">Cancelar</a>
                     <button class="boton boton-primario" type="submit">Agregar perfil</button>
                 </div>
             </form>

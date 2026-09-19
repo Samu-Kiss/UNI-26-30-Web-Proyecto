@@ -16,11 +16,12 @@
             </div>
         </header>
         <nav class="rejilla-menu" aria-label="Opciones administrativas">
-            <a class="tarjeta opcion-menu" th:href="@{/usuarios}">Usuarios</a>
-            <a class="tarjeta opcion-menu" th:href="@{/estudiantes}">Estudiantes</a>
-            <a class="tarjeta opcion-menu" th:href="@{/tutores}">Tutores</a>
-            <a class="tarjeta opcion-menu" th:href="@{/reservas}">Reservas</a>
-            <a class="tarjeta opcion-menu" th:href="@{/administradores}">Administradores</a>
+            <a class="tarjeta opcion-menu" th:href="@{/usuarios(sesion=${sesion})}">Clientes</a>
+            <a class="tarjeta opcion-menu" th:href="@{/estudiantes(sesion=${sesion})}">Estudiantes</a>
+            <a class="tarjeta opcion-menu" th:href="@{/tutores(sesion=${sesion})}">Tutores</a>
+            <a class="tarjeta opcion-menu" th:href="@{/reservas(sesion=${sesion})}">Reservas</a>
+            <a class="tarjeta opcion-menu"
+               th:href="@{/administradores(sesion=${sesion})}">Administradores</a>
         </nav>
     </main>
 </body>

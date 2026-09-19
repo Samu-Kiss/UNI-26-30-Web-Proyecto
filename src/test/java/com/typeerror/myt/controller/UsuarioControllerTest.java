@@ -30,6 +30,8 @@ import com.typeerror.myt.service.UsuarioService;
 @ExtendWith(MockitoExtension.class)
 class UsuarioControllerTest {
 
+    private static final String SESION = "ADMINISTRADOR:1";
+
     @Mock
     private UsuarioService usuarioService;
     @Mock
@@ -72,7 +74,7 @@ class UsuarioControllerTest {
         BeanPropertyBindingResult errores = errores(formulario);
         errores.rejectValue("nombre", "nombre.requerido");
 
-        assertEquals("usuario-form", controller.guardar(1, formulario, errores));
+        assertEquals("usuario-form", controller.guardar(1, formulario, errores, SESION));
         assertTrue(errores.hasFieldErrors("nombre"));
     }
 
@@ -81,20 +83,21 @@ class UsuarioControllerTest {
         UsuarioForm formulario = formulario(1);
         BeanPropertyBindingResult sinErrores = errores(formulario);
 
-        assertEquals("redirect:/usuarios", controller.guardar(1, formulario, sinErrores));
+        assertEquals("redirect:/usuarios?sesion=" + SESION,
+                controller.guardar(1, formulario, sinErrores, SESION));
         verify(usuarioService).guardar(any(Usuario.class));
 
         doThrow(new IllegalArgumentException("Correo duplicado"))
                 .when(usuarioService).guardar(any(Usuario.class));
         BeanPropertyBindingResult erroresServicio = errores(formulario);
-        assertEquals("usuario-form", controller.guardar(1, formulario, erroresServicio));
+        assertEquals("usuario-form", controller.guardar(1, formulario, erroresServicio, SESION));
         assertTrue(erroresServicio.hasGlobalErrors());
     }
 
     @Test
     void activaDesactivaYReportaEdicionInexistente() {
-        assertEquals("redirect:/usuarios", controller.desactivar(1));
-        assertEquals("redirect:/usuarios", controller.activar(1));
+        assertEquals("redirect:/usuarios?sesion=" + SESION, controller.desactivar(1, SESION));
+        assertEquals("redirect:/usuarios?sesion=" + SESION, controller.activar(1, SESION));
         verify(usuarioService).desactivar(1);
         verify(usuarioService).activar(1);
 

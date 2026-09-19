@@ -8,12 +8,14 @@
 </head>
 <body>
     <main class="contenedor contenedor-formulario">
-        <a class="volver" th:href="@{/usuarios}">Volver a usuarios</a>
+        <a class="volver" th:href="@{/admin(sesion=${sesion})}">Volver al menú</a>
+        <a class="volver" th:href="@{/usuarios(sesion=${sesion})}">Volver a clientes</a>
         <section class="tarjeta formulario-tarjeta">
             <p class="marca">MyT</p>
             <h1>Editar usuario</h1>
             <p class="descripcion">Actualiza los datos de la cuenta. Sus perfiles se administran por separado.</p>
-            <form class="formulario" th:action="@{/usuarios/{id}/editar(id=${usuario.id})}"
+            <form class="formulario"
+                  th:action="@{/usuarios/{id}/editar(id=${usuario.id},sesion=${sesion})}"
                   th:object="${usuario}" method="post">
                 <div class="alerta-error" role="alert" th:if="${#fields.hasGlobalErrors()}"
                      th:each="error : ${#fields.globalErrors()}"
@@ -54,7 +56,8 @@
                     <p class="ayuda">Para añadir un perfil usa la acción «Agregar perfil» en el listado.</p>
                 </fieldset>
                 <div class="acciones-formulario">
-                    <a class="boton boton-secundario" th:href="@{/usuarios}">Cancelar</a>
+                    <a class="boton boton-secundario"
+                       th:href="@{/usuarios(sesion=${sesion})}">Cancelar</a>
                     <button class="boton boton-primario" type="submit">Guardar cambios</button>
                 </div>
             </form>
