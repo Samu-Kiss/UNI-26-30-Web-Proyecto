@@ -3,6 +3,8 @@ package com.typeerror.myt.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -164,6 +166,67 @@ class ListingControllersTest {
                 7, 7, "ESTUDIANTE:7", model);
 
         assertEquals("redirect:/estudiantes/7/reservas?sesion=ESTUDIANTE:7&reservaExitosa=true", vista);
+    }
+
+    @Test
+    void procesarReservaManejaExcepcionYRegresaFormulario() {
+        Tutor tutor = mock(Tutor.class);
+        when(tutorService.findById(5)).thenReturn(Optional.of(tutor));
+        when(reservaService.crearReserva(eq(5), eq(7), eq(1), any(), any(), eq(60), any(), any()))
+                .thenThrow(new IllegalStateException("El tutor no está disponible"));
+
+        TutorController controller = new TutorController(tutorService, reservaService,
+                disponibilidadService);
+        ConcurrentModel model = new ConcurrentModel();
+
+        String vista = controller.procesarReserva(5, 1, LocalDate.now().plusDays(1),
+                LocalTime.of(10, 0), 60, "Repaso Parcial",
+                ModalidadReserva.PRESENCIAL,
+                7, null, "ESTUDIANTE:7", model);
+
+        assertEquals("reserva-form", vista);
+        assertEquals("El tutor no está disponible", model.getAttribute("error"));
+        assertEquals(tutor, model.getAttribute("tutor"));
+    }
+
+    @Test
+    void procesarReservaRechazaFaltaDeEstudiante() {
+        TutorController controller = new TutorController(tutorService, reservaService,
+                disponibilidadService);
+        ConcurrentModel model = new ConcurrentModel();
+
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.procesarReserva(5, 1, LocalDate.now().plusDays(1),
+                        LocalTime.of(10, 0), 60, "Repaso Parcial",
+                        ModalidadReserva.PRESENCIAL,
+                        null, null, "ESTUDIANTE:7", model));
+    }
+
+    @Test
+    void listarReservasDelTutorExitoso() {
+        Tutor tutor = mock(Tutor.class);
+        when(tutorService.findById(5)).thenReturn(Optional.of(tutor));
+        when(reservaService.findByTutorId(5)).thenReturn(List.of());
+
+        TutorController controller = new TutorController(tutorService, reservaService);
+        ConcurrentModel model = new ConcurrentModel();
+
+        String vista = controller.listarReservasDelTutor(5, model);
+
+        assertEquals("reservas-tutor", vista);
+        assertEquals(tutor, model.getAttribute("tutor"));
+        assertTrue(model.containsAttribute("reservas"));
+    }
+
+    @Test
+    void listarReservasDelTutorFallaSiTutorNoExiste() {
+        when(tutorService.findById(5)).thenReturn(Optional.empty());
+
+        TutorController controller = new TutorController(tutorService, reservaService);
+        ConcurrentModel model = new ConcurrentModel();
+
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.listarReservasDelTutor(5, model));
     }
 
 }
