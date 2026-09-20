@@ -8,5 +8,9 @@ import com.typeerror.myt.entities.DiaSemana;
 import com.typeerror.myt.entities.DisponibilidadTutor;
 
 public interface DisponibilidadTutorRepository extends JpaRepository<DisponibilidadTutor, Integer> {
+
     List<DisponibilidadTutor> findByTutorIdAndDiaSemana(Integer tutorId, DiaSemana diaSemana);
+
+    List<DisponibilidadTutor> findByTutorId(Integer tutorId);
+
 }

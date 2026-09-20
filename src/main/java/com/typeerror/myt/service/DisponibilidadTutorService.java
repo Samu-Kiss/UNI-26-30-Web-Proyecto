@@ -1,5 +1,7 @@
 package com.typeerror.myt.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,11 @@ public class DisponibilidadTutorService {
 
     public DisponibilidadTutorService(DisponibilidadTutorRepository repository) {
         this.repository = repository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DisponibilidadTutor> findByTutorId(Integer tutorId) {
+        return repository.findByTutorId(tutorId);
     }
 
     @Transactional

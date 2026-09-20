@@ -1,24 +1,33 @@
 package com.typeerror.myt.service;
 
-import java.util.List;
-import java.util.Optional;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.typeerror.myt.entities.Reserva;
-import com.typeerror.myt.entities.EstadoReserva;
-import com.typeerror.myt.entities.ModalidadReserva;
 import com.typeerror.myt.entities.DiaSemana;
+import com.typeerror.myt.entities.EstadoReserva;
+import com.typeerror.myt.entities.Estudiante;
+import com.typeerror.myt.entities.Materia;
+import com.typeerror.myt.entities.ModalidadReserva;
+import com.typeerror.myt.entities.Reserva;
+import com.typeerror.myt.entities.Tutor;
 import com.typeerror.myt.repository.BloqueoAgendaRepository;
 import com.typeerror.myt.repository.DisponibilidadTutorRepository;
+import com.typeerror.myt.repository.EstudianteRepository;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.repository.ReservaRepository;
+import com.typeerror.myt.repository.TutorRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -34,13 +43,22 @@ public class ReservaServiceImpl implements ReservaService {
             EstadoReserva.CANCELADA, EnumSet.noneOf(EstadoReserva.class));
 
     private final ReservaRepository reservaRepository;
+    private final TutorRepository tutorRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final MateriaRepository materiaRepository;
     private final DisponibilidadTutorRepository disponibilidadRepository;
     private final BloqueoAgendaRepository bloqueoRepository;
 
     public ReservaServiceImpl(ReservaRepository reservaRepository,
+            TutorRepository tutorRepository,
+            EstudianteRepository estudianteRepository,
+            MateriaRepository materiaRepository,
             DisponibilidadTutorRepository disponibilidadRepository,
             BloqueoAgendaRepository bloqueoRepository) {
         this.reservaRepository = reservaRepository;
+        this.tutorRepository = tutorRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.materiaRepository = materiaRepository;
         this.disponibilidadRepository = disponibilidadRepository;
         this.bloqueoRepository = bloqueoRepository;
     }
@@ -91,6 +109,50 @@ public class ReservaServiceImpl implements ReservaService {
             reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
         }
         return reservaRepository.save(reserva);
+    }
+
+    @Override
+    @Transactional
+    public Reserva crearReserva(Integer tutorId, Integer estudianteId, Integer materiaId,
+            LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
+            String tema, ModalidadReserva modalidad) {
+
+        Tutor tutor = tutorRepository.findOneById(tutorId)
+                .orElseThrow(() -> new IllegalArgumentException("El tutor no existe"));
+
+        if (!Boolean.TRUE.equals(tutor.getDisponible())) {
+            throw new IllegalStateException("El tutor no está disponible");
+        }
+
+        Estudiante estudiante = estudianteRepository.findOneById(estudianteId)
+                .orElseThrow(() -> new IllegalArgumentException("El estudiante no existe"));
+
+        Materia materia = materiaRepository.findById(materiaId)
+                .orElseThrow(() -> new IllegalArgumentException("La materia no existe"));
+
+        String ubicacionOEnlace = modalidad == ModalidadReserva.VIRTUAL
+                ? "https://meet.google.com/myt-tutoria"
+                : "Campus Universitario / Aula del Tutor";
+
+        BigDecimal costoTotal = tutor.getTarifaPorHora()
+                .multiply(BigDecimal.valueOf(duracionMinutos))
+                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+
+        Reserva reserva = new Reserva();
+        reserva.setTutor(tutor);
+        reserva.setEstudiante(estudiante);
+        reserva.setMateria(materia);
+        reserva.setFecha(fecha);
+        reserva.setHoraInicio(horaInicio);
+        reserva.setDuracionMinutos(duracionMinutos);
+        reserva.setTema(tema);
+        reserva.setModalidad(modalidad);
+        reserva.setUbicacionOEnlace(ubicacionOEnlace);
+        reserva.setEstado(EstadoReserva.PENDIENTE);
+        reserva.setCostoTotal(costoTotal);
+        reserva.setMoneda("COP");
+
+        return guardar(reserva);
     }
 
     private void validarDatos(Reserva reserva) {

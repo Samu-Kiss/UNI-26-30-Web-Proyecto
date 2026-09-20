@@ -90,8 +90,9 @@ class DomainServicesTest {
         estudianteUsuario.setRoles(Set.of(RolUsuario.ESTUDIANTE));
         when(usuarioRepository.findById(1)).thenReturn(Optional.of(administrador));
         when(usuarioRepository.findById(2)).thenReturn(Optional.of(estudianteUsuario));
-        when(usuarioRepository.findDistinctByRolesContainingOrderByIdAsc(RolUsuario.ADMINISTRADOR))
-                .thenReturn(List.of(administrador));
+        when(usuarioRepository
+            .findDistinctByRolesContainingOrderByIdAsc(RolUsuario.ADMINISTRADOR))
+            .thenReturn(List.of(administrador));
         AdministradorService administradores = new AdministradorServiceImpl(usuarioRepository);
         assertTrue(administradores.findById(1).isPresent());
         assertFalse(administradores.findById(2).isPresent());
@@ -103,12 +104,15 @@ class DomainServicesTest {
         when(estudianteRepository.findAll()).thenReturn(List.of(estudiante));
         when(tutorRepository.findOneById(1)).thenReturn(Optional.of(tutor));
         when(tutorRepository.findAll()).thenReturn(List.of(tutor));
+        when(tutorRepository.findCalificacionPromedioByTutorId(1))
+        .thenReturn(Optional.of(4.5));
         EstudianteService estudiantes = new EstudianteServiceImpl(estudianteRepository);
         TutorService tutores = new TutorServiceImpl(tutorRepository);
         assertTrue(estudiantes.findById(1).isPresent());
         assertEquals(1, estudiantes.findAll().size());
         assertTrue(tutores.findById(1).isPresent());
         assertEquals(1, tutores.findAll().size());
+        assertEquals(Optional.of(4.5), tutores.findCalificacionPromedio(1));
     }
 
     private DisponibilidadTutor disponibilidad(Integer id, LocalTime inicio, LocalTime fin) {

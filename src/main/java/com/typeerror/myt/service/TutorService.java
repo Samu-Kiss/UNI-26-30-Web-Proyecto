@@ -11,4 +11,6 @@ public interface TutorService {
 
     List<Tutor> findAll();
 
+    Optional<Double> findCalificacionPromedio(Integer tutorId);
+
 }
