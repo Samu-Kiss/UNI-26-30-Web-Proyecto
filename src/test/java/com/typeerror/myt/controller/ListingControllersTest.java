@@ -1,15 +1,17 @@
 package com.typeerror.myt.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,12 +19,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ui.ConcurrentModel;
 
+import com.typeerror.myt.entities.Estudiante;
+import com.typeerror.myt.entities.Materia;
+import com.typeerror.myt.entities.ModalidadReserva;
+import com.typeerror.myt.entities.Tutor;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.service.AdministradorService;
+import com.typeerror.myt.service.DisponibilidadTutorService;
 import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
-import com.typeerror.myt.entities.Estudiante;
-import com.typeerror.myt.entities.Tutor;
 
 @ExtendWith(MockitoExtension.class)
 class ListingControllersTest {
@@ -35,6 +41,10 @@ class ListingControllersTest {
     private TutorService tutorService;
     @Mock
     private ReservaService reservaService;
+    @Mock
+    private MateriaRepository materiaRepository;
+    @Mock
+    private DisponibilidadTutorService disponibilidadService;
 
     @Test
     void publicaTodosLosListados() {
@@ -146,4 +156,28 @@ class ListingControllersTest {
                 IllegalArgumentException.class,
                 () -> controller.mostrarFormularioReserva(5, model));
     }
+
+    @Test
+    void procesarReservaGuardaReservaEnEstadoPendienteYRedirige() {
+        Tutor tutor = mock(Tutor.class);
+        Estudiante estudiante = mock(Estudiante.class);
+        Materia materia = mock(Materia.class);
+
+        when(tutorService.findById(5)).thenReturn(Optional.of(tutor));
+        when(estudianteService.findById(7)).thenReturn(Optional.of(estudiante));
+        when(materiaRepository.findById(1)).thenReturn(Optional.of(materia));
+        when(tutor.getTarifaPorHora()).thenReturn(new BigDecimal("50000"));
+
+        TutorController controller = new TutorController(tutorService, reservaService,
+                estudianteService, materiaRepository, disponibilidadService);
+
+        ConcurrentModel model = new ConcurrentModel();
+        String vista = controller.procesarReserva(5, 1, LocalDate.now().plusDays(1),
+                LocalTime.of(10, 0), 60, "Repaso Parcial",
+                ModalidadReserva.PRESENCIAL,
+                7, 7, "ESTUDIANTE:7", model);
+
+        assertEquals("redirect:/estudiantes/7/reservas?sesion=ESTUDIANTE:7&reservaExitosa=true", vista);
+    }
+
 }

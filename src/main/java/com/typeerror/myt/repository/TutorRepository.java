@@ -18,7 +18,7 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
     @EntityGraph(attributePaths = {"usuario", "materias"})
     List<Tutor> findAll();
 
-    @EntityGraph(attributePaths = {"usuario", "materias", "reservas", "reservas.estudiante",
+    @EntityGraph(attributePaths = {"usuario", "materias", "disponibilidades", "reservas", "reservas.estudiante",
         "reservas.estudiante.usuario"})
     Optional<Tutor> findOneById(Integer id);
 

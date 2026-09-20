@@ -18,6 +18,12 @@
             </div>
             <a class="boton boton-primario" th:href="@{/tutores(sesion=${sesion})}">Buscar tutor</a>
         </header>
+
+        <div th:if="${param.reservaExitosa}" class="alerta exito" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <strong>¡Reserva registrada con éxito!</strong>
+            <p style="margin: 0.25rem 0 0 0;">Tu solicitud de tutoría se ha guardado correctamente en estado <strong>PENDIENTE</strong>. El tutor la revisará próximamente.</p>
+        </div>
+
         <section class="tarjeta tabla-contenedor" aria-label="Reservas del estudiante">
             <table>
                 <thead>
