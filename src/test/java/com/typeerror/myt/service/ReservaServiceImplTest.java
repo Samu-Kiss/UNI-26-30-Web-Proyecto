@@ -117,6 +117,24 @@ class ReservaServiceImplTest {
                 () -> servicio.cambiarEstado(1, EstadoReserva.CANCELADA, " "));
     }
 
+    @Test
+    void rechazaMotivoConMasDe500Caracteres() {
+        Reserva reserva = reserva();
+        reserva.setId(1);
+
+        when(reservaRepository.findById(1))
+                .thenReturn(Optional.of(reserva));
+
+        String motivoLargo = "a".repeat(501);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.cambiarEstado(
+                        1,
+                        EstadoReserva.CANCELADA,
+                        motivoLargo));
+    }
+
     private Reserva reserva() {
         Usuario estudianteUsuario = usuario(1);
         Usuario tutorUsuario = usuario(2);
@@ -147,4 +165,6 @@ class ReservaServiceImplTest {
         usuario.setId(id);
         return usuario;
     }
+
+
 }
