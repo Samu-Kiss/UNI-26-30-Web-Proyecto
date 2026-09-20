@@ -84,13 +84,19 @@ public class ReservaServiceImpl implements ReservaService {
         }
         reserva.setEstado(nuevoEstado);
         if (nuevoEstado == EstadoReserva.CANCELADA || nuevoEstado == EstadoReserva.RECHAZADA) {
+
             if (motivo == null || motivo.isBlank()) {
                 throw new IllegalArgumentException("El motivo es obligatorio al cancelar o rechazar");
+            }
+
+            if (motivo.length() > 500) {
+                throw new IllegalArgumentException(
+                    "El motivo no puede superar los 500 caracteres");
             }
             reserva.setMotivoCancelacion(motivo);
             reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
         }
-        return reservaRepository.save(reserva);
+            return reservaRepository.save(reserva);
     }
 
     private void validarDatos(Reserva reserva) {

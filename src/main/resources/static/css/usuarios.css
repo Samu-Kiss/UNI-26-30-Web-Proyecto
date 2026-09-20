@@ -424,3 +424,24 @@ small {
     white-space: nowrap;
     border: 0;
 }
+
+.acciones-principales {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.acciones-principales form {
+    margin: 0;
+}
+
+.form-cancelacion[hidden] {
+    display: none;
+}
+
+.boton-cerrar {
+    min-width: 44px;
+    padding: 10px;
+    color: #202522;
+    background-color: #f0f0f0;
+}
