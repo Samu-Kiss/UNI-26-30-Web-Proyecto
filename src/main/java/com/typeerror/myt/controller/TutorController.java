@@ -59,7 +59,7 @@ public class TutorController {
                 .orElseThrow(() ->
                         new IllegalArgumentException("El tutor no existe"));
 
-        if (!tutor.getDisponible()) {
+        if (!Boolean.TRUE.equals(tutor.getDisponible())) {
             throw new IllegalStateException("El tutor no está disponible");
         }
 
