@@ -1,5 +1,10 @@
 package com.typeerror.myt.controller;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
+import com.typeerror.myt.entities.Tutor;
+
 
 @Controller
 @RequestMapping("/tutores")
@@ -23,8 +30,42 @@ public class TutorController {
 
     @GetMapping
     public String listarTutores(Model model) {
-        model.addAttribute("tutores", tutorService.findAll());
+        List<Tutor> tutores = tutorService.findAll();
+        Map<Integer, String> calificaciones = new HashMap<>();
+
+        for (Tutor tutor : tutores) {
+            Optional<Double> promedio =
+                tutorService.findCalificacionPromedio(tutor.getId());
+
+            if (promedio.isPresent()) {
+                calificaciones.put(tutor.getId(), promedio.get() + " / 5");
+            } else {
+                calificaciones.put(tutor.getId(), "Sin calificaciones");
+            }
+        }
+
+        model.addAttribute("tutores", tutores);
+        model.addAttribute("calificaciones", calificaciones);
+
         return "tutores";
+    }
+
+    @GetMapping("/{tutorId}/reservar")
+    public String mostrarFormularioReserva(
+        @PathVariable Integer tutorId,
+        Model model) {
+
+        Tutor tutor = tutorService.findById(tutorId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("El tutor no existe"));
+
+        if (!tutor.getDisponible()) {
+            throw new IllegalStateException("El tutor no está disponible");
+        }
+
+        model.addAttribute("tutor", tutor);
+
+        return "reserva-form";
     }
 
     @GetMapping("/{tutorId}/reservas")

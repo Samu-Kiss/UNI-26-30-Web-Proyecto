@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva reserva - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+
+        <a class="volver"
+           th:href="@{/tutores(sesion=${sesion})}">
+            Volver a tutores
+        </a>
+
+        <section class="tarjeta formulario-tarjeta">
+
+            <p class="marca">MyT</p>
+            <h1>Nueva reserva</h1>
+
+            <p class="descripcion">
+                Completa los datos de la tutoría.
+            </p>
+
+            <div class="panel-informativo">
+                <strong>Tutor seleccionado</strong>
+
+                <span th:text="|${tutor.usuario.nombre} ${tutor.usuario.apellido}|">
+                </span>
+
+                <span th:text="|Tarifa por hora: ${tutor.tarifaPorHora} COP|">
+                </span>
+            </div>
+
+            <form class="formulario">
+
+                <input type="hidden"
+                       name="tutorId"
+                       th:value="${tutor.id}">
+
+                <label>
+                    Materia
+                    <select name="materiaId">
+                        <option th:each="materia : ${tutor.materias}"
+                                th:value="${materia.id}"
+                                th:text="${materia.nombre}">
+                        </option>
+                    </select>
+                </label>
+
+                <div class="rejilla">
+                    <label>
+                        Fecha
+                        <input type="date" name="fecha">
+                    </label>
+
+                    <label>
+                        Hora
+                        <input type="time" name="horaInicio">
+                    </label>
+                </div>
+
+                <label>
+                    Duración
+                    <select name="duracionMinutos">
+                        <option value="60">60 minutos</option>
+                        <option value="90">90 minutos</option>
+                        <option value="120">120 minutos</option>
+                    </select>
+                </label>
+
+                <label>
+                    Tema
+                    <input type="text"
+                           name="tema"
+                           maxlength="300"
+                           placeholder="Tema que deseas trabajar">
+                </label>
+
+                <label>
+                    Modalidad
+                    <select name="modalidad">
+                        <option value="VIRTUAL">Virtual</option>
+                        <option value="PRESENCIAL">Presencial</option>
+                    </select>
+                </label>
+
+            </form>
+
+        </section>
+    </main>
+</body>
+</html>
