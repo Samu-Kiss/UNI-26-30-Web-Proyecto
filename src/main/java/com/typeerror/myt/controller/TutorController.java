@@ -1,7 +1,5 @@
 package com.typeerror.myt.controller;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.HashMap;
@@ -20,16 +18,10 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.typeerror.myt.entities.EstadoReserva;
-import com.typeerror.myt.entities.Estudiante;
-import com.typeerror.myt.entities.Materia;
 import com.typeerror.myt.entities.ModalidadReserva;
-import com.typeerror.myt.entities.Reserva;
 import com.typeerror.myt.entities.Tutor;
-import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.service.ContextoSesion;
 import com.typeerror.myt.service.DisponibilidadTutorService;
-import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
 
@@ -39,22 +31,17 @@ public class TutorController {
 
     private final TutorService tutorService;
     private final ReservaService reservaService;
-    private final EstudianteService estudianteService;
-    private final MateriaRepository materiaRepository;
     private final DisponibilidadTutorService disponibilidadService;
 
     public TutorController(TutorService tutorService, ReservaService reservaService) {
-        this(tutorService, reservaService, null, null, null);
+        this(tutorService, reservaService, null);
     }
 
     @Autowired
     public TutorController(TutorService tutorService, ReservaService reservaService,
-            EstudianteService estudianteService, MateriaRepository materiaRepository,
             DisponibilidadTutorService disponibilidadService) {
         this.tutorService = tutorService;
         this.reservaService = reservaService;
-        this.estudianteService = estudianteService;
-        this.materiaRepository = materiaRepository;
         this.disponibilidadService = disponibilidadService;
     }
 
@@ -113,58 +100,19 @@ public class TutorController {
             @RequestParam String sesion,
             Model model) {
 
-        Tutor tutor = tutorService.findById(tutorId)
-                .orElseThrow(() -> new IllegalArgumentException("El tutor no existe"));
-
         Integer idEstudiante = estudianteIdSesion != null ? estudianteIdSesion : estudianteId;
-        if (idEstudiante == null && estudianteService != null) {
-            var estudiantes = estudianteService.findAll();
-            if (!estudiantes.isEmpty()) {
-                idEstudiante = estudiantes.getFirst().getId();
-            }
-        }
         if (idEstudiante == null) {
             throw new IllegalArgumentException("Se requiere un estudiante válido para realizar la reserva");
         }
 
-        Estudiante estudiante = estudianteService != null
-                ? estudianteService.findById(idEstudiante)
-                        .orElseThrow(() -> new IllegalArgumentException("El estudiante no existe"))
-                : null;
-
-        Materia materia = materiaRepository != null
-                ? materiaRepository.findById(materiaId)
-                        .orElseThrow(() -> new IllegalArgumentException("La materia no existe"))
-                : null;
-
-        String ubicacionOEnlace = modalidad == ModalidadReserva.VIRTUAL
-                ? "https://meet.google.com/myt-tutoria"
-                : "Campus Universitario / Aula del Tutor";
-
-        BigDecimal costoTotal = tutor.getTarifaPorHora()
-                .multiply(BigDecimal.valueOf(duracionMinutos))
-                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
-
-        Reserva reserva = new Reserva();
-        reserva.setTutor(tutor);
-        reserva.setEstudiante(estudiante);
-        reserva.setMateria(materia);
-        reserva.setFecha(fecha);
-        reserva.setHoraInicio(horaInicio);
-        reserva.setDuracionMinutos(duracionMinutos);
-        reserva.setTema(tema);
-        reserva.setModalidad(modalidad);
-        reserva.setUbicacionOEnlace(ubicacionOEnlace);
-        reserva.setEstado(EstadoReserva.PENDIENTE);
-        reserva.setCostoTotal(costoTotal);
-        reserva.setMoneda("COP");
-
         try {
-            reservaService.guardar(reserva);
+            reservaService.crearReserva(tutorId, idEstudiante, materiaId,
+                    fecha, horaInicio, duracionMinutos, tema, modalidad);
             String redireccion = ContextoSesion.redireccion(
                     "/estudiantes/" + idEstudiante + "/reservas", sesion);
             return redireccion + "&reservaExitosa=true";
         } catch (IllegalArgumentException | IllegalStateException exception) {
+            Tutor tutor = tutorService.findById(tutorId).orElse(null);
             model.addAttribute("error", exception.getMessage());
             model.addAttribute("tutor", tutor);
             model.addAttribute("disponibilidades", obtenerDisponibilidadesDto(tutorId, tutor));
@@ -184,7 +132,7 @@ public class TutorController {
     private List<Map<String, String>> obtenerDisponibilidadesDto(Integer tutorId, Tutor tutor) {
         var disponibilidadesRaw = disponibilidadService != null
                 ? disponibilidadService.findByTutorId(tutorId)
-                : tutor.getDisponibilidades();
+                : tutor != null ? tutor.getDisponibilidades() : null;
 
         if (disponibilidadesRaw == null) {
             return List.of();

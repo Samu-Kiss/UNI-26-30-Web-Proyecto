@@ -27,13 +27,22 @@ import com.typeerror.myt.entities.Tutor;
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.repository.BloqueoAgendaRepository;
 import com.typeerror.myt.repository.DisponibilidadTutorRepository;
+import com.typeerror.myt.repository.EstudianteRepository;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.repository.ReservaRepository;
+import com.typeerror.myt.repository.TutorRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ReservaServiceImplTest {
 
     @Mock
     private ReservaRepository reservaRepository;
+    @Mock
+    private TutorRepository tutorRepository;
+    @Mock
+    private EstudianteRepository estudianteRepository;
+    @Mock
+    private MateriaRepository materiaRepository;
     @Mock
     private DisponibilidadTutorRepository disponibilidadRepository;
     @Mock
@@ -43,8 +52,11 @@ class ReservaServiceImplTest {
 
     @BeforeEach
     void preparar() {
-        servicio = new ReservaServiceImpl(reservaRepository, disponibilidadRepository, bloqueoRepository);
+        servicio = new ReservaServiceImpl(reservaRepository, tutorRepository,
+                estudianteRepository, materiaRepository,
+                disponibilidadRepository, bloqueoRepository);
     }
+
 
     @Test
     void guardaUnaReservaValidaSinSolapamientos() {
