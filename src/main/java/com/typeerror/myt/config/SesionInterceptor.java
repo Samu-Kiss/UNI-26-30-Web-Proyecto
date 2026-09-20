@@ -21,6 +21,9 @@ public class SesionInterceptor implements HandlerInterceptor {
             Pattern.compile("/estudiantes/(\\d+)/reservas");
     private static final Pattern RESERVAS_TUTOR =
             Pattern.compile("/tutores/(\\d+)/reservas");
+    private static final Pattern RESERVAR_TUTOR =
+            Pattern.compile("/tutores/(\\d+)/reservar");
+
     private final SesionService sesionService;
 
     public SesionInterceptor(SesionService sesionService) {
@@ -57,6 +60,10 @@ public class SesionInterceptor implements HandlerInterceptor {
         }
         if ("/tutor".equals(ruta)) {
             return contexto.rol() == RolUsuario.TUTOR;
+        }
+        Matcher reservarTutor = RESERVAR_TUTOR.matcher(ruta);
+        if (reservarTutor.matches()) {
+            return contexto.rol() == RolUsuario.ESTUDIANTE;
         }
         Matcher estudiante = RESERVAS_ESTUDIANTE.matcher(ruta);
         if (estudiante.matches()) {

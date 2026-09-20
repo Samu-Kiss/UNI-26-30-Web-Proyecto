@@ -29,4 +29,9 @@ public class TutorServiceImpl implements TutorService {
         return tutorRepository.findAll();
     }
 
+    @Override
+    public Optional<Double> findCalificacionPromedio(Integer tutorId) {
+        return tutorRepository.findCalificacionPromedioByTutorId(tutorId);
+    }
+
 }

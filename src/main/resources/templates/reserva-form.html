@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva reserva - MyT</title>
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+</head>
+<body>
+    <main class="contenedor contenedor-formulario">
+
+        <a class="volver"
+           th:href="@{/tutores(sesion=${sesion})}">
+            Volver a tutores
+        </a>
+
+        <section class="tarjeta formulario-tarjeta">
+
+            <p class="marca">MyT</p>
+            <h1>Nueva reserva</h1>
+
+            <p class="descripcion">
+                Completa los datos de la tutoría.
+            </p>
+
+            <div th:if="${error}" class="alerta-error" th:text="${error}">
+            </div>
+
+            <div class="panel-informativo">
+                <strong>Tutor seleccionado</strong>
+                <span th:text="|${tutor.usuario.nombre} ${tutor.usuario.apellido}|">
+                </span>
+                <span th:text="|Tarifa por hora: ${tutor.tarifaPorHora} COP|">
+                </span>
+            </div>
+
+            <div class="panel-informativo">
+                <strong>Horarios y Bloques Disponibles del Tutor</strong>
+                <div th:if="${#lists.isEmpty(disponibilidades)}">
+                    <em>El tutor cuenta con disponibilidad abierta en su agenda.</em>
+                </div>
+                <ul th:unless="${#lists.isEmpty(disponibilidades)}" style="margin: 4px 0 0 16px; padding: 0;">
+                    <li th:each="disp : ${disponibilidades}">
+                        <span th:text="|${disp.diaSemana}: ${disp.horaInicio} - ${disp.horaFin}|"></span>
+                    </li>
+                </ul>
+            </div>
+
+            <form class="formulario" th:action="@{/tutores/{tutorId}/reservar(tutorId=${tutor.id})}" method="post">
+
+                <input type="hidden" name="sesion" th:value="${sesion}">
+                <input type="hidden" name="tutorId" th:value="${tutor.id}">
+
+                <label>
+                    Materia
+                    <select name="materiaId" required>
+                        <option th:each="materia : ${tutor.materias}"
+                                th:value="${materia.id}"
+                                th:text="${materia.nombre}">
+                        </option>
+                    </select>
+                </label>
+
+                <div class="rejilla">
+                    <label>
+                        Fecha
+                        <input type="date" id="fechaInput" name="fecha" required th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                        <span id="errorFecha" class="error" hidden></span>
+                    </label>
+
+                    <label>
+                        Hora de inicio
+                        <select id="horaInicioSelect" name="horaInicio" disabled required>
+                            <option value="">Selecciona una fecha válida primero</option>
+                        </select>
+                    </label>
+                </div>
+
+                <label>
+                    Duración
+                    <select name="duracionMinutos" required>
+                        <option value="60">60 minutos</option>
+                        <option value="90">90 minutos</option>
+                        <option value="120">120 minutos</option>
+                    </select>
+                </label>
+
+                <label>
+                    Tema
+                    <input type="text"
+                           name="tema"
+                           maxlength="300"
+                           required
+                           placeholder="Tema que deseas trabajar (ej. Cálculo Multivariable)">
+                </label>
+
+                <label>
+                    Modalidad
+                    <select name="modalidad" required>
+                        <option value="VIRTUAL">Virtual</option>
+                        <option value="PRESENCIAL">Presencial</option>
+                    </select>
+                </label>
+
+                <div class="acciones-formulario">
+                    <button type="submit" class="boton boton-primario">Reservar tutoría</button>
+                </div>
+
+            </form>
+
+        </section>
+    </main>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const disponibilidades = /*[[${disponibilidades}]]*/ [];
+        const DIAS_MAP = {
+            0: 'DOMINGO',
+            1: 'LUNES',
+            2: 'MARTES',
+            3: 'MIERCOLES',
+            4: 'JUEVES',
+            5: 'VIERNES',
+            6: 'SABADO'
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const fechaInput = document.getElementById('fechaInput');
+            const horaSelect = document.getElementById('horaInicioSelect');
+            const errorFecha = document.getElementById('errorFecha');
+
+            if (!fechaInput || !horaSelect) return;
+
+            fechaInput.addEventListener('change', () => {
+                const val = fechaInput.value;
+                if (!val) {
+                    horaSelect.disabled = true;
+                    horaSelect.innerHTML = '<option value="">Selecciona una fecha válida primero</option>';
+                    errorFecha.hidden = true;
+                    return;
+                }
+
+                const parts = val.split('-');
+                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                const dayOfWeekStr = DIAS_MAP[dateObj.getDay()];
+
+                const bloquesDelDia = Array.isArray(disponibilidades)
+                    ? disponibilidades.filter(d => d.diaSemana === dayOfWeekStr)
+                    : [];
+
+                if (disponibilidades && disponibilidades.length > 0 && bloquesDelDia.length === 0) {
+                    errorFecha.textContent = `El tutor no atiende los días ${dayOfWeekStr}. Elige un día disponible.`;
+                    errorFecha.hidden = false;
+                    fechaInput.setCustomValidity('Día no disponible');
+                    horaSelect.disabled = true;
+                    horaSelect.innerHTML = '<option value="">Día no disponible para el tutor</option>';
+                } else {
+                    errorFecha.hidden = true;
+                    fechaInput.setCustomValidity('');
+                    poblarHorarios(bloquesDelDia, horaSelect);
+                }
+            });
+
+            function poblarHorarios(bloques, selectElem) {
+                selectElem.innerHTML = '';
+
+                let slots = [];
+                if (!bloques || bloques.length === 0) {
+                    slots = generarSlots("08:00", "20:00");
+                } else {
+                    bloques.forEach(b => {
+                        const inicio = Array.isArray(b.horaInicio)
+                            ? `${String(b.horaInicio[0]).padStart(2, '0')}:${String(b.horaInicio[1]).padStart(2, '0')}`
+                            : b.horaInicio;
+                        const fin = Array.isArray(b.horaFin)
+                            ? `${String(b.horaFin[0]).padStart(2, '0')}:${String(b.horaFin[1]).padStart(2, '0')}`
+                            : b.horaFin;
+                        const generados = generarSlots(inicio, fin);
+                        slots = slots.concat(generados);
+                    });
+                }
+
+                slots = [...new Set(slots)].sort();
+
+                if (slots.length === 0) {
+                    selectElem.disabled = true;
+                    selectElem.innerHTML = '<option value="">No hay horarios disponibles para esta fecha</option>';
+                    return;
+                }
+
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = 'Selecciona la hora de inicio';
+                selectElem.appendChild(defaultOpt);
+
+                slots.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    selectElem.appendChild(opt);
+                });
+
+                selectElem.disabled = false;
+            }
+
+            function generarSlots(horaInicioStr, horaFinStr) {
+                const toMinutes = (s) => {
+                    if (typeof s !== 'string') return 0;
+                    const [h, m] = s.split(':').map(Number);
+                    return (h || 0) * 60 + (m || 0);
+                };
+
+                const startMin = toMinutes(horaInicioStr);
+                const endMin = toMinutes(horaFinStr);
+                const maxStartMin = endMin - 60;
+
+                const res = [];
+                for (let m = startMin; m <= maxStartMin; m += 30) {
+                    const hh = String(Math.floor(m / 60)).padStart(2, '0');
+                    const mm = String(m % 60).padStart(2, '0');
+                    res.push(`${hh}:${mm}`);
+                }
+                return res;
+            }
+        });
+        /*]]>*/
+    </script>
+</body>
+</html>
