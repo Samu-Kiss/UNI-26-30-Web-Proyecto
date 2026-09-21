@@ -276,10 +276,12 @@ class ReservaServiceImplTest {
     @Test
     void crearReservaFallaSiTutorNoExiste() {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.empty());
+        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(TutorNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 60,
+                        fecha, hora, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -287,10 +289,12 @@ class ReservaServiceImplTest {
     void crearReservaFallaSiTutorNoDisponible() {
         Tutor tutorNoDisponible = tutorConTarifa(3, new BigDecimal("40000"), false);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutorNoDisponible));
+        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(IllegalStateException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 60,
+                        fecha, hora, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -299,10 +303,12 @@ class ReservaServiceImplTest {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("40000"), true);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.empty());
+        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(EstudianteNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 60,
+                        fecha, hora, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -313,10 +319,12 @@ class ReservaServiceImplTest {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
         when(materiaRepository.findById(10)).thenReturn(Optional.empty());
+        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(MateriaNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 60,
+                        fecha, hora, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 

@@ -67,7 +67,8 @@ public class ChatServiceImpl implements ChatService {
         validarContenido(contenido);
         Usuario remitente = usuarioRepository.findById(remitenteId)
                 .orElseThrow(() -> new UsuarioNotFoundException(remitenteId));
-        if (!remitente.getActivo()) {
+        boolean activo = Boolean.TRUE.equals(remitente.getActivo());
+        if (!activo) {
             throw new IllegalStateException("Un usuario inactivo no puede enviar mensajes");
         }
         return mensajeRepository.save(new Mensaje(conversacion, remitente, contenido.trim()));
