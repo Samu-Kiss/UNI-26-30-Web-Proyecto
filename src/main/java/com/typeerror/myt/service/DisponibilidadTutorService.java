@@ -2,6 +2,7 @@ package com.typeerror.myt.service;
 
 import java.util.List;
 
+import com.typeerror.myt.errors.InformacionNoValidaException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +26,7 @@ public class DisponibilidadTutorService {
     @Transactional
     public DisponibilidadTutor guardar(DisponibilidadTutor disponibilidad) {
         if (!disponibilidad.tieneHorarioValido()) {
-            throw new IllegalArgumentException("La hora final debe ser posterior a la inicial");
+            throw new InformacionNoValidaException();
         }
         boolean seSolapa = repository.findByTutorIdAndDiaSemana(
                         disponibilidad.getTutor().getId(), disponibilidad.getDiaSemana()).stream()

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.typeerror.myt.errors.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,14 +97,14 @@ public class ReservaServiceImpl implements ReservaService {
     @Transactional
     public Reserva cambiarEstado(Integer id, EstadoReserva nuevoEstado, String motivo) {
         Reserva reserva = reservaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("La reserva no existe"));
+                .orElseThrow(() -> new ReservaNotFoundException(id));
         if (!TRANSICIONES.getOrDefault(reserva.getEstado(), Set.of()).contains(nuevoEstado)) {
             throw new IllegalStateException("Transicion de estado no permitida");
         }
         reserva.setEstado(nuevoEstado);
         if (nuevoEstado == EstadoReserva.CANCELADA || nuevoEstado == EstadoReserva.RECHAZADA) {
             if (motivo == null || motivo.isBlank()) {
-                throw new IllegalArgumentException("El motivo es obligatorio al cancelar o rechazar");
+                throw new InformacionIncompletaException();
             }
             reserva.setMotivoCancelacion(motivo);
             reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
@@ -118,17 +119,17 @@ public class ReservaServiceImpl implements ReservaService {
             String tema, ModalidadReserva modalidad) {
 
         Tutor tutor = tutorRepository.findOneById(tutorId)
-                .orElseThrow(() -> new IllegalArgumentException("El tutor no existe"));
+                .orElseThrow(() -> new TutorNotFoundException(tutorId));
 
         if (!Boolean.TRUE.equals(tutor.getDisponible())) {
             throw new IllegalStateException("El tutor no está disponible");
         }
 
         Estudiante estudiante = estudianteRepository.findOneById(estudianteId)
-                .orElseThrow(() -> new IllegalArgumentException("El estudiante no existe"));
+                .orElseThrow(() -> new EstudianteNotFoundException(estudianteId));
 
         Materia materia = materiaRepository.findById(materiaId)
-                .orElseThrow(() -> new IllegalArgumentException("La materia no existe"));
+                .orElseThrow(() -> new MateriaNotFoundException(materiaId));
 
         String ubicacionOEnlace = modalidad == ModalidadReserva.VIRTUAL
                 ? "https://meet.google.com/myt-tutoria"
@@ -158,27 +159,27 @@ public class ReservaServiceImpl implements ReservaService {
     private void validarDatos(Reserva reserva) {
         if (reserva.getEstudiante() == null || reserva.getTutor() == null
                 || reserva.getMateria() == null) {
-            throw new IllegalArgumentException("Estudiante, tutor y materia son obligatorios");
+            throw new InformacionIncompletaException();
         }
         if (reserva.getFecha() == null || reserva.getHoraInicio() == null
                 || reserva.getDuracionMinutos() == null || reserva.getDuracionMinutos() <= 0) {
-            throw new IllegalArgumentException("La fecha, hora y duracion deben ser validas");
+            throw new InformacionNoValidaException();
         }
         if (reserva.getEstudiante().getUsuario().getId()
                 .equals(reserva.getTutor().getUsuario().getId())) {
-            throw new IllegalArgumentException("Una persona no puede reservarse a si misma");
+            throw new SelfReservation();
         }
         if (reserva.getModalidad() == ModalidadReserva.VIRTUAL
                 && (reserva.getUbicacionOEnlace() == null
                 || reserva.getUbicacionOEnlace().isBlank())) {
-            throw new IllegalArgumentException("La reserva virtual necesita un enlace");
+            throw new InformacionIncompletaException();
         }
     }
 
     private void validarSolapamiento(Reserva reserva) {
         LocalTime fin = reserva.calcularHoraFin();
         if (fin == null) {
-            throw new IllegalArgumentException("La hora y la duracion son obligatorias");
+            throw new InformacionIncompletaException();
         }
         var reservasDelDia = reservaRepository.findByTutorIdAndFechaAndEstadoNotIn(
                 reserva.getTutor().getId(), reserva.getFecha(),
@@ -188,7 +189,7 @@ public class ReservaServiceImpl implements ReservaService {
                 .anyMatch(existente -> reserva.getHoraInicio().isBefore(existente.calcularHoraFin())
                         && fin.isAfter(existente.getHoraInicio()));
         if (seSolapa) {
-            throw new IllegalStateException("El tutor ya tiene una reserva en ese horario");
+            throw new InformacionNoValidaException();
         }
     }
 
@@ -201,14 +202,14 @@ public class ReservaServiceImpl implements ReservaService {
                 .anyMatch(intervalo -> !reserva.getHoraInicio().isBefore(intervalo.getHoraInicio())
                         && !fin.isAfter(intervalo.getHoraFin()));
         if (!dentroDeAgenda) {
-            throw new IllegalStateException("La reserva esta fuera de la disponibilidad del tutor");
+            throw new InformacionNoValidaException();
         }
         boolean bloqueada = bloqueoRepository.findByTutorIdAndFecha(
                         reserva.getTutor().getId(), reserva.getFecha()).stream()
                 .anyMatch(bloqueo -> reserva.getHoraInicio().isBefore(bloqueo.getHoraFin())
                         && fin.isAfter(bloqueo.getHoraInicio()));
         if (bloqueada) {
-            throw new IllegalStateException("El tutor bloqueo ese horario");
+            throw new InformacionNoValidaException();
         }
     }
 

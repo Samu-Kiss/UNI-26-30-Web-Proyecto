@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Crear Reserva</title>
+</head>
+<body>
+<h1>Crear Reserva</h1>
+<form action="/reservas/crear" method="post">
+  <input type="hidden" name="estudianteId" value="1" />
+  <label for="tutor">Tutor:</label>
+  <select id="tutor" name="tutor.id" required>
+    <option th:each="tutor : ${tutores}" th:value="${tutor.id}" th:text="${tutor.nombre}"></option>
+  </select>
+  <label for="fecha">Fecha:</label>
+  <input type="datetime-local" id="fecha" name="fechaReserva" required>
+  <button type="submit">Reservar</button>
+</form>
+</body>
+</html>
