@@ -58,37 +58,18 @@
                                     </button>
                                 </div>
 
-                                <form th:if="${reserva.estado.name() == 'PENDIENTE'}"
+                                <form th:if="${reserva.estado.name() == 'PENDIENTE' or reserva.estado.name() == 'CONFIRMADA' or reserva.estado.name() == 'EN_CURSO'}"
                                       class="form-cancelacion"
                                       th:id="|cancelacion-${reserva.id}|"
                                       th:action="@{/tutores/{tutorId}/reservas(tutorId=${tutor.id})}"
                                       method="post"
                                       style="display: none;">
                                     <input type="hidden" name="id" th:value="${reserva.id}">
-                                    <input type="hidden" name="estado" value="RECHAZADA">
+                                    <input type="hidden" name="estado" th:value="${reserva.estado.name() == 'PENDIENTE' ? 'RECHAZADA' : 'CANCELADA'}">
                                     <input type="hidden" name="sesion" th:value="${sesion}">
-                                    <label class="sr-only" th:for="|motivo-${reserva.id}|">Motivo de cancelación</label>
-                                    <input class="campo-motivo"
-                                           type="text"
-                                           name="motivo"
-                                           th:id="|motivo-${reserva.id}|"
-                                           placeholder="Motivo de cancelación"
-                                           maxlength="500">
-                                    <button type="button" class="boton boton-cerrar" th:onclick="|cerrarCancelacion(${reserva.id})|">X</button>
-                                    <button type="submit" class="boton boton-cancelar">Enviar cancelación</button>
-                                </form>
-
-                                <form th:if="${reserva.estado.name() == 'CONFIRMADA' or reserva.estado.name() == 'EN_CURSO'}"
-                                      class="form-cancelacion"
-                                      th:id="|cancelacion-${reserva.id}|"
-                                      th:action="@{/tutores/{tutorId}/reservas(tutorId=${tutor.id})}"
-                                      method="post"
-                                      style="display: none;">
-                                    <input type="hidden" name="id" th:value="${reserva.id}">
-                                    <input type="hidden" name="estado" value="CANCELADA">
-                                    <input type="hidden" name="sesion" th:value="${sesion}">
-                                    <label class="sr-only" th:for="|motivo-${reserva.id}|">Motivo de cancelación</label>
-                                    <input class="campo-motivo"
+                                    <label class="sr-only" for="motivo" th:for="|motivo-${reserva.id}|">Motivo de cancelación</label>
+                                    <input id="motivo"
+                                           class="campo-motivo"
                                            type="text"
                                            name="motivo"
                                            th:id="|motivo-${reserva.id}|"
