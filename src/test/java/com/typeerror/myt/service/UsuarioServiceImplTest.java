@@ -21,6 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.errors.UsuarioDeRegistroNoExisteException;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
+import com.typeerror.myt.errors.UsuarioYaExistenteException;
 import com.typeerror.myt.repository.UsuarioRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +43,7 @@ class UsuarioServiceImplTest {
     @Test
     void rechazaCrearUsuarioSinPerfil() {
         Usuario usuario = usuario(null, "nuevo@myt.test", Set.of(RolUsuario.ESTUDIANTE));
-        assertThrows(IllegalArgumentException.class, () -> servicio.guardar(usuario));
+        assertThrows(UsuarioDeRegistroNoExisteException.class, () -> servicio.guardar(usuario));
     }
 
     @Test
@@ -68,7 +71,7 @@ class UsuarioServiceImplTest {
         Usuario nuevo = usuario(1, "duplicado@myt.test", Set.of(RolUsuario.ESTUDIANTE));
         when(usuarioRepository.findByCorreoIgnoreCase(nuevo.getCorreo()))
                 .thenReturn(Optional.of(encontrado));
-        assertThrows(IllegalArgumentException.class, () -> servicio.guardar(nuevo));
+        assertThrows(UsuarioYaExistenteException.class, () -> servicio.guardar(nuevo));
 
     }
 
@@ -90,7 +93,7 @@ class UsuarioServiceImplTest {
     void reportaUsuarioInexistenteAlCambiarEstado() {
         when(usuarioRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> servicio.desactivar(99));
+        assertThrows(UsuarioNotFoundException.class, () -> servicio.desactivar(99));
     }
 
     private Usuario usuario(Integer id, String correo, Set<RolUsuario> roles) {

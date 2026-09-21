@@ -23,6 +23,7 @@ import org.springframework.ui.ConcurrentModel;
 import org.springframework.validation.BeanPropertyBindingResult;
 
 import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.service.RegistroUsuarioService;
 import com.typeerror.myt.service.UsuarioService;
@@ -103,7 +104,7 @@ class UsuarioControllerTest {
 
         when(usuarioService.findById(99)).thenReturn(Optional.empty());
         ConcurrentModel model = new ConcurrentModel();
-        assertThrows(IllegalArgumentException.class, () -> controller.editar(99, model));
+        assertThrows(UsuarioNotFoundException.class, () -> controller.editar(99, model));
     }
 
     @Test

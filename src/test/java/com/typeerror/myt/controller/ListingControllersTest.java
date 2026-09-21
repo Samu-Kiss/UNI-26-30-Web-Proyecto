@@ -25,6 +25,7 @@ import org.springframework.ui.ConcurrentModel;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.ModalidadReserva;
 import com.typeerror.myt.entities.Tutor;
+import com.typeerror.myt.errors.TutorNotFoundException;
 import com.typeerror.myt.service.AdministradorService;
 import com.typeerror.myt.service.DisponibilidadTutorService;
 import com.typeerror.myt.service.EstudianteService;
@@ -290,7 +291,7 @@ class ListingControllersTest {
                 new TutorController(tutorService, reservaService);
 
         assertThrows(
-                IllegalArgumentException.class,
+                TutorNotFoundException.class,
                 () -> controller.mostrarFormularioReserva(5, model));
     }
 
@@ -365,7 +366,7 @@ class ListingControllersTest {
         TutorController controller = new TutorController(tutorService, reservaService);
         ConcurrentModel model = new ConcurrentModel();
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(TutorNotFoundException.class, () ->
                 controller.listarReservasDelTutor(5, model));
     }
 

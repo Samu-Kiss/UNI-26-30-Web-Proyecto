@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.errors.RolYaAsignadoException;
 import com.typeerror.myt.entities.Materia;
 import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.entities.Estudiante;
@@ -179,7 +180,7 @@ class RegistroUsuarioServiceImplTest {
         existente.setId(15);
         when(estudianteRepository.existsByUsuarioId(15)).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(RolYaAsignadoException.class,
                 () -> usuarioService.registrarEstudiante(
                         existente, "E-15", "Universidad", "Sistemas", 5));
     }

@@ -111,7 +111,7 @@ public class RegistroUsuarioController {
 
     private void guardarPerfil(Usuario usuario, RegistroPerfilForm perfil) {
         if (perfil.getRol() == null || perfil.getRol().isBlank()) {
-            throw new InformacionNoValidaException();
+            throw new InformacionNoValidaException("Selecciona si la cuenta es de estudiante o tutor");
         }
 
         switch (perfil.getRol()) {
@@ -120,29 +120,29 @@ public class RegistroUsuarioController {
                     perfil.getProgramaAcademico(), convertirSemestre(perfil.getSemestre()));
             case "TUTOR" -> usuarioService.registrarTutor(usuario, perfil.getBiografia(),
                     convertirMaterias(perfil.getMaterias()), convertirTarifa(perfil.getTarifaPorHora()));
-            default -> throw new InformacionNoValidaException();
+            default -> throw new InformacionNoValidaException("El tipo de cuenta seleccionado no es válido");
         }
     }
 
     private Integer convertirSemestre(String semestre) {
         if (semestre == null || semestre.isBlank()) {
-            throw new InformacionIncompletaException();
+            throw new InformacionIncompletaException("El semestre es obligatorio");
         }
         try {
             return Integer.valueOf(semestre);
         } catch (NumberFormatException exception) {
-            throw new InformacionNoValidaException();
+            throw new InformacionNoValidaException("Ingresa un semestre válido");
         }
     }
 
     private BigDecimal convertirTarifa(String tarifa) {
         if (tarifa == null || tarifa.isBlank()) {
-            throw new InformacionNoValidaException();
+            throw new InformacionNoValidaException("La tarifa por hora es obligatoria");
         }
         try {
             return new BigDecimal(tarifa);
         } catch (NumberFormatException exception) {
-            throw new InformacionNoValidaException();
+            throw new InformacionNoValidaException("Ingresa una tarifa válida");
         }
     }
 

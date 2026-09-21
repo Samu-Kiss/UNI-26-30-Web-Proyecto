@@ -25,6 +25,8 @@ import com.typeerror.myt.entities.Mensaje;
 import com.typeerror.myt.entities.Reserva;
 import com.typeerror.myt.entities.Tutor;
 import com.typeerror.myt.entities.Usuario;
+import com.typeerror.myt.errors.ConversacionNoExisteException;
+import com.typeerror.myt.errors.MensajeNoExisteException;
 import com.typeerror.myt.repository.ConversacionRepository;
 import com.typeerror.myt.repository.MensajeRepository;
 import com.typeerror.myt.repository.ReservaRepository;
@@ -153,9 +155,9 @@ class ChatServiceTest {
         when(conversacionRepository.findOneById(404)).thenReturn(Optional.empty());
         when(mensajeRepository.findOneById(404L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ConversacionNoExisteException.class,
                 () -> chatService.listarMensajes(404, 1));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(MensajeNoExisteException.class,
                 () -> chatService.eliminarMensaje(404L, 1));
         assertTrue(conversacion.getMensajes().isEmpty());
     }
