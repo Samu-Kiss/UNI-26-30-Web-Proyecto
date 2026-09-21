@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
-    
+
     @ExceptionHandler(UsuarioYaExistenteException.class)
     public String handleUsuarioYaExistenteException(
         UsuarioYaExistenteException ex,
