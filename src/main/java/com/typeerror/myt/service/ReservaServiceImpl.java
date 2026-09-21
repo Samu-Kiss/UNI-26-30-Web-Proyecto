@@ -103,13 +103,19 @@ public class ReservaServiceImpl implements ReservaService {
         }
         reserva.setEstado(nuevoEstado);
         if (nuevoEstado == EstadoReserva.CANCELADA || nuevoEstado == EstadoReserva.RECHAZADA) {
+
             if (motivo == null || motivo.isBlank()) {
                 throw new InformacionIncompletaException();
+            }
+
+            if (motivo.length() > 500) {
+                throw new IllegalArgumentException(
+                    "El motivo no puede superar los 500 caracteres");
             }
             reserva.setMotivoCancelacion(motivo);
             reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
         }
-        return reservaRepository.save(reserva);
+            return reservaRepository.save(reserva);
     }
 
     @Override
@@ -213,6 +219,7 @@ public class ReservaServiceImpl implements ReservaService {
         }
     }
 
+   
     private DiaSemana convertirDia(int diaIso) {
         return DiaSemana.values()[diaIso - 1];
     }

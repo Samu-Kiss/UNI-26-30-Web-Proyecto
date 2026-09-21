@@ -121,6 +121,34 @@ tbody tr:last-child td {
     flex-wrap: wrap;
 }
 
+.acciones-reserva {
+    display: flex;
+    min-width: 300px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.acciones-reserva form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-cancelacion {
+    width: 100%;
+}
+
+.campo-motivo {
+    min-width: 190px;
+    min-height: 44px;
+}
+
+.boton-cancelar {
+    color: white;
+    background: #b34343;
+}
+
 .enlace {
     padding: 0;
     border: 0;
@@ -383,4 +411,37 @@ small {
     font-size: 0.88rem;
     font-weight: 500;
     line-height: 1.45;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.acciones-principales {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.acciones-principales form {
+    margin: 0;
+}
+
+.form-cancelacion[hidden] {
+    display: none;
+}
+
+.boton-cerrar {
+    min-width: 44px;
+    padding: 10px;
+    color: #202522;
+    background-color: #f0f0f0;
 }

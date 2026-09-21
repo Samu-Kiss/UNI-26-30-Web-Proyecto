@@ -199,6 +199,24 @@ class ReservaServiceImplTest {
     }
 
     @Test
+    void rechazaMotivoConMasDe500Caracteres() {
+        Reserva reserva = reserva();
+        reserva.setId(1);
+
+        when(reservaRepository.findById(1))
+                .thenReturn(Optional.of(reserva));
+
+        String motivoLargo = "a".repeat(501);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.cambiarEstado(
+                        1,
+                        EstadoReserva.CANCELADA,
+                        motivoLargo));
+    }
+
+    @Test
     void crearReservaVirtualExitosamente() {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("60000"), true);
         Estudiante estudiante = estudiante(1);
@@ -361,4 +379,6 @@ class ReservaServiceImplTest {
         usuario.setId(id);
         return usuario;
     }
+
+
 }

@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,6 +30,9 @@ import com.typeerror.myt.service.DisponibilidadTutorService;
 import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
+import com.typeerror.myt.entities.EstadoReserva;
+import com.typeerror.myt.entities.Reserva;
+
 
 @ExtendWith(MockitoExtension.class)
 class ListingControllersTest {
@@ -71,6 +76,141 @@ class ListingControllersTest {
                 new EstudianteController(estudianteService, reservaService)
                         .listarReservas(7, model));
         assertEquals(estudiante, model.getAttribute("estudiante"));
+        assertTrue(model.containsAttribute("reservas"));
+    }
+
+    @Test
+    void cambiaEstadoReservaYRedirecciona() {
+        ConcurrentModel model = new ConcurrentModel();
+        ReservaController controller = new ReservaController(reservaService);
+
+        String resultado = controller.cambiarEstado(
+                5,
+                EstadoReserva.CONFIRMADA,
+                null,
+                "ADMINISTRADOR:7",
+                model);
+
+        assertEquals(
+                "redirect:/reservas?sesion=ADMINISTRADOR:7",
+                resultado);
+
+        verify(reservaService).cambiarEstado(
+                5,
+                EstadoReserva.CONFIRMADA,
+                null);
+    }
+
+    @Test
+    void muestraErrorCuandoNoPuedeCambiarEstado() {
+        doThrow(new IllegalArgumentException(
+                "El motivo es obligatorio al cancelar o rechazar"))
+                .when(reservaService)
+                .cambiarEstado(
+                        5,
+                        EstadoReserva.CANCELADA,
+                        null);
+
+        when(reservaService.findAll()).thenReturn(List.of());
+
+        ConcurrentModel model = new ConcurrentModel();
+        ReservaController controller = new ReservaController(reservaService);
+
+        String resultado = controller.cambiarEstado(
+                5,
+                EstadoReserva.CANCELADA,
+                null,
+                "ADMINISTRADOR:7",
+                model);
+
+        assertEquals("mostrar_reservas", resultado);
+
+        assertEquals(
+                "El motivo es obligatorio al cancelar o rechazar",
+                model.getAttribute("error"));
+
+        assertTrue(model.containsAttribute("reservas"));
+    }
+
+    @Test
+    void tutorCambiaEstadoReservaYRedirecciona() {
+        Tutor tutor = mock(Tutor.class);
+        when(tutor.getId()).thenReturn(3);
+        Reserva reserva = mock(Reserva.class);
+        when(reserva.getTutor()).thenReturn(tutor);
+
+        when(reservaService.findById(10)).thenReturn(Optional.of(reserva));
+
+        ConcurrentModel model = new ConcurrentModel();
+        TutorController controller = new TutorController(tutorService, reservaService);
+
+        String resultado = controller.cambiarEstadoReserva(
+                3,
+                10,
+                EstadoReserva.CONFIRMADA,
+                null,
+                "TUTOR:3",
+                model);
+
+        assertEquals("redirect:/tutores/3/reservas?sesion=TUTOR:3", resultado);
+        verify(reservaService).cambiarEstado(10, EstadoReserva.CONFIRMADA, null);
+    }
+
+    @Test
+    void tutorMuestraErrorCuandoReservaNoLePertenece() {
+        Tutor tutor = mock(Tutor.class);
+        when(tutor.getId()).thenReturn(99);
+        Reserva reserva = mock(Reserva.class);
+        when(reserva.getTutor()).thenReturn(tutor);
+
+        when(reservaService.findById(10)).thenReturn(Optional.of(reserva));
+        when(tutorService.findById(3)).thenReturn(Optional.empty());
+        when(reservaService.findByTutorId(3)).thenReturn(List.of());
+
+        ConcurrentModel model = new ConcurrentModel();
+        TutorController controller = new TutorController(tutorService, reservaService);
+
+        String resultado = controller.cambiarEstadoReserva(
+                3,
+                10,
+                EstadoReserva.CONFIRMADA,
+                null,
+                "TUTOR:3",
+                model);
+
+        assertEquals("reservas-tutor", resultado);
+        assertEquals("La reserva no pertenece a este tutor", model.getAttribute("error"));
+        assertTrue(model.containsAttribute("reservas"));
+    }
+
+    @Test
+    void tutorMuestraErrorCuandoNoOtorgaMotivo() {
+        Tutor tutor = mock(Tutor.class);
+        when(tutor.getId()).thenReturn(3);
+        Reserva reserva = mock(Reserva.class);
+        when(reserva.getTutor()).thenReturn(tutor);
+
+        when(reservaService.findById(10)).thenReturn(Optional.of(reserva));
+        doThrow(new IllegalArgumentException("El motivo es obligatorio al cancelar o rechazar"))
+                .when(reservaService).cambiarEstado(10, EstadoReserva.RECHAZADA, null);
+
+        when(tutorService.findById(3)).thenReturn(Optional.of(tutor));
+        when(reservaService.findByTutorId(3)).thenReturn(List.of());
+
+        ConcurrentModel model = new ConcurrentModel();
+        TutorController controller = new TutorController(tutorService, reservaService);
+
+        String resultado = controller.cambiarEstadoReserva(
+                3,
+                10,
+                EstadoReserva.RECHAZADA,
+                null,
+                "TUTOR:3",
+                model);
+
+        assertEquals("reservas-tutor", resultado);
+        assertEquals("El motivo es obligatorio al cancelar o rechazar", model.getAttribute("error"));
+        assertEquals(tutor, model.getAttribute("tutor"));
         assertTrue(model.containsAttribute("reservas"));
     }
 
