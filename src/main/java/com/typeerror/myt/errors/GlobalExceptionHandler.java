@@ -46,6 +46,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(LongitudInadecuadaException.class)
     public String handleLongitudInadecuadaException(
         LongitudInadecuadaException ex,
@@ -53,6 +54,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(MateriaNotFoundException.class)
     public String handleMateriaNotFoundException(
         MateriaNotFoundException ex,
@@ -60,6 +62,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(MensajeNoExisteException.class)
     public String handleMensajeNoExisteException(
         MensajeNoExisteException ex,
@@ -67,6 +70,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(ReservaNotFoundException.class)
     public String handleReservaNotFoundException(
         ReservaNotFoundException ex,
@@ -74,6 +78,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(RolYaAsignadoException.class)
     public String handleRolNotFoundException(
         RolYaAsignadoException ex,
@@ -81,6 +86,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(SelfReservation.class)
     public String handleSelfReservation(
         SelfReservation ex,
@@ -88,6 +94,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(UsuarioDeRegistroNoExisteException.class)
     public String handleUsuarioDeRegistroNoExisteException(
         UsuarioDeRegistroNoExisteException ex,
@@ -95,6 +102,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+
     @ExceptionHandler(UsuarioNotFoundException.class)
     public String handleUsuarioNoExisteException(
         UsuarioNotFoundException ex,
@@ -102,6 +110,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorMessage", ex.getMessage());
         return "error";
     }
+    
     @ExceptionHandler(UsuarioYaExistenteException.class)
     public String handleUsuarioYaExistenteException(
         UsuarioYaExistenteException ex,
