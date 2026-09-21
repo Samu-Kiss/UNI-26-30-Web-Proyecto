@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.typeerror.myt.errors.InformacionNoValidaException;
+import com.typeerror.myt.errors.TutorNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -76,7 +78,7 @@ public class TutorController {
 
         Tutor tutor = tutorService.findById(tutorId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("El tutor no existe"));
+                        new TutorNotFoundException(tutorId));
 
         if (!Boolean.TRUE.equals(tutor.getDisponible())) {
             throw new IllegalStateException("El tutor no está disponible");
@@ -104,7 +106,7 @@ public class TutorController {
 
         Integer idEstudiante = estudianteIdSesion != null ? estudianteIdSesion : estudianteId;
         if (idEstudiante == null) {
-            throw new IllegalArgumentException("Se requiere un estudiante válido para realizar la reserva");
+            throw new InformacionNoValidaException();
         }
 
         try {
@@ -126,7 +128,7 @@ public class TutorController {
     public String listarReservasDelTutor(@PathVariable Integer tutorId,
             Model model) {
         model.addAttribute("tutor", tutorService.findById(tutorId)
-                .orElseThrow(() -> new IllegalArgumentException("El tutor no existe")));
+                .orElseThrow(() -> new TutorNotFoundException(tutorId)));
         model.addAttribute("reservas", reservaService.findByTutorId(tutorId));
         return "reservas-tutor";
     }

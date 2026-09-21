@@ -4,6 +4,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import com.typeerror.myt.errors.ConversacionNoExisteException;
+import com.typeerror.myt.errors.InformacionNoValidaException;
+import com.typeerror.myt.errors.MensajeNoExisteException;
+import com.typeerror.myt.errors.ReservaNotFoundException;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,8 +66,9 @@ public class ChatServiceImpl implements ChatService {
         validarActiva(conversacion);
         validarContenido(contenido);
         Usuario remitente = usuarioRepository.findById(remitenteId)
-                .orElseThrow(() -> new IllegalArgumentException("El remitente no existe"));
-        if (!remitente.getActivo()) {
+                .orElseThrow(() -> new UsuarioNotFoundException(remitenteId));
+        boolean activo = Boolean.TRUE.equals(remitente.getActivo());
+        if (!activo) {
             throw new IllegalStateException("Un usuario inactivo no puede enviar mensajes");
         }
         return mensajeRepository.save(new Mensaje(conversacion, remitente, contenido.trim()));
@@ -119,19 +125,19 @@ public class ChatServiceImpl implements ChatService {
 
     private Conversacion crearConversacion(Integer reservaId, Integer usuarioId) {
         Reserva reserva = reservaRepository.findOneById(reservaId)
-                .orElseThrow(() -> new IllegalArgumentException("La reserva no existe"));
+                .orElseThrow(() -> new ReservaNotFoundException(reservaId));
         validarParticipante(reserva, usuarioId);
         return conversacionRepository.save(new Conversacion(reserva));
     }
 
     private Conversacion obtenerConversacion(Integer id) {
         return conversacionRepository.findOneById(id)
-                .orElseThrow(() -> new IllegalArgumentException("La conversacion no existe"));
+                .orElseThrow(() -> new ConversacionNoExisteException(id));
     }
 
     private Mensaje obtenerMensaje(Long id) {
         return mensajeRepository.findOneById(id)
-                .orElseThrow(() -> new IllegalArgumentException("El mensaje no existe"));
+                .orElseThrow(() -> new MensajeNoExisteException(id));
     }
 
     private void validarParticipante(Conversacion conversacion, Integer usuarioId) {
@@ -160,7 +166,7 @@ public class ChatServiceImpl implements ChatService {
 
     private void validarContenido(String contenido) {
         if (contenido == null || contenido.isBlank() || contenido.length() > 4000) {
-            throw new IllegalArgumentException("El mensaje debe contener entre 1 y 4000 caracteres");
+            throw new InformacionNoValidaException();
         }
     }
 }

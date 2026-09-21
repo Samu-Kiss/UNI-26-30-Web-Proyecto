@@ -3,6 +3,9 @@ package com.typeerror.myt.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.typeerror.myt.errors.UsuarioDeRegistroNoExisteException;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
+import com.typeerror.myt.errors.UsuarioYaExistenteException;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,11 +41,11 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Transactional
     public Usuario guardar(Usuario usuario) {
         if (usuario.getId() == null) {
-            throw new IllegalArgumentException("Los usuarios nuevos deben registrarse con un perfil");
+            throw new UsuarioDeRegistroNoExisteException();
         }
         validarCorreoDisponible(usuario);
         Usuario existente = usuarioRepository.findById(usuario.getId())
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(usuario.getId()));
         existente.setNombre(usuario.getNombre());
         existente.setApellido(usuario.getApellido());
         existente.setCorreo(usuario.getCorreo());
@@ -67,7 +70,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     private void cambiarEstado(Integer id, boolean activo) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(id));
         usuario.setActivo(activo);
         usuarioRepository.save(usuario);
     }
@@ -76,7 +79,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuarioRepository.findByCorreoIgnoreCase(usuario.getCorreo())
                 .filter(encontrado -> !encontrado.getId().equals(usuario.getId()))
                 .ifPresent(encontrado -> {
-                    throw new IllegalArgumentException("Ya existe un usuario con ese correo");
+                    throw new UsuarioYaExistenteException(usuario.getCorreo());
                 });
     }
 

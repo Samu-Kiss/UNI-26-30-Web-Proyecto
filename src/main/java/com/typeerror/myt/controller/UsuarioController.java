@@ -1,5 +1,6 @@
 package com.typeerror.myt.controller;
 
+import com.typeerror.myt.errors.UsuarioNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -44,7 +45,7 @@ public class UsuarioController {
     @GetMapping("/{id}/editar")
     public String editar(@PathVariable Integer id, Model model) {
         var existente = usuarioService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(id));
         model.addAttribute("usuario", UsuarioForm.from(existente));
         return FORM_VIEW;
     }

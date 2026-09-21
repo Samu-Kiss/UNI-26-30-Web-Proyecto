@@ -8,6 +8,10 @@ import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.typeerror.myt.errors.InformacionNoValidaException;
+import com.typeerror.myt.errors.RolYaAsignadoException;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
+import com.typeerror.myt.errors.UsuarioYaExistenteException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,7 +84,7 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
         validarTexto(universidad, "La universidad es obligatoria");
         validarTexto(programaAcademico, "El programa académico es obligatorio");
         if (semestre == null || semestre < 1 || semestre > 30) {
-            throw new IllegalArgumentException("El semestre debe estar entre 1 y 30");
+            throw new InformacionNoValidaException();
         }
 
         Usuario guardado = guardarCuentaParaPerfil(usuario, RolUsuario.ESTUDIANTE);
@@ -94,10 +98,10 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
             BigDecimal tarifaPorHora) {
         validarPerfilDisponible(usuario, RolUsuario.TUTOR);
         if (materias == null || materias.isEmpty()) {
-            throw new IllegalArgumentException("Registra al menos una materia");
+            throw new InformacionNoValidaException();
         }
         if (tarifaPorHora == null || tarifaPorHora.signum() <= 0) {
-            throw new IllegalArgumentException("La tarifa por hora debe ser mayor que cero");
+            throw new InformacionNoValidaException();
         }
 
         Set<Materia> asignaturas = new HashSet<>();
@@ -105,7 +109,7 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
             validarTexto(nombre, "El nombre de la materia es obligatorio");
             String normalizado = nombre.trim();
             if (normalizado.length() > 100) {
-                throw new IllegalArgumentException("La materia no puede superar 100 caracteres");
+                throw new InformacionNoValidaException();
             }
             asignaturas.add(materiaRepository.findByNombre(normalizado)
                     .orElseGet(() -> materiaRepository.save(new Materia(null, normalizado))));
@@ -118,7 +122,7 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
     private void validarCorreoDisponible(Usuario usuario) {
         Usuario encontrado = usuarioRepository.findByCorreoIgnoreCase(usuario.getCorreo()).orElse(null);
         if (encontrado != null && !Objects.equals(encontrado.getId(), usuario.getId())) {
-            throw new IllegalArgumentException("Ya existe un usuario con ese correo");
+            throw new UsuarioYaExistenteException(usuario.getCorreo());
         }
     }
 
@@ -135,7 +139,7 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
             return guardarCuentaNueva(usuario);
         }
         Usuario existente = usuarioRepository.findById(usuario.getId())
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(usuario.getId()));
         existente.getRoles().add(rol);
         return usuarioRepository.save(existente);
     }
@@ -148,7 +152,7 @@ public class RegistroUsuarioServiceImpl implements RegistroUsuarioService {
                 ? estudianteRepository.existsByUsuarioId(usuario.getId())
                 : tutorRepository.existsByUsuarioId(usuario.getId());
         if (existe) {
-            throw new IllegalArgumentException("El usuario ya tiene el perfil " + rol.name());
+            throw new RolYaAsignadoException(rol.name());
         }
     }
 

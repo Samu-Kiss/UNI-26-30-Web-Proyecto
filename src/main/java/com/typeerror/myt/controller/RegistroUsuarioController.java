@@ -5,6 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import com.typeerror.myt.errors.InformacionIncompletaException;
+import com.typeerror.myt.errors.InformacionNoValidaException;
+import com.typeerror.myt.errors.RolYaAsignadoException;
+import com.typeerror.myt.errors.UsuarioNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,10 +50,10 @@ public class RegistroUsuarioController {
     @GetMapping("/{id}/perfil/nuevo")
     public String nuevoPerfil(@PathVariable Integer id, Model model) {
         Usuario existente = usuarioService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(id));
         Set<RolUsuario> disponibles = usuarioService.perfilesDisponibles(id);
         if (disponibles.isEmpty()) {
-            throw new IllegalArgumentException("El usuario ya tiene todos los perfiles disponibles");
+            throw new RolYaAsignadoException("todos");
         }
         model.addAttribute(MODEL_USUARIO, existente);
         model.addAttribute("perfil", new RegistroPerfilForm());
@@ -93,7 +97,7 @@ public class RegistroUsuarioController {
             @ModelAttribute("perfil") RegistroPerfilForm perfil, Model model,
             @RequestParam String sesion) {
         Usuario usuario = usuarioService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("El usuario no existe"));
+                .orElseThrow(() -> new UsuarioNotFoundException(id));
         try {
             guardarPerfil(usuario, perfil);
             return ContextoSesion.redireccion("/usuarios", sesion);
@@ -107,7 +111,7 @@ public class RegistroUsuarioController {
 
     private void guardarPerfil(Usuario usuario, RegistroPerfilForm perfil) {
         if (perfil.getRol() == null || perfil.getRol().isBlank()) {
-            throw new IllegalArgumentException("Selecciona si la cuenta es de estudiante o tutor");
+            throw new InformacionNoValidaException("Selecciona si la cuenta es de estudiante o tutor");
         }
 
         switch (perfil.getRol()) {
@@ -116,29 +120,29 @@ public class RegistroUsuarioController {
                     perfil.getProgramaAcademico(), convertirSemestre(perfil.getSemestre()));
             case "TUTOR" -> usuarioService.registrarTutor(usuario, perfil.getBiografia(),
                     convertirMaterias(perfil.getMaterias()), convertirTarifa(perfil.getTarifaPorHora()));
-            default -> throw new IllegalArgumentException("El tipo de cuenta seleccionado no es válido");
+            default -> throw new InformacionNoValidaException("El tipo de cuenta seleccionado no es válido");
         }
     }
 
     private Integer convertirSemestre(String semestre) {
         if (semestre == null || semestre.isBlank()) {
-            throw new IllegalArgumentException("El semestre es obligatorio");
+            throw new InformacionIncompletaException("El semestre es obligatorio");
         }
         try {
             return Integer.valueOf(semestre);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Ingresa un semestre válido", exception);
+            throw new InformacionNoValidaException("Ingresa un semestre válido");
         }
     }
 
     private BigDecimal convertirTarifa(String tarifa) {
         if (tarifa == null || tarifa.isBlank()) {
-            throw new IllegalArgumentException("La tarifa por hora es obligatoria");
+            throw new InformacionNoValidaException("La tarifa por hora es obligatoria");
         }
         try {
             return new BigDecimal(tarifa);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Ingresa una tarifa válida", exception);
+            throw new InformacionNoValidaException("Ingresa una tarifa válida");
         }
     }
 
