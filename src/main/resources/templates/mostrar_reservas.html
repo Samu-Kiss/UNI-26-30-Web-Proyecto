@@ -42,79 +42,8 @@
                         <td th:text="${reserva.costoTotal}"></td>
 
                 <td>
-                     <div class="acciones-reserva">
-
-                        <div class="acciones-principales">
-
-                            <form th:if="${reserva.estado.name() == 'PENDIENTE'}"
-                                th:action="@{/reservas}"
-                                method="post">
-
-                                <input type="hidden" name="id" th:value="${reserva.id}">
-                            <input type="hidden" name="estado" value="CONFIRMADA">
-                            <input type="hidden" name="sesion" th:value="${sesion}">
-
-                            <button type="submit" class="boton boton-primario">
-                                Confirmar
-                            </button>
-                        </form>
-
-                        <button type="button"
-                                class="boton boton-cancelar"
-                                th:if="${reserva.estado.name() == 'PENDIENTE'
-                                    or reserva.estado.name() == 'CONFIRMADA'
-                                    or reserva.estado.name() == 'EN_CURSO'}"
-                                th:onclick="|mostrarCancelacion(${reserva.id})|">
-                            Cancelar
-                    </button>
-
-            </div>
-
-            <form th:if="${reserva.estado.name() == 'PENDIENTE' or reserva.estado.name() == 'CONFIRMADA' or reserva.estado.name() == 'EN_CURSO'}"
-                class="form-cancelacion"
-                th:id="|cancelacion-${reserva.id}|"
-                th:action="@{/reservas}"
-                method="post"
-                style="display: none;">
-
-            <input type="hidden" name="id" th:value="${reserva.id}">
-            <input type="hidden" name="estado" th:value="${reserva.estado.name() == 'PENDIENTE' ? 'RECHAZADA' : 'CANCELADA'}">
-            <input type="hidden" name="sesion" th:value="${sesion}">
-
-            <label class="sr-only"
-                   for="motivo"
-                   th:for="|motivo-${reserva.id}|">
-                Motivo de cancelación
-            </label>
-
-            <input id="motivo"
-                   class="campo-motivo"
-                   type="text"
-                   name="motivo"
-                   th:id="|motivo-${reserva.id}|"
-                   placeholder="Motivo de cancelación"
-                   maxlength="500">
-
-            <button type="button"
-                    class="boton boton-cerrar"
-                    th:onclick="|cerrarCancelacion(${reserva.id})|">
-                X
-            </button>
-
-            <button type="submit" class="boton boton-cancelar">
-                Enviar cancelación
-            </button>
-
-        </form>
-
-        <span th:if="${reserva.estado.name() == 'CANCELADA'
-                or reserva.estado.name() == 'COMPLETADA'
-                or reserva.estado.name() == 'RECHAZADA'}">
-            Sin acciones disponibles
-        </span>
-
-    </div>
-</td>
+                    <div th:replace="~{fragments/acciones-reserva :: acciones(@{/reservas})}"></div>
+                </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(reservas)}">
                         <td class="vacio" colspan="12">No hay reservas registradas.</td>
@@ -123,27 +52,6 @@
             </table>
         </section>
     </main>
-    <script>
-            function mostrarCancelacion(reservaId) {
-            const formulario = document.getElementById(
-                    "cancelacion-" + reservaId
-            );
-
-            formulario.style.display = "flex";
-            }
-
-            function cerrarCancelacion(reservaId) {
-            const formulario = document.getElementById(
-                "cancelacion-" + reservaId
-            );
-
-            const motivo = document.getElementById(
-                "motivo-" + reservaId
-            );
-
-            motivo.value = "";
-            formulario.style.display = "none";
-        }
-    </script>
+    <script th:replace="~{fragments/acciones-reserva :: script}"></script>
 </body>
 </html>
