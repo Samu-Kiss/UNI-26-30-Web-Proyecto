@@ -257,7 +257,10 @@ jobs:
         if: steps.angular.outputs.enabled == 'true'
         working-directory: ${{ steps.angular.outputs.directory }}
         env:
+          SENTRY_DSN: ${{ vars.SENTRY_FRONTEND_DSN }}
+          SENTRY_ENVIRONMENT: production
           SENTRY_RELEASE: myt-frontend@${{ github.sha }}
+          SENTRY_TRACES_SAMPLE_RATE: "0.1"
         run: npm run build
 
       - name: Upload Angular source maps to Sentry

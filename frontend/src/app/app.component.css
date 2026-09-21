@@ -1,0 +1,40 @@
+.sentry-test {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: grid;
+  max-width: 20rem;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #f4b4ae;
+  border-radius: 0.85rem;
+  color: #7a271a;
+  background: #fff6f5;
+  box-shadow: 0 12px 35px rgb(23 32 51 / 15%);
+}
+
+.sentry-test span {
+  font-size: 0.85rem;
+}
+
+.sentry-test button {
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: 0.6rem;
+  color: white;
+  background: #b42318;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sentry-test button:hover {
+  background: #912018;
+}
+
+.sentry-test output {
+  overflow-wrap: anywhere;
+  color: #176b52;
+  font-size: 0.78rem;
+  font-weight: 750;
+}

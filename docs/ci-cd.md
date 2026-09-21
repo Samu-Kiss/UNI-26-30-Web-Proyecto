@@ -49,6 +49,11 @@ donde se ejecute el contenedor:
 | `SENTRY_RELEASE` | `myt@<tag-o-sha>` |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.1` para iniciar en produccion |
 
+El frontend Angular usa las mismas convenciones mediante `SENTRY_FRONTEND_DSN`,
+`SENTRY_ENVIRONMENT`, `SENTRY_RELEASE` y `SENTRY_TRACES_SAMPLE_RATE`. El script previo al build
+genera `runtime-config.js`; si el DSN queda vacio, el SDK del navegador permanece inactivo en
+desarrollo local.
+
 Sin `SENTRY_DSN`, el SDK queda inactivo. No se envia PII por defecto y el muestreo local es cero.
 La imagen incluye el agente OpenTelemetry de Sentry y lo inicia automaticamente junto con la
 aplicacion. `SENTRY_AUTO_INIT=false` evita una segunda inicializacion: Spring Boot mantiene el
@@ -69,7 +74,8 @@ Cuando se agregue Angular:
 3. Habilitar source maps ocultos en el build de produccion. El script `sentry:sourcemaps` debe
    subirlos y eliminarlos del artefacto publico despues de la subida.
 4. Configurar `SENTRY_AUTH_TOKEN` como secret y `SENTRY_ORG` y `SENTRY_FRONTEND_PROJECT` como
-   variables de GitHub. El pipeline solo sube source maps en pushes a `main`.
+   variables de GitHub. Configurar tambien `SENTRY_FRONTEND_DSN` como variable. El pipeline solo
+   sube source maps en pushes a `main` y los elimina del artefacto despues de una subida correcta.
 
 El DSN del navegador no es secreto, pero el token de autenticacion de Sentry si lo es y nunca debe
 quedar incluido en el bundle.

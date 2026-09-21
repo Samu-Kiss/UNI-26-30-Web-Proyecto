@@ -2,6 +2,21 @@
 
 Aplicacion web de tutorias construida con Spring Boot 4 y Java 21.
 
+## Frontend Angular
+
+El laboratorio de migracion inicial esta en `frontend/`. Conserva el backend y la vista Thymeleaf
+de tutores, y agrega su equivalente en Angular 22 con Atomic Design y datos temporales. Para
+ejecutarlo se requiere una version de Node compatible con Angular 22:
+
+```bash
+cd frontend
+npm ci
+npm start
+```
+
+La vista queda disponible en `http://localhost:4200`. Sentry permanece desactivado cuando no se
+define `SENTRY_DSN`; la configuracion de CI y mapas de codigo se describe en `docs/ci-cd.md`.
+
 ## Desarrollo local
 
 ```bash

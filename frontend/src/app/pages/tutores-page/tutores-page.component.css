@@ -1,0 +1,54 @@
+.contenedor {
+  width: min(1120px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: clamp(2.25rem, 7vw, 4rem) 0;
+}
+
+.volver {
+  display: inline-flex;
+  margin-bottom: 1.25rem;
+  color: #176b52;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.volver:hover {
+  text-decoration: underline;
+}
+
+.encabezado {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+h1 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(2.3rem, 6vw, 3.5rem);
+  letter-spacing: -0.045em;
+}
+
+.encabezado div > p {
+  margin: 0.65rem 0 0;
+  color: #667085;
+}
+
+.etiqueta-migracion {
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #b7e5d5;
+  border-radius: 999px;
+  color: #176b52;
+  background: #ecfdf6;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .encabezado {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
