@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 
@@ -31,10 +30,8 @@ import com.typeerror.myt.service.DisponibilidadTutorService;
 import com.typeerror.myt.service.EstudianteService;
 import com.typeerror.myt.service.ReservaService;
 import com.typeerror.myt.service.TutorService;
-import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.EstadoReserva;
 import com.typeerror.myt.entities.Reserva;
-import com.typeerror.myt.entities.Tutor;
 
 
 @ExtendWith(MockitoExtension.class)
