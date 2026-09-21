@@ -16,11 +16,14 @@
                 <p class="descripcion" th:text="|Tutor: ${tutor.usuario.nombre} ${tutor.usuario.apellido}|"></p>
             </div>
         </header>
+        <div class="alerta-error" th:if="${error != null}">
+            <p th:text="${error}"></p>
+        </div>
         <section class="tarjeta tabla-contenedor" aria-label="Reservas del tutor">
             <table>
                 <thead>
                     <tr>
-                        <th>Fecha</th><th>Hora</th><th>Estudiante</th><th>Tema</th><th>Duración</th><th>Estado</th>
+                        <th>Fecha</th><th>Hora</th><th>Estudiante</th><th>Tema</th><th>Duración</th><th>Estado</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -30,14 +33,18 @@
                         <td th:text="|${reserva.estudiante.usuario.nombre} ${reserva.estudiante.usuario.apellido}|"></td>
                         <td th:text="${reserva.tema}"></td>
                         <td th:text="|${reserva.duracionMinutos} minutos|"></td>
-                        <td th:text="${reserva.estado}"></td>
+                        <td><span class="etiqueta-neutral" th:text="${reserva.estado}"></span></td>
+                        <td>
+                            <div th:replace="~{fragments/acciones-reserva :: acciones(@{/tutores/{tutorId}/reservas(tutorId=${tutor.id})})}"></div>
+                        </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(reservas)}">
-                        <td class="vacio" colspan="6">Aún no tienes reservas.</td>
+                        <td class="vacio" colspan="7">Aún no tienes reservas.</td>
                     </tr>
                 </tbody>
             </table>
         </section>
     </main>
+    <script th:replace="~{fragments/acciones-reserva :: script}"></script>
 </body>
 </html>

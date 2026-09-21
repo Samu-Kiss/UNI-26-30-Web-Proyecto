@@ -16,12 +16,15 @@
                 <p class="descripcion">Consulta las sesiones registradas en la plataforma.</p>
             </div>
         </header>
+            <div class="alerta-error" th:if="${error != null}">
+                <p th:text="${error}"></p>
+            </div>
         <section class="tarjeta tabla-contenedor" aria-label="Listado de reservas">
             <table>
                 <thead>
                     <tr>
                         <th>ID</th><th>Estudiante</th><th>Tutor</th><th>Materia</th><th>Fecha</th>
-                        <th>Hora</th><th>Duración</th><th>Tema</th><th>Modalidad</th><th>Estado</th><th>Costo</th>
+                        <th>Hora</th><th>Duración</th><th>Tema</th><th>Modalidad</th><th>Estado</th><th>Costo</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -37,13 +40,18 @@
                         <td><span class="etiqueta-neutral" th:text="${reserva.modalidad}"></span></td>
                         <td><span class="etiqueta-neutral" th:text="${reserva.estado}"></span></td>
                         <td th:text="${reserva.costoTotal}"></td>
+
+                <td>
+                    <div th:replace="~{fragments/acciones-reserva :: acciones(@{/reservas})}"></div>
+                </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(reservas)}">
-                        <td class="vacio" colspan="11">No hay reservas registradas.</td>
+                        <td class="vacio" colspan="12">No hay reservas registradas.</td>
                     </tr>
                 </tbody>
             </table>
         </section>
     </main>
+    <script th:replace="~{fragments/acciones-reserva :: script}"></script>
 </body>
 </html>
