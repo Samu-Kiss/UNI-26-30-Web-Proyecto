@@ -1,11 +1,11 @@
 import { Component, HostListener, signal } from '@angular/core';
-import { TutoresPageComponent } from './pages/tutores-page/tutores-page.component';
+import { TutoresPageComponent } from './pages/tutores-page/tutores-page';
 
 @Component({
   imports: [TutoresPageComponent],
   selector: 'app-root',
-  styleUrl: './app.component.css',
-  templateUrl: './app.component.html',
+  styleUrl: './app.css',
+  templateUrl: './app.html',
 })
 export class App {
   protected readonly sentryTestEnabled =

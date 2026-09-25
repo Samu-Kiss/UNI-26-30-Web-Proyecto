@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { Tutor } from '../../core/models/tutor.model';
-import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark.component';
-import { TutorListComponent } from '../../shared/components/organisms/tutor-list/tutor-list.component';
+import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark';
+import { TutorListComponent } from '../../shared/components/organisms/tutor-list/tutor-list';
 
 @Component({
   imports: [BrandMarkComponent, TutorListComponent],
   selector: 'app-tutores-page',
-  templateUrl: './tutores-page.component.html',
-  styleUrl: './tutores-page.component.css',
+  templateUrl: './tutores-page.html',
+  styleUrl: './tutores-page.css',
 })
 export class TutoresPageComponent {
   protected readonly tutores: readonly Tutor[] = [

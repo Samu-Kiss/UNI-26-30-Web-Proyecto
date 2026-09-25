@@ -1,7 +1,7 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import * as Sentry from '@sentry/angular';
 import { appConfig } from './app/app.config';
-import { App } from './app/app.component';
+import { App } from './app/app';
 
 const runtimeConfig = window.__MYT_CONFIG__;
 

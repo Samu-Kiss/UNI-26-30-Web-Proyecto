@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { TutoresPageComponent } from './tutores-page.component';
+import { TutoresPageComponent } from './tutores-page';
 
 describe('TutoresPageComponent', () => {
   it('renders the three temporary tutor records with Angular control flow', async () => {

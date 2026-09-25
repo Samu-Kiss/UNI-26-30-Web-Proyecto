@@ -17,7 +17,7 @@ probar la interfaz antes de conectarla a una API.
 ## Equivalencias del laboratorio
 
 `th:each` se reemplazo por `@for` y `th:text` por interpolaciones `{{ }}`. Los datos temporales se
-encuentran en `tutores-page.component.ts`; no sustituyen la base de datos.
+encuentran en `tutores-page.ts`; no sustituyen la base de datos.
 
 ## Respuestas de comprobacion
 

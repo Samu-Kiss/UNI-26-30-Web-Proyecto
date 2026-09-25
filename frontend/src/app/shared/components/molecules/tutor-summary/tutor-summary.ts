@@ -3,8 +3,8 @@ import { Tutor } from '../../../../core/models/tutor.model';
 
 @Component({
   selector: 'app-tutor-summary',
-  templateUrl: './tutor-summary.component.html',
-  styleUrl: './tutor-summary.component.css',
+  templateUrl: './tutor-summary.html',
+  styleUrl: './tutor-summary.css',
 })
 export class TutorSummaryComponent {
   readonly tutor = input.required<Tutor>();
