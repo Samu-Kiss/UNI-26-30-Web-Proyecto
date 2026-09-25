@@ -4,7 +4,7 @@
   <aside class="sentry-test" aria-label="Verificación de Sentry">
     <strong>Diagnóstico de observabilidad</strong>
     <span>Genera un error intencional para comprobar Sentry.</span>
-    <button type="button" (click)="throwTestError()">Probar error de Sentry</button>
+    <app-button variant="danger" size="md" (clicked)="throwTestError()">Probar error de Sentry</app-button>
     @if (sentryEventId(); as eventId) {
       <output>Evento enviado: {{ eventId }}</output>
     }

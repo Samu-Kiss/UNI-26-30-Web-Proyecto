@@ -1,4 +1,4 @@
-<main class="contenedor">
+<main class="app-container">
   <a class="volver" href="http://localhost:8080/estudiante">← Volver al menú</a>
 
   <header class="encabezado">
@@ -9,5 +9,23 @@
     </div>
   </header>
 
-  <app-tutor-list [tutores]="tutores" />
+  <section class="filtros-contenedor" aria-label="Filtros de búsqueda">
+    <div class="filtros-grid">
+      <app-text-field
+        id="filtro-busqueda"
+        label="Buscar tutor o materia"
+        placeholder="Ej. Felipe, Cálculo..."
+        [(value)]="searchQuery"
+      />
+
+      <app-select
+        id="filtro-materia"
+        label="Filtrar por materia"
+        [options]="materiaOptions()"
+        [(value)]="selectedMateria"
+      />
+    </div>
+  </section>
+
+  <app-tutor-list [tutores]="filteredTutores()" />
 </main>

@@ -1,10 +1,10 @@
 <div class="identidad">
-  <span class="avatar" aria-hidden="true">{{ initials(tutor().nombreCompleto) }}</span>
+  <app-avatar [name]="tutor().nombreCompleto" size="md" />
   <div>
     <strong>{{ tutor().nombreCompleto }}</strong>
     <div class="materias" aria-label="Materias">
       @for (materia of tutor().materias; track materia) {
-        <span>{{ materia }}</span>
+        <app-badge variant="neutral">{{ materia }}</app-badge>
       }
     </div>
   </div>

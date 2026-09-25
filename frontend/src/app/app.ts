@@ -1,8 +1,9 @@
 import { Component, HostListener, signal } from '@angular/core';
 import { TutoresPageComponent } from './pages/tutores-page/tutores-page';
+import { ButtonComponent } from './shared/components/atoms/button/button';
 
 @Component({
-  imports: [TutoresPageComponent],
+  imports: [TutoresPageComponent, ButtonComponent],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

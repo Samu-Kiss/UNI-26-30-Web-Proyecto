@@ -35,9 +35,14 @@
               <app-status-badge [disponible]="tutor.disponible" />
             </td>
             <td data-label="Acción">
-              <button class="accion" type="button" [disabled]="!tutor.disponible">
+              <app-button
+                variant="primary"
+                size="md"
+                [disabled]="!tutor.disponible"
+                [ariaLabel]="(tutor.disponible ? 'Reservar con ' : 'No disponible: ') + tutor.nombreCompleto"
+              >
                 {{ tutor.disponible ? 'Reservar' : 'No disponible' }}
-              </button>
+              </app-button>
             </td>
           </tr>
         } @empty {
