@@ -7,12 +7,6 @@ on:
     branches: [main, develop]
     tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      verify_sentry:
-        description: Send one intentional backend exception to Sentry
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -23,9 +17,12 @@ permissions:
 
 jobs:
   backend:
-    name: Backend / quality
+    name: Backend - Spring
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: Checkout
@@ -41,25 +38,13 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+          cache-dependency-path: backend/pom.xml
 
       - name: Prepare Maven wrapper
         run: chmod +x mvnw
 
       - name: Lint, test and package
         run: ./mvnw --batch-mode --no-transfer-progress verify
-
-      - name: Verify Sentry event delivery
-        if: github.event_name == 'workflow_dispatch' && inputs.verify_sentry
-        env:
-          SENTRY_VERIFY: "true"
-          SENTRY_DSN: >-
-            https://c4030b0cfb10c760b3b1534427dd5c6c@o4511549920116736.ingest.us.sentry.io/4512006192693248
-          SENTRY_ENVIRONMENT: ci
-          SENTRY_RELEASE: myt@${{ github.sha }}
-        run: |
-          ./mvnw --batch-mode --no-transfer-progress \
-            -Dtest=SentryVerificationTest test
-          echo "Intentional Sentry verification event sent." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Add test and coverage summary
         if: always()
@@ -138,37 +123,6 @@ jobs:
               summary.write("\n".join(lines) + "\n")
           PY
 
-      - name: Analyze with Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-        shell: bash
-        run: |
-          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
-            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
-              >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
-          sonar_args=(
-            --batch-mode
-            --no-transfer-progress
-            sonar:sonar
-            "-Dsonar.host.url=$SONAR_HOST_URL"
-            "-Dsonar.projectKey=$SONAR_PROJECT_KEY"
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
-          )
-
-          if [[ -n "$SONAR_ORGANIZATION" ]]; then
-            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
-          fi
-
-          ./mvnw "${sonar_args[@]}"
-
       - name: Upload backend source context to Sentry
         if: >-
           github.event_name == 'push' &&
@@ -191,7 +145,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: myt-${{ github.sha }}
-          path: target/*.jar
+          path: backend/target/*.jar
           if-no-files-found: error
           retention-days: 14
 
@@ -199,73 +153,55 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-${{ github.sha }}
-          path: target/site/jacoco/
+          name: backend-coverage-${{ github.sha }}
+          path: |
+            backend/target/site/jacoco/jacoco.xml
+            backend/target/classes/
           if-no-files-found: warn
           retention-days: 7
 
   frontend:
-    name: Frontend / Angular-ready
+    name: Frontend - Angular
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Detect Angular workspace
-        id: angular
-        shell: bash
-        run: |
-          if [[ -f frontend/angular.json && -f frontend/package-lock.json ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "directory=frontend" >> "$GITHUB_OUTPUT"
-            echo "lockfile=frontend/package-lock.json" >> "$GITHUB_OUTPUT"
-          elif [[ -f angular.json && -f package-lock.json ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "directory=." >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Angular workspace not present; frontend checks skipped." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
-        if: steps.angular.outputs.enabled == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: ${{ steps.angular.outputs.lockfile }}
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm ci --ignore-scripts
 
       - name: Lint
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm run lint
 
       - name: Test
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm run test:ci
 
       - name: Build
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         env:
+          SENTRY_DSN: ${{ vars.SENTRY_FRONTEND_DSN }}
+          SENTRY_ENVIRONMENT: production
           SENTRY_RELEASE: myt-frontend@${{ github.sha }}
+          SENTRY_TRACES_SAMPLE_RATE: "0.1"
         run: npm run build
 
       - name: Upload Angular source maps to Sentry
         if: >-
-          steps.angular.outputs.enabled == 'true' &&
           github.event_name == 'push' &&
           github.ref == 'refs/heads/main'
-        working-directory: ${{ steps.angular.outputs.directory }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -280,9 +216,125 @@ jobs:
           fi
           npm run sentry:sourcemaps
 
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: frontend/coverage/frontend/lcov.info
+          if-no-files-found: warn
+          retention-days: 7
+
+  sonar:
+    name: Quality / SonarQube (Unified)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Download backend coverage and classes
+        uses: actions/download-artifact@v7
+        with:
+          name: backend-coverage-${{ github.sha }}
+          path: artifacts/backend
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: artifacts/frontend
+
+      - name: Prepare coverage reports
+        shell: bash
+        run: |
+          mkdir -p backend/target/site/jacoco backend/target/classes frontend/coverage
+
+          # Copy JaCoCo XML report
+          JACOCO_FILE=$(find artifacts/backend -name "jacoco.xml" | head -n 1)
+          if [ -n "$JACOCO_FILE" ] && [ -f "$JACOCO_FILE" ]; then
+            cp "$JACOCO_FILE" backend/target/site/jacoco/jacoco.xml
+            echo "Copied JaCoCo report to backend/target/site/jacoco/jacoco.xml"
+          else
+            echo "Warning: jacoco.xml not found in backend artifacts"
+          fi
+
+          # Copy backend compiled class files
+          CLASSES_DIR=$(find artifacts/backend -type d -name "classes" | head -n 1)
+          if [ -n "$CLASSES_DIR" ] && [ -d "$CLASSES_DIR" ]; then
+            cp -r "$CLASSES_DIR"/* backend/target/classes/ || true
+            echo "Copied compiled classes to backend/target/classes/"
+          else
+            echo "Warning: classes directory not found in backend artifacts"
+          fi
+
+          # Adjust LCOV paths (Vitest emits src/..., but Sonar runs from repo root and expects frontend/src/...)
+          LCOV_FILE=$(find artifacts/frontend -name "lcov.info" | head -n 1)
+          if [ -n "$LCOV_FILE" ] && [ -f "$LCOV_FILE" ]; then
+            sed -E 's#SF:(\.?\/)?src\/#SF:frontend/src/#g; s#SF:.*\\src\\#SF:frontend/src/#g' "$LCOV_FILE" > frontend/coverage/lcov.info
+            echo "Adjusted LCOV report at frontend/coverage/lcov.info"
+          else
+            echo "Warning: lcov.info not found in frontend artifacts"
+          fi
+
+          echo "Prepared coverage verification:"
+          ls -lh backend/target/site/jacoco/jacoco.xml || true
+          ls -lh frontend/coverage/lcov.info || true
+
+      - name: Analyze with Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
+            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
+          sonar_args=(
+            -Dsonar.host.url="$SONAR_HOST_URL"
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY"
+            -Dsonar.sources=backend/src/main/java,frontend/src
+            -Dsonar.tests=backend/src/test/java,frontend/src
+            -Dsonar.test.inclusions="**/*Test.java,**/*.spec.ts"
+            -Dsonar.exclusions="backend/src/main/resources/**,frontend/public/**,frontend/dist/**"
+            -Dsonar.coverage.exclusions="frontend/src/main.ts,frontend/src/app/app.config.ts,frontend/src/app/app.routes.ts,backend/src/main/java/com/typeerror/myt/MyTApplication.java"
+            -Dsonar.java.binaries=backend/target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+          )
+
+          if [[ -n "$SONAR_ORGANIZATION" ]]; then
+            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
+          fi
+
+          npx --yes sonarqube-scanner "${sonar_args[@]}"
+
   container:
     name: Container / build and publish
-    needs: [backend, frontend]
+    needs: [backend, frontend, sonar]
     if: >-
       github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' &&
@@ -323,7 +375,7 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: .
+          context: backend
           load: true
           push: false
           tags: ${{ steps.meta.outputs.tags }}

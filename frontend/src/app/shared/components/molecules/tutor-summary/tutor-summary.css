@@ -1,0 +1,13 @@
+.identidad {
+  display: flex;
+  min-width: 15rem;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.materias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
