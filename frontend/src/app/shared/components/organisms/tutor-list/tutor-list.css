@@ -43,7 +43,7 @@ td {
 }
 
 th {
-  color: #667085;
+  color: #475467;
   background: #f8fafc;
   font-size: 0.72rem;
   letter-spacing: 0.07em;
@@ -82,7 +82,7 @@ tbody tr:last-child td {
 }
 
 .accion:disabled {
-  color: #667085;
+  color: #344054;
   background: #e9eef5;
   cursor: not-allowed;
 }

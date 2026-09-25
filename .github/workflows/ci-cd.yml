@@ -153,9 +153,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-${{ github.sha }}
+          name: backend-coverage-${{ github.sha }}
           path: |
-            backend/target/site/jacoco/
+            backend/target/site/jacoco/jacoco.xml
             backend/target/classes/
           if-no-files-found: warn
           retention-days: 7
@@ -221,7 +221,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage-${{ github.sha }}
-          path: frontend/coverage/
+          path: frontend/coverage/frontend/lcov.info
           if-no-files-found: warn
           retention-days: 7
 
@@ -251,12 +251,50 @@ jobs:
       - name: Download backend coverage and classes
         uses: actions/download-artifact@v7
         with:
-          name: coverage-${{ github.sha }}
+          name: backend-coverage-${{ github.sha }}
+          path: artifacts/backend
 
       - name: Download frontend coverage
         uses: actions/download-artifact@v7
         with:
           name: frontend-coverage-${{ github.sha }}
+          path: artifacts/frontend
+
+      - name: Prepare coverage reports
+        shell: bash
+        run: |
+          mkdir -p backend/target/site/jacoco backend/target/classes frontend/coverage
+
+          # Copy JaCoCo XML report
+          JACOCO_FILE=$(find artifacts/backend -name "jacoco.xml" | head -n 1)
+          if [ -n "$JACOCO_FILE" ] && [ -f "$JACOCO_FILE" ]; then
+            cp "$JACOCO_FILE" backend/target/site/jacoco/jacoco.xml
+            echo "Copied JaCoCo report to backend/target/site/jacoco/jacoco.xml"
+          else
+            echo "Warning: jacoco.xml not found in backend artifacts"
+          fi
+
+          # Copy backend compiled class files
+          CLASSES_DIR=$(find artifacts/backend -type d -name "classes" | head -n 1)
+          if [ -n "$CLASSES_DIR" ] && [ -d "$CLASSES_DIR" ]; then
+            cp -r "$CLASSES_DIR"/* backend/target/classes/ || true
+            echo "Copied compiled classes to backend/target/classes/"
+          else
+            echo "Warning: classes directory not found in backend artifacts"
+          fi
+
+          # Adjust LCOV paths (Vitest emits src/..., but Sonar runs from repo root and expects frontend/src/...)
+          LCOV_FILE=$(find artifacts/frontend -name "lcov.info" | head -n 1)
+          if [ -n "$LCOV_FILE" ] && [ -f "$LCOV_FILE" ]; then
+            sed -E 's#SF:(\.?\/)?src\/#SF:frontend/src/#g; s#SF:.*\\src\\#SF:frontend/src/#g' "$LCOV_FILE" > frontend/coverage/lcov.info
+            echo "Adjusted LCOV report at frontend/coverage/lcov.info"
+          else
+            echo "Warning: lcov.info not found in frontend artifacts"
+          fi
+
+          echo "Prepared coverage verification:"
+          ls -lh backend/target/site/jacoco/jacoco.xml || true
+          ls -lh frontend/coverage/lcov.info || true
 
       - name: Analyze with Sonar
         env:
@@ -280,9 +318,10 @@ jobs:
             -Dsonar.tests=backend/src/test/java,frontend/src
             -Dsonar.test.inclusions="**/*Test.java,**/*.spec.ts"
             -Dsonar.exclusions="backend/src/main/resources/**,frontend/public/**,frontend/dist/**"
+            -Dsonar.coverage.exclusions="frontend/src/main.ts,frontend/src/app/app.config.ts,frontend/src/app/app.routes.ts,backend/src/main/java/com/typeerror/myt/MyTApplication.java"
             -Dsonar.java.binaries=backend/target/classes
             -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml
-            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/frontend/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
           )

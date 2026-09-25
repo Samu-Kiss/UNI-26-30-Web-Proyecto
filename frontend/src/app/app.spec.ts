@@ -31,4 +31,13 @@ describe('App', () => {
 
     expect(fixture.componentInstance.sentryEventId()).toBe('test-event-id');
   });
+
+  it('renders sentry test panel when enabled', () => {
+    const fixture = TestBed.createComponent(App);
+    Object.defineProperty(fixture.componentInstance, 'sentryTestEnabled', { value: true, writable: true });
+    fixture.componentInstance.sentryEventId.set('test-123');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.sentry-test')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('output')?.textContent).toContain('test-123');
+  });
 });
