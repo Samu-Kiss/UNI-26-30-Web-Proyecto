@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend / quality
+    name: Backend - Spring
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -209,7 +209,7 @@ jobs:
           retention-days: 7
 
   frontend:
-    name: Frontend / Angular-ready
+    name: Frontend - Angular
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:

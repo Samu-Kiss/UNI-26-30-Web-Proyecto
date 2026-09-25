@@ -1,6 +1,6 @@
 window.__MYT_CONFIG__ = {
-  "sentryDsn": "https://c4030b0cfb10c760b3b1534427dd5c6c@o4511549920116736.ingest.us.sentry.io/4512006192693248",
+  "sentryDsn": "https://2e53582e008a3d86172be52411226d02@o4511549920116736.ingest.us.sentry.io/4512006190202880",
   "environment": "local",
-  "release": "myt-frontend@dev",
+  "release": "myt-front@dev",
   "tracesSampleRate": 0
 };
