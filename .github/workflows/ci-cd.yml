@@ -26,6 +26,9 @@ jobs:
     name: Backend / quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: Checkout
@@ -41,6 +44,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+          cache-dependency-path: backend/pom.xml
 
       - name: Prepare Maven wrapper
         run: chmod +x mvnw
@@ -191,7 +195,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: myt-${{ github.sha }}
-          path: target/*.jar
+          path: backend/target/*.jar
           if-no-files-found: error
           retention-days: 14
 
@@ -200,7 +204,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
-          path: target/site/jacoco/
+          path: backend/target/site/jacoco/
           if-no-files-found: warn
           retention-days: 7
 
@@ -208,54 +212,33 @@ jobs:
     name: Frontend / Angular-ready
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Detect Angular workspace
-        id: angular
-        shell: bash
-        run: |
-          if [[ -f frontend/angular.json && -f frontend/package-lock.json ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "directory=frontend" >> "$GITHUB_OUTPUT"
-            echo "lockfile=frontend/package-lock.json" >> "$GITHUB_OUTPUT"
-          elif [[ -f angular.json && -f package-lock.json ]]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "directory=." >> "$GITHUB_OUTPUT"
-            echo "lockfile=package-lock.json" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Angular workspace not present; frontend checks skipped." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
-        if: steps.angular.outputs.enabled == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: ${{ steps.angular.outputs.lockfile }}
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm ci --ignore-scripts
 
       - name: Lint
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm run lint
 
       - name: Test
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         run: npm run test:ci
 
       - name: Build
-        if: steps.angular.outputs.enabled == 'true'
-        working-directory: ${{ steps.angular.outputs.directory }}
         env:
           SENTRY_DSN: ${{ vars.SENTRY_FRONTEND_DSN }}
           SENTRY_ENVIRONMENT: production
@@ -263,12 +246,42 @@ jobs:
           SENTRY_TRACES_SAMPLE_RATE: "0.1"
         run: npm run build
 
+      - name: Analyze with Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_FRONTEND_PROJECT_KEY || vars.SONAR_PROJECT_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
+            echo "Sonar skipped for frontend: configure SONAR_TOKEN and SONAR_FRONTEND_PROJECT_KEY to enable it." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
+          sonar_args=(
+            -Dsonar.host.url="$SONAR_HOST_URL"
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY"
+            -Dsonar.sources=src
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions="**/*.spec.ts"
+            -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+          )
+
+          if [[ -n "$SONAR_ORGANIZATION" ]]; then
+            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
+          fi
+
+          npx --yes sonarqube-scanner "${sonar_args[@]}"
+
       - name: Upload Angular source maps to Sentry
         if: >-
-          steps.angular.outputs.enabled == 'true' &&
           github.event_name == 'push' &&
           github.ref == 'refs/heads/main'
-        working-directory: ${{ steps.angular.outputs.directory }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
@@ -282,6 +295,15 @@ jobs:
             exit 0
           fi
           npm run sentry:sourcemaps
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage-${{ github.sha }}
+          path: frontend/coverage/
+          if-no-files-found: warn
+          retention-days: 7
 
   container:
     name: Container / build and publish
@@ -326,7 +348,7 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: .
+          context: backend
           load: true
           push: false
           tags: ${{ steps.meta.outputs.tags }}
