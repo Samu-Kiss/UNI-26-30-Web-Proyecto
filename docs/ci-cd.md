@@ -5,9 +5,9 @@
 El workflow `.github/workflows/ci-cd.yml` se ejecuta en pull requests y pushes a `main` o
 `develop`, y tambien se puede lanzar manualmente.
 
-- Backend: Checkstyle, pruebas, empaquetado y reporte JaCoCo mediante `./mvnw verify`.
-- SonarQube o SonarCloud: analisis y espera del Quality Gate cuando esta configurado.
-- Frontend: se activa automaticamente al detectar Angular en `/frontend` o en la raiz.
+- Backend: Checkstyle, pruebas, empaquetado y reporte JaCoCo mediante `./mvnw verify` en `backend/`.
+- SonarQube o SonarCloud: analisis unificado de todo el repositorio (Java con JaCoCo + TypeScript con LCOV) y espera del Quality Gate.
+- Frontend: Linting con ESLint, pruebas unitarias y cobertura LCOV con Vitest, y compilacion Angular en `frontend/`.
 - Contenedor: levanta un PostgreSQL efimero y comprueba que la imagen pueda iniciar con una base
   real, sin usar credenciales de Supabase.
 - CD: tras un push valido a `main` o un tag `v*`, publica en GHCR exactamente la imagen que supero

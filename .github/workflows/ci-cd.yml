@@ -7,12 +7,6 @@ on:
     branches: [main, develop]
     tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      verify_sentry:
-        description: Send one intentional backend exception to Sentry
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -51,19 +45,6 @@ jobs:
 
       - name: Lint, test and package
         run: ./mvnw --batch-mode --no-transfer-progress verify
-
-      - name: Verify Sentry event delivery
-        if: github.event_name == 'workflow_dispatch' && inputs.verify_sentry
-        env:
-          SENTRY_VERIFY: "true"
-          SENTRY_DSN: >-
-            https://c4030b0cfb10c760b3b1534427dd5c6c@o4511549920116736.ingest.us.sentry.io/4512006192693248
-          SENTRY_ENVIRONMENT: ci
-          SENTRY_RELEASE: myt@${{ github.sha }}
-        run: |
-          ./mvnw --batch-mode --no-transfer-progress \
-            -Dtest=SentryVerificationTest test
-          echo "Intentional Sentry verification event sent." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Add test and coverage summary
         if: always()
@@ -142,37 +123,6 @@ jobs:
               summary.write("\n".join(lines) + "\n")
           PY
 
-      - name: Analyze with Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-        shell: bash
-        run: |
-          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
-            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
-              >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
-          sonar_args=(
-            --batch-mode
-            --no-transfer-progress
-            sonar:sonar
-            "-Dsonar.host.url=$SONAR_HOST_URL"
-            "-Dsonar.projectKey=$SONAR_PROJECT_KEY"
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
-          )
-
-          if [[ -n "$SONAR_ORGANIZATION" ]]; then
-            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
-          fi
-
-          ./mvnw "${sonar_args[@]}"
-
       - name: Upload backend source context to Sentry
         if: >-
           github.event_name == 'push' &&
@@ -204,7 +154,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
-          path: backend/target/site/jacoco/
+          path: |
+            backend/target/site/jacoco/
+            backend/target/classes/
           if-no-files-found: warn
           retention-days: 7
 
@@ -246,38 +198,6 @@ jobs:
           SENTRY_TRACES_SAMPLE_RATE: "0.1"
         run: npm run build
 
-      - name: Analyze with Sonar
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_FRONTEND_PROJECT_KEY || vars.SONAR_PROJECT_KEY }}
-        shell: bash
-        run: |
-          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
-            echo "Sonar skipped for frontend: configure SONAR_TOKEN and SONAR_FRONTEND_PROJECT_KEY to enable it." \
-              >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
-          sonar_args=(
-            -Dsonar.host.url="$SONAR_HOST_URL"
-            -Dsonar.projectKey="$SONAR_PROJECT_KEY"
-            -Dsonar.sources=src
-            -Dsonar.tests=src
-            -Dsonar.test.inclusions="**/*.spec.ts"
-            -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
-          )
-
-          if [[ -n "$SONAR_ORGANIZATION" ]]; then
-            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
-          fi
-
-          npx --yes sonarqube-scanner "${sonar_args[@]}"
-
       - name: Upload Angular source maps to Sentry
         if: >-
           github.event_name == 'push' &&
@@ -305,9 +225,77 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  sonar:
+    name: Quality / SonarQube (Unified)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Download backend coverage and classes
+        uses: actions/download-artifact@v7
+        with:
+          name: coverage-${{ github.sha }}
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-coverage-${{ github.sha }}
+
+      - name: Analyze with Sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
+            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
+          sonar_args=(
+            -Dsonar.host.url="$SONAR_HOST_URL"
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY"
+            -Dsonar.sources=backend/src/main/java,frontend/src
+            -Dsonar.tests=backend/src/test/java,frontend/src
+            -Dsonar.test.inclusions="**/*Test.java,**/*.spec.ts"
+            -Dsonar.exclusions="backend/src/main/resources/**,frontend/public/**,frontend/dist/**"
+            -Dsonar.java.binaries=backend/target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/frontend/lcov.info
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
+          )
+
+          if [[ -n "$SONAR_ORGANIZATION" ]]; then
+            sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")
+          fi
+
+          npx --yes sonarqube-scanner "${sonar_args[@]}"
+
   container:
     name: Container / build and publish
-    needs: [backend, frontend]
+    needs: [backend, frontend, sonar]
     if: >-
       github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' &&
