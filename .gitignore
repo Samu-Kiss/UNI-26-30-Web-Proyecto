@@ -39,3 +39,12 @@ build/
 .env.*
 !.env.example
 .scannerwork/
+
+### Node & Frontend ###
+**/node_modules/
+**/coverage/
+**/dist/
+frontend/dist/
+frontend/coverage/
+.angular/
+

@@ -58,7 +58,7 @@ export class TutoresPageComponent {
       }
     }
     const options: SelectOption[] = [{ label: 'Todas las materias', value: '' }];
-    for (const m of Array.from(set).sort()) {
+    for (const m of Array.from(set).sort((a, b) => a.localeCompare(b))) {
       options.push({ label: m, value: m });
     }
     return options;

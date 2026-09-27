@@ -18,6 +18,21 @@ declare
     -- BCrypt (cost 10) de "1ManzanaGrande!"
     c_hash constant text := '$2a$10$mLQT19XRmfTQA9Sy9mrse.7NE3A/5Yhe.OEpRt2gyOgrHMnZlK8.a';
     c_admin constant text := 'admin.ortiz@myt.edu.co';
+    c_tz constant text := 'America/Bogota';
+    c_month constant text := 'month';
+    c_completada constant text := 'COMPLETADA';
+    c_cancelada constant text := 'CANCELADA';
+    c_rechazada constant text := 'RECHAZADA';
+    c_confirmada constant text := 'CONFIRMADA';
+    c_pendiente constant text := 'PENDIENTE';
+    c_sin_especificar constant text := 'Sin especificar';
+    c_rol_admin constant text := 'ADMINISTRADOR';
+    c_rol_estudiante constant text := 'ESTUDIANTE';
+    c_rol_tutor constant text := 'TUTOR';
+    c_dominio constant text := '@myt.edu.co';
+    c_interval_1h constant interval := interval '1 hour';
+    c_interval_30m constant interval := interval '30 minutes';
+    c_interval_1m constant interval := interval '1 minute';
     c_dias constant text[] := array['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'];
     c_materias constant text[] := array[
         'Cálculo Multivariado', 'Álgebra Lineal', 'Física Mecánica', 'Programación Orientada a Objetos',
@@ -25,8 +40,8 @@ declare
         'Ecuaciones Diferenciales', 'Sistemas Operativos', 'Ingeniería de Software', 'Econometría',
         'Fisiología Humana', 'Derecho Constitucional', 'Arquitectura de Computadores'];
     -- Estado segun el orden k=1..7 del mes: pasado (fecha < hoy) o vigente (fecha >= hoy).
-    c_pasado constant text[] := array['COMPLETADA', 'COMPLETADA', 'CANCELADA', 'COMPLETADA', 'RECHAZADA', 'COMPLETADA', 'COMPLETADA'];
-    c_futuro constant text[] := array['CONFIRMADA', 'PENDIENTE', 'CANCELADA', 'CONFIRMADA', 'PENDIENTE', 'CONFIRMADA', 'RECHAZADA'];
+    c_pasado constant text[] := array[c_completada, c_completada, c_cancelada, c_completada, c_rechazada, c_completada, c_completada];
+    c_futuro constant text[] := array[c_confirmada, c_pendiente, c_cancelada, c_confirmada, c_pendiente, c_confirmada, c_rechazada];
     c_lugares constant text[] := array['Biblioteca Central - Sala 1', 'Biblioteca Central - Sala 2', 'Biblioteca Central - Sala 3',
                                        'Biblioteca Central - Sala 4', 'Biblioteca Central - Sala 5'];
     c_motivos_cancel constant text[] := array['Conflicto de horario imprevisto', 'Imprevisto personal',
@@ -54,10 +69,10 @@ declare
         '4', jsonb_build_array('Muy clara la explicación y buen ritmo durante la sesión.', 'Resolvió mis dudas y dejó ejercicios para practicar.'),
         '5', jsonb_build_array('Excelente tutoría, explicación muy clara y dominio del tema.', 'Muy paciente y organizado. Totalmente recomendado.'));
 
-    v_ahora timestamp := date_trunc('second', now() at time zone 'America/Bogota');
-    v_hoy date := (date_trunc('second', now() at time zone 'America/Bogota'))::date;
-    v_mes_actual date := date_trunc('month', (now() at time zone 'America/Bogota'))::date;
-    v_alta timestamp := (date_trunc('month', (now() at time zone 'America/Bogota'))::date - interval '3 months' - interval '15 days');
+    v_ahora timestamp := date_trunc('second', now() at time zone c_tz);
+    v_hoy date := (date_trunc('second', now() at time zone c_tz))::date;
+    v_mes_actual date := date_trunc(c_month, (now() at time zone c_tz))::date;
+    v_alta timestamp := (date_trunc(c_month, (now() at time zone c_tz))::date - interval '3 months' - interval '15 days');
 
     v_offset integer;
     v_k integer;
@@ -101,7 +116,7 @@ begin
          + (select count(*) from app.usuario_roles)
          + (select count(*) from app.estudiantes)
          + (select count(*) from app.tutores)
-         + (select count(*) from app.materias where nombre <> 'Sin especificar')
+         + (select count(*) from app.materias where nombre <> c_sin_especificar)
          + (select count(*) from app.tutor_materias)
          + (select count(*) from app.reservas)
          + (select count(*) from app.disponibilidades_tutor)
@@ -120,8 +135,8 @@ begin
     with nuevos as (
         insert into app.usuarios (nombre, apellido, correo, contrasena, telefono, activo, fecha_creacion, fecha_actualizacion)
         select v.nombre, v.apellido, v.correo, c_hash, v.telefono, true,
-               v_alta + row_number() over (order by v.correo) * interval '1 hour',
-               v_alta + row_number() over (order by v.correo) * interval '1 hour'
+               v_alta + row_number() over (order by v.correo) * c_interval_1h,
+               v_alta + row_number() over (order by v.correo) * c_interval_1h
         from (values
             ('Juan David', 'Ortiz',    'admin.ortiz@myt.edu.co',   '+573001112233'),
             ('Samuel',     'Pico',     'admin.pico@myt.edu.co',    '+573001112234'),
@@ -131,7 +146,7 @@ begin
         returning id
     )
     insert into app.usuario_roles (usuario_id, rol)
-    select id, 'ADMINISTRADOR' from nuevos;
+    select id, c_rol_admin from nuevos;
 
     -- ------------------------------------------------------------------
     -- 2. Clientes (20 estudiantes + 30 tutores como usuarios) y sus roles
@@ -139,8 +154,8 @@ begin
     with nuevos as (
         insert into app.usuarios (nombre, apellido, correo, contrasena, telefono, activo, fecha_creacion, fecha_actualizacion)
         select v.nombre, v.apellido, v.correo, c_hash, v.telefono, true,
-               v_alta + (10 + row_number() over (order by v.correo)) * interval '1 hour',
-               v_alta + (10 + row_number() over (order by v.correo)) * interval '1 hour'
+               v_alta + (10 + row_number() over (order by v.correo)) * c_interval_1h,
+               v_alta + (10 + row_number() over (order by v.correo)) * c_interval_1h
         from (values
             ('Juan',      'Pérez',     'estudiante01@myt.edu.co', '+573100000001'),
             ('Maria',     'Rodríguez', 'estudiante02@myt.edu.co', '+573100000002'),
@@ -166,13 +181,13 @@ begin
         returning id
     )
     insert into app.usuario_roles (usuario_id, rol)
-    select id, 'ESTUDIANTE' from nuevos;
+    select id, c_rol_estudiante from nuevos;
 
     with nuevos as (
         insert into app.usuarios (nombre, apellido, correo, contrasena, telefono, activo, fecha_creacion, fecha_actualizacion)
         select v.nombre, v.apellido, v.correo, c_hash, v.telefono, true,
-               v_alta + (40 + row_number() over (order by v.correo)) * interval '1 hour',
-               v_alta + (40 + row_number() over (order by v.correo)) * interval '1 hour'
+               v_alta + (40 + row_number() over (order by v.correo)) * c_interval_1h,
+               v_alta + (40 + row_number() over (order by v.correo)) * c_interval_1h
         from (values
             ('Felipe',   'Morales',    'tutor01@myt.edu.co', '+573200000001'),
             ('Elena',    'Guerrero',   'tutor02@myt.edu.co', '+573200000002'),
@@ -208,7 +223,7 @@ begin
         returning id
     )
     insert into app.usuario_roles (usuario_id, rol)
-    select id, 'TUTOR' from nuevos;
+    select id, c_rol_tutor from nuevos;
 
     -- ------------------------------------------------------------------
     -- 3. Estudiantes y tutores asociados a usuarios (por rol, ordenados por correo)
@@ -306,13 +321,13 @@ begin
               into v_tutor_id, v_tarifa
             from app.tutores t
             join app.usuarios u on u.id = t.usuario_id
-            where lower(u.correo) = 'tutor' || lpad(v_t_idx::text, 2, '0') || '@myt.edu.co';
+            where lower(u.correo) = 'tutor' || lpad(v_t_idx::text, 2, '0') || c_dominio;
 
             select e.id
               into v_estudiante_id
             from app.estudiantes e
             join app.usuarios u on u.id = e.usuario_id
-            where lower(u.correo) = 'estudiante' || lpad(v_e_idx::text, 2, '0') || '@myt.edu.co';
+            where lower(u.correo) = 'estudiante' || lpad(v_e_idx::text, 2, '0') || c_dominio;
 
             v_rot := pg_temp.myt_rand('materia-reserva:' || v_n, 2);
             select m.id, m.nombre
@@ -332,7 +347,7 @@ begin
               into v_fecha, v_hora
             from (
                 select v_anchor + g.dd as fecha,
-                       (dt.hora_inicio + s.paso * interval '30 minutes')::time(0) as hora_inicio,
+                       (dt.hora_inicio + s.paso * c_interval_30m)::time(0) as hora_inicio,
                        s.paso,
                        w.pasos
                 from generate_series(0, v_mes_fin - v_anchor) as g(dd)
@@ -347,13 +362,13 @@ begin
             where not exists (
                       select 1 from app.reservas r
                       where r.tutor_id = v_tutor_id and r.fecha = c.fecha
-                        and r.hora_inicio < (c.hora_inicio + v_dur * interval '1 minute')::time
-                        and (r.hora_inicio + r.duracion_minutos * interval '1 minute')::time > c.hora_inicio)
+                        and r.hora_inicio < (c.hora_inicio + v_dur * c_interval_1m)::time
+                        and (r.hora_inicio + r.duracion_minutos * c_interval_1m)::time > c.hora_inicio)
               and not exists (
                       select 1 from app.reservas r
                       where r.estudiante_id = v_estudiante_id and r.fecha = c.fecha
-                        and r.hora_inicio < (c.hora_inicio + v_dur * interval '1 minute')::time
-                        and (r.hora_inicio + r.duracion_minutos * interval '1 minute')::time > c.hora_inicio)
+                        and r.hora_inicio < (c.hora_inicio + v_dur * c_interval_1m)::time
+                        and (r.hora_inicio + r.duracion_minutos * c_interval_1m)::time > c.hora_inicio)
             order by c.fecha, (c.paso + v_rot) % c.pasos, c.paso
             limit 1;
 
@@ -371,25 +386,25 @@ begin
 
             v_creacion := least(
                 (v_fecha + v_hora) - ((1 + pg_temp.myt_rand('anticipacion:' || v_n, 6)) * interval '1 day') - interval '2 hours',
-                v_ahora - v_n * interval '1 hour');
+                v_ahora - v_n * c_interval_1h);
 
             v_motivo := null;
             v_fecha_canc := null;
-            if v_estado = 'CANCELADA' then
+            if v_estado = c_cancelada then
                 v_motivo := c_motivos_cancel[1 + pg_temp.myt_rand('motivo:' || v_n, 4)];
-            elsif v_estado = 'RECHAZADA' then
+            elsif v_estado = c_rechazada then
                 v_motivo := c_motivos_rechazo[1 + pg_temp.myt_rand('motivo:' || v_n, 2)];
             end if;
             if v_motivo is not null then
                 v_fecha_canc := least(
-                    v_creacion + interval '3 hours' + pg_temp.myt_rand('cierre:' || v_n, 20) * interval '1 hour',
-                    v_ahora - interval '30 minutes');
+                    v_creacion + interval '3 hours' + pg_temp.myt_rand('cierre:' || v_n, 20) * c_interval_1h,
+                    v_ahora - c_interval_30m);
             end if;
 
             v_actualizacion := case v_estado
-                when 'PENDIENTE'  then v_creacion
-                when 'CONFIRMADA' then least(v_creacion + interval '6 hours', v_ahora - interval '10 minutes')
-                when 'COMPLETADA' then least(v_fecha + v_hora + v_dur * interval '1 minute', v_ahora - interval '1 minute')
+                when c_pendiente  then v_creacion
+                when c_confirmada then least(v_creacion + interval '6 hours', v_ahora - interval '10 minutes')
+                when c_completada then least(v_fecha + v_hora + v_dur * c_interval_1m, v_ahora - c_interval_1m)
                 else v_fecha_canc
             end;
 
@@ -412,7 +427,7 @@ begin
     insert into app.resenas (reserva_id, calificacion, comentario, fecha_creacion)
     select x.id, x.calificacion,
            (c_comentarios -> x.calificacion::text) ->> pg_temp.myt_rand('comentario:' || x.rn, 2),
-           least(x.fin + interval '3 hours', v_ahora - interval '1 minute')
+           least(x.fin + interval '3 hours', v_ahora - c_interval_1m)
     from (
         select o.id, o.rn, o.fin,
                (array[5, 5, 4, 5, 4, 3, 5, 4])[1 + pg_temp.myt_rand('nota:' || o.rn, 8)] as calificacion
@@ -453,12 +468,12 @@ begin
 
     -- Chat: una conversacion por reserva PENDIENTE/CONFIRMADA (ACTIVA) o COMPLETADA (CERRADA)
     insert into app.conversaciones (reserva_id, estado, fecha_creacion)
-    select r.id,
-           case r.estado when 'COMPLETADA' then 'CERRADA' else 'ACTIVA' end,
-           r.fecha_creacion + interval '1 minute'
+    select r.id as reserva_id,
+           case r.estado when c_completada then 'CERRADA' else 'ACTIVA' end as estado,
+           (r.fecha_creacion + c_interval_1m) as fecha_creacion
     from app.reservas r
-    where r.estado in ('PENDIENTE', 'CONFIRMADA', 'COMPLETADA')
-    order by r.fecha, r.hora_inicio, r.tutor_id;
+    where r.estado in (c_pendiente, c_confirmada, c_completada)
+    order by r.fecha asc, r.hora_inicio asc, r.tutor_id asc;
 
     -- Mensajes: PENDIENTE -> 1 (sin leer); CONFIRMADA -> 3 (el ultimo sin leer); COMPLETADA -> 4 (todos leidos)
     insert into app.mensajes (conversacion_id, remitente_usuario_id, contenido, fecha_envio, leido_en)
@@ -471,12 +486,12 @@ begin
                m.contenido,
                least(
                    case when m.seq = 4
-                        then r.fecha + r.hora_inicio + r.duracion_minutos * interval '1 minute' + interval '10 minutes'
+                        then r.fecha + r.hora_inicio + r.duracion_minutos * c_interval_1m + interval '10 minutes'
                         else c.fecha_creacion + m.espera
                    end,
-                   v_ahora - (5 - m.seq) * interval '1 minute') as envio,
-               case r.estado when 'PENDIENTE' then false
-                             when 'CONFIRMADA' then m.seq < 3
+                   v_ahora - (5 - m.seq) * c_interval_1m) as envio,
+               case r.estado when c_pendiente then false
+                             when c_confirmada then m.seq < 3
                              else true end as leido
         from app.conversaciones c
         join app.reservas r on r.id = c.reserva_id
@@ -556,15 +571,15 @@ begin
 
     select count(*) into v_bad from (
         select e.usuario_id from app.estudiantes e
-         where not exists (select 1 from app.usuario_roles r where r.usuario_id = e.usuario_id and r.rol = 'ESTUDIANTE')
+         where not exists (select 1 from app.usuario_roles r where r.usuario_id = e.usuario_id and r.rol = c_rol_estudiante)
         union all
         select t.usuario_id from app.tutores t
-         where not exists (select 1 from app.usuario_roles r where r.usuario_id = t.usuario_id and r.rol = 'TUTOR')
+         where not exists (select 1 from app.usuario_roles r where r.usuario_id = t.usuario_id and r.rol = c_rol_tutor)
         union all
         select r.usuario_id from app.usuario_roles r
-         where (r.rol = 'ESTUDIANTE' and not exists (select 1 from app.estudiantes e where e.usuario_id = r.usuario_id))
-            or (r.rol = 'TUTOR' and not exists (select 1 from app.tutores t where t.usuario_id = r.usuario_id))
-            or (r.rol = 'ADMINISTRADOR' and (exists (select 1 from app.estudiantes e where e.usuario_id = r.usuario_id)
+         where (r.rol = c_rol_estudiante and not exists (select 1 from app.estudiantes e where e.usuario_id = r.usuario_id))
+            or (r.rol = c_rol_tutor and not exists (select 1 from app.tutores t where t.usuario_id = r.usuario_id))
+            or (r.rol = c_rol_admin and (exists (select 1 from app.estudiantes e where e.usuario_id = r.usuario_id)
                                           or exists (select 1 from app.tutores t where t.usuario_id = r.usuario_id)))
     ) q;
     if v_bad > 0 then raise exception 'Seed revertido: % incoherencias entre roles y estudiantes/tutores', v_bad; end if;
@@ -583,7 +598,7 @@ begin
                       where dt.tutor_id = r.tutor_id
                         and dt.dia_semana = c_dias[extract(isodow from r.fecha)::integer]
                         and r.hora_inicio >= dt.hora_inicio
-                        and (r.hora_inicio + r.duracion_minutos * interval '1 minute')::time <= dt.hora_fin);
+                        and (r.hora_inicio + r.duracion_minutos * c_interval_1m)::time <= dt.hora_fin);
     if v_bad > 0 then raise exception 'Seed revertido: % reservas incoherentes (materia, costo, participantes o disponibilidad)', v_bad; end if;
 
     -- 7.4 Sin solapes de tutor ni de estudiante, ni con bloqueos de agenda
@@ -591,15 +606,15 @@ begin
     from app.reservas a
     join app.reservas b on b.id > a.id and b.fecha = a.fecha
         and (b.tutor_id = a.tutor_id or b.estudiante_id = a.estudiante_id)
-        and b.hora_inicio < (a.hora_inicio + a.duracion_minutos * interval '1 minute')::time
-        and a.hora_inicio < (b.hora_inicio + b.duracion_minutos * interval '1 minute')::time;
+        and b.hora_inicio < (a.hora_inicio + a.duracion_minutos * c_interval_1m)::time
+        and a.hora_inicio < (b.hora_inicio + b.duracion_minutos * c_interval_1m)::time;
     if v_bad > 0 then raise exception 'Seed revertido: % pares de reservas se solapan', v_bad; end if;
 
     select count(*) into v_bad
     from app.bloqueos_agenda bl
     join app.reservas r on r.tutor_id = bl.tutor_id and r.fecha = bl.fecha
         and r.hora_inicio < bl.hora_fin
-        and bl.hora_inicio < (r.hora_inicio + r.duracion_minutos * interval '1 minute')::time;
+        and bl.hora_inicio < (r.hora_inicio + r.duracion_minutos * c_interval_1m)::time;
     if v_bad > 0 then raise exception 'Seed revertido: % reservas chocan con bloqueos de agenda', v_bad; end if;
 
     -- 7.5 Estado vs fecha, cancelaciones y marcas de tiempo
@@ -609,10 +624,10 @@ begin
     join app.usuarios ue on ue.id = e.usuario_id
     join app.tutores t on t.id = r.tutor_id
     join app.usuarios ut on ut.id = t.usuario_id
-    where (r.estado = 'COMPLETADA' and r.fecha >= v_hoy)
-       or (r.estado in ('PENDIENTE', 'CONFIRMADA') and r.fecha < v_hoy)
-       or (r.estado in ('CANCELADA', 'RECHAZADA') and (r.motivo_cancelacion is null or r.fecha_cancelacion is null))
-       or (r.estado not in ('CANCELADA', 'RECHAZADA') and (r.motivo_cancelacion is not null or r.fecha_cancelacion is not null))
+    where (r.estado = c_completada and r.fecha >= v_hoy)
+       or (r.estado in (c_pendiente, c_confirmada) and r.fecha < v_hoy)
+       or (r.estado in (c_cancelada, c_rechazada) and (r.motivo_cancelacion is null or r.fecha_cancelacion is null))
+       or (r.estado not in (c_cancelada, c_rechazada) and (r.motivo_cancelacion is not null or r.fecha_cancelacion is not null))
        or r.fecha_cancelacion < r.fecha_creacion
        or r.fecha_actualizacion < r.fecha_creacion
        or r.fecha_creacion > v_ahora or r.fecha_actualizacion > v_ahora
@@ -623,9 +638,9 @@ begin
     select count(*) into v_bad
     from app.resenas rs
     join app.reservas r on r.id = rs.reserva_id
-    where r.estado <> 'COMPLETADA'
+    where r.estado <> c_completada
        or rs.calificacion not between 1 and 5
-       or rs.fecha_creacion < (r.fecha + r.hora_inicio + r.duracion_minutos * interval '1 minute')
+       or rs.fecha_creacion < (r.fecha + r.hora_inicio + r.duracion_minutos * c_interval_1m)
        or rs.fecha_creacion > v_ahora;
     if v_bad > 0 then raise exception 'Seed revertido: % reseñas incoherentes', v_bad; end if;
 
@@ -633,8 +648,8 @@ begin
     select count(*) into v_bad
     from app.reservas r
     left join app.conversaciones c on c.reserva_id = r.id
-    where (r.estado in ('PENDIENTE', 'CONFIRMADA', 'COMPLETADA')) <> (c.id is not null)
-       or (c.id is not null and c.estado <> case r.estado when 'COMPLETADA' then 'CERRADA' else 'ACTIVA' end)
+    where (r.estado in (c_pendiente, c_confirmada, c_completada)) <> (c.id is not null)
+       or (c.id is not null and c.estado <> case r.estado when c_completada then 'CERRADA' else 'ACTIVA' end)
        or (c.id is not null and (c.fecha_creacion < r.fecha_creacion or c.fecha_creacion > v_ahora));
     if v_bad > 0 then raise exception 'Seed revertido: % conversaciones incoherentes', v_bad; end if;
 
@@ -666,20 +681,23 @@ commit;
 -- =============================================================================
 -- Resumen final (un solo resultado): conteos, reservas por mes/estado y cuentas
 -- =============================================================================
+with meta as (
+    select 'Conteos' as seccion_conteos
+)
 select seccion, detalle, valor
 from (
-    select 1 as o, 1 as s, 'Conteos' as seccion, 'usuarios' as detalle, count(*)::text as valor from app.usuarios
-    union all select 1, 2, 'Conteos', 'usuario_roles', count(*)::text from app.usuario_roles
-    union all select 1, 3, 'Conteos', 'estudiantes', count(*)::text from app.estudiantes
-    union all select 1, 4, 'Conteos', 'tutores', count(*)::text from app.tutores
-    union all select 1, 5, 'Conteos', 'materias', count(*)::text from app.materias
-    union all select 1, 6, 'Conteos', 'tutor_materias', count(*)::text from app.tutor_materias
-    union all select 1, 7, 'Conteos', 'disponibilidades_tutor', count(*)::text from app.disponibilidades_tutor
-    union all select 1, 8, 'Conteos', 'reservas', count(*)::text from app.reservas
-    union all select 1, 9, 'Conteos', 'resenas', count(*)::text from app.resenas
-    union all select 1, 10, 'Conteos', 'bloqueos_agenda', count(*)::text from app.bloqueos_agenda
-    union all select 1, 11, 'Conteos', 'conversaciones', count(*)::text from app.conversaciones
-    union all select 1, 12, 'Conteos', 'mensajes', count(*)::text from app.mensajes
+    select 1 as o, 1 as s, m.seccion_conteos as seccion, 'usuarios' as detalle, count(*)::text as valor from app.usuarios cross join meta m
+    union all select 1, 2, m.seccion_conteos, 'usuario_roles', count(*)::text from app.usuario_roles cross join meta m
+    union all select 1, 3, m.seccion_conteos, 'estudiantes', count(*)::text from app.estudiantes cross join meta m
+    union all select 1, 4, m.seccion_conteos, 'tutores', count(*)::text from app.tutores cross join meta m
+    union all select 1, 5, m.seccion_conteos, 'materias', count(*)::text from app.materias cross join meta m
+    union all select 1, 6, m.seccion_conteos, 'tutor_materias', count(*)::text from app.tutor_materias cross join meta m
+    union all select 1, 7, m.seccion_conteos, 'disponibilidades_tutor', count(*)::text from app.disponibilidades_tutor cross join meta m
+    union all select 1, 8, m.seccion_conteos, 'reservas', count(*)::text from app.reservas cross join meta m
+    union all select 1, 9, m.seccion_conteos, 'resenas', count(*)::text from app.resenas cross join meta m
+    union all select 1, 10, m.seccion_conteos, 'bloqueos_agenda', count(*)::text from app.bloqueos_agenda cross join meta m
+    union all select 1, 11, m.seccion_conteos, 'conversaciones', count(*)::text from app.conversaciones cross join meta m
+    union all select 1, 12, m.seccion_conteos, 'mensajes', count(*)::text from app.mensajes cross join meta m
     union all
     select 2, 0, 'Reservas por mes', to_char(date_trunc('month', fecha), 'YYYY-MM'), count(*)::text
     from app.reservas group by date_trunc('month', fecha)

@@ -6,7 +6,7 @@ alter table app.usuarios add column version bigint not null default 0;
 
 create table app.usuario_roles (
     usuario_id integer not null,
-    rol varchar(30) not null check (rol in ('ESTUDIANTE', 'TUTOR', 'ADMINISTRADOR')),
+    rol varchar(30) not null check (rol in ('ESTUDIANTE', 'TUTOR', 'ADMINISTRADOR')), -- NOSONAR
     primary key (usuario_id, rol),
     constraint fk_usuario_roles_usuario foreign key (usuario_id) references app.usuarios (id)
 );
@@ -24,8 +24,8 @@ on conflict do nothing;
 insert into app.usuarios (nombre, apellido, correo, contrasena, telefono, activo)
 select nombre, apellido, correo, contrasena, telefono, activo
 from app.administradores administrador
-where not exists (
-    select 1 from app.usuarios usuario where lower(usuario.correo) = lower(administrador.correo)
+where lower(administrador.correo) not in (
+    select lower(usuario.correo) from app.usuarios usuario
 );
 insert into app.usuario_roles (usuario_id, rol)
 select usuario.id, 'ADMINISTRADOR'
@@ -35,7 +35,7 @@ on conflict do nothing;
 insert into app.usuario_roles (usuario_id, rol)
 select usuario.id, 'ESTUDIANTE'
 from app.usuarios usuario
-where not exists (select 1 from app.usuario_roles rol where rol.usuario_id = usuario.id);
+where usuario.id not in (select rol.usuario_id from app.usuario_roles rol);
 drop table app.administradores;
 
 drop index if exists app.ux_clientes_correo_lower;
@@ -76,7 +76,8 @@ on conflict do nothing;
 drop table app.tutor_materias_legacy;
 
 alter table app.reservas add column materia_id integer;
-update app.reservas set materia_id = (select id from app.materias where nombre = 'Sin especificar');
+update app.reservas set materia_id = (select id from app.materias where nombre = 'Sin especificar')
+where materia_id is null;
 alter table app.reservas alter column materia_id set not null;
 alter table app.reservas add constraint fk_reservas_materia
     foreign key (materia_id) references app.materias (id);

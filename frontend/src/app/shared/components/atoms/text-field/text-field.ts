@@ -1,5 +1,7 @@
 import { Component, input, model } from '@angular/core';
 
+let nextTextFieldId = 0;
+
 @Component({
   selector: 'app-text-field',
   template: `
@@ -40,7 +42,7 @@ export class TextFieldComponent {
   readonly label = input<string | undefined>(undefined);
   readonly placeholder = input<string>('');
   readonly type = input<string>('text');
-  readonly id = input<string>('field-' + Math.random().toString(36).substring(2, 9));
+  readonly id = input<string>(`field-${nextTextFieldId++}`);
   readonly name = input<string | undefined>(undefined);
   readonly disabled = input<boolean>(false);
   readonly required = input<boolean>(false);

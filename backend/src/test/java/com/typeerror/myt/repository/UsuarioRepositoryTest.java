@@ -18,8 +18,12 @@ import com.typeerror.myt.entities.Usuario;
 @DataJpaTest
 class UsuarioRepositoryTest extends PostgreSqlIntegrationTest {
 
+    private final UsuarioRepository usuarioRepository;
+
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    UsuarioRepositoryTest(UsuarioRepository usuarioRepository) {
+        this.usuarioRepository = usuarioRepository;
+    }
 
     @Test
     void persisteYActualizaElEstadoSinEliminarLaFila() {

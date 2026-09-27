@@ -1,5 +1,7 @@
 import { Component, input, model } from '@angular/core';
 
+let nextSelectId = 0;
+
 export interface SelectOption {
   label: string;
   value: string;
@@ -48,7 +50,7 @@ export interface SelectOption {
 export class SelectComponent {
   readonly label = input<string | undefined>(undefined);
   readonly options = input.required<readonly SelectOption[]>();
-  readonly id = input<string>('select-' + Math.random().toString(36).substring(2, 9));
+  readonly id = input<string>(`select-${nextSelectId++}`);
   readonly name = input<string | undefined>(undefined);
   readonly disabled = input<boolean>(false);
   readonly required = input<boolean>(false);

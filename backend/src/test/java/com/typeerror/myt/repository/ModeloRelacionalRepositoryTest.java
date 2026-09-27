@@ -32,22 +32,34 @@ import com.typeerror.myt.entities.Usuario;
 @DataJpaTest
 class ModeloRelacionalRepositoryTest extends PostgreSqlIntegrationTest {
 
+    private final EntityManager entityManager;
+    private final UsuarioRepository usuarioRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final TutorRepository tutorRepository;
+    private final ReservaRepository reservaRepository;
+    private final ResenaRepository resenaRepository;
+    private final ConversacionRepository conversacionRepository;
+    private final MensajeRepository mensajeRepository;
+
     @Autowired
-    private EntityManager entityManager;
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-    @Autowired
-    private EstudianteRepository estudianteRepository;
-    @Autowired
-    private TutorRepository tutorRepository;
-    @Autowired
-    private ReservaRepository reservaRepository;
-    @Autowired
-    private ResenaRepository resenaRepository;
-    @Autowired
-    private ConversacionRepository conversacionRepository;
-    @Autowired
-    private MensajeRepository mensajeRepository;
+    ModeloRelacionalRepositoryTest(
+            EntityManager entityManager,
+            UsuarioRepository usuarioRepository,
+            EstudianteRepository estudianteRepository,
+            TutorRepository tutorRepository,
+            ReservaRepository reservaRepository,
+            ResenaRepository resenaRepository,
+            ConversacionRepository conversacionRepository,
+            MensajeRepository mensajeRepository) {
+        this.entityManager = entityManager;
+        this.usuarioRepository = usuarioRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.tutorRepository = tutorRepository;
+        this.reservaRepository = reservaRepository;
+        this.resenaRepository = resenaRepository;
+        this.conversacionRepository = conversacionRepository;
+        this.mensajeRepository = mensajeRepository;
+    }
 
     @Test
     void persisteElModeloCompletoIncluidoElChat() {

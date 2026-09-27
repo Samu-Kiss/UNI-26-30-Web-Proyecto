@@ -304,8 +304,8 @@ jobs:
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
         shell: bash
         run: |
-          if [[ -z "$SONAR_TOKEN" || -z "$SONAR_PROJECT_KEY" ]]; then
-            echo "Sonar skipped: configure SONAR_TOKEN and SONAR_PROJECT_KEY to enable it." \
+          if [[ -z "$SONAR_TOKEN" ]]; then
+            echo "Sonar skipped: configure SONAR_TOKEN to enable it." \
               >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -313,18 +313,13 @@ jobs:
           SONAR_HOST_URL="${SONAR_HOST_URL:-https://sonarcloud.io}"
           sonar_args=(
             -Dsonar.host.url="$SONAR_HOST_URL"
-            -Dsonar.projectKey="$SONAR_PROJECT_KEY"
-            -Dsonar.sources=backend/src/main/java,frontend/src
-            -Dsonar.tests=backend/src/test/java,frontend/src
-            -Dsonar.test.inclusions="**/*Test.java,**/*.spec.ts"
-            -Dsonar.exclusions="backend/src/main/resources/**,frontend/public/**,frontend/dist/**"
-            -Dsonar.coverage.exclusions="frontend/src/main.ts,frontend/src/app/app.config.ts,frontend/src/app/app.routes.ts,backend/src/main/java/com/typeerror/myt/MyTApplication.java"
-            -Dsonar.java.binaries=backend/target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=backend/target/site/jacoco/jacoco.xml
-            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
           )
+
+          if [[ -n "$SONAR_PROJECT_KEY" ]]; then
+            sonar_args+=("-Dsonar.projectKey=$SONAR_PROJECT_KEY")
+          fi
 
           if [[ -n "$SONAR_ORGANIZATION" ]]; then
             sonar_args+=("-Dsonar.organization=$SONAR_ORGANIZATION")

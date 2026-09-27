@@ -34,20 +34,25 @@ import com.typeerror.myt.repository.TutorRepository;
 @Transactional
 class LoginWebTest extends PostgreSqlIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository clienteRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final TutorRepository tutorRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    private UsuarioRepository clienteRepository;
-
-    @Autowired
-    private EstudianteRepository estudianteRepository;
-
-    @Autowired
-    private TutorRepository tutorRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    LoginWebTest(
+            MockMvc mockMvc,
+            UsuarioRepository clienteRepository,
+            EstudianteRepository estudianteRepository,
+            TutorRepository tutorRepository,
+            PasswordEncoder passwordEncoder) {
+        this.mockMvc = mockMvc;
+        this.clienteRepository = clienteRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.tutorRepository = tutorRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Test
     void nuevoUsuarioAbreElRegistroConUnSoloBoton() throws Exception {

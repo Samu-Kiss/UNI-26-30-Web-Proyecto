@@ -30,15 +30,20 @@ import java.util.Set;
 @Transactional
 class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
     private String sesion;
+
+    @Autowired
+    UsuarioCrudWebTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @BeforeEach
     void limpiarUsuarios() {
