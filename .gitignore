@@ -2,7 +2,7 @@ HELP.md
 target/
 .codegraph/
 .codex-tmp/
-.mvn/wrapper/maven-wrapper.jar
+**/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -39,3 +39,12 @@ build/
 .env.*
 !.env.example
 .scannerwork/
+
+### Node & Frontend ###
+**/node_modules/
+**/coverage/
+**/dist/
+frontend/dist/
+frontend/coverage/
+.angular/
+

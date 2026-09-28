@@ -1,0 +1,56 @@
+<section class="tarjeta" aria-labelledby="titulo-listado">
+  <div class="cabecera-tabla">
+    <h2 id="titulo-listado">Tutores disponibles</h2>
+    <span>{{ tutores().length }} perfiles</span>
+  </div>
+
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Tutor y materias</th>
+          <th scope="col">Tarifa por hora</th>
+          <th scope="col">Calificación</th>
+          <th scope="col">Disponibilidad</th>
+          <th scope="col"><span class="solo-lectores">Acción</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tutor of tutores(); track tutor.id) {
+          <tr>
+            <td data-label="Tutor y materias"><app-tutor-summary [tutor]="tutor" /></td>
+            <td data-label="Tarifa por hora">
+              {{ tutor.tarifaPorHora | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
+            </td>
+            <td data-label="Calificación">
+              <span
+                class="calificacion"
+                [attr.aria-label]="'Calificación ' + tutor.calificacion + ' de 5'"
+              >
+                <span aria-hidden="true">★</span>
+                {{ tutor.calificacion | number: '1.1-1' }}
+              </span>
+            </td>
+            <td data-label="Disponibilidad">
+              <app-status-badge [disponible]="tutor.disponible" />
+            </td>
+            <td data-label="Acción">
+              <app-button
+                variant="primary"
+                size="md"
+                [disabled]="!tutor.disponible"
+                [ariaLabel]="(tutor.disponible ? 'Reservar con ' : 'No disponible: ') + tutor.nombreCompleto"
+              >
+                {{ tutor.disponible ? 'Reservar' : 'No disponible' }}
+              </app-button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="vacio" colspan="5">No hay tutores registrados.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

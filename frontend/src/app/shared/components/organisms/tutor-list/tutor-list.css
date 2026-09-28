@@ -1,0 +1,83 @@
+.cabecera-tabla {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.3rem 1.4rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.cabecera-tabla h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.cabecera-tabla span {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 780px) {
+  .tabla-contenedor {
+    overflow: visible;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  table {
+    min-width: 100%;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tr {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  tr:last-child {
+    border-bottom: 0;
+  }
+
+  td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 1.25rem;
+    border: 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  td:first-child {
+    display: block;
+    padding-top: 0.35rem;
+  }
+
+  td:first-child::before {
+    display: none;
+  }
+
+  td:last-child {
+    padding-top: 0.85rem;
+  }
+
+  td:last-child app-button {
+    width: 100%;
+  }
+}

@@ -2,9 +2,25 @@
 
 Aplicacion web de tutorias construida con Spring Boot 4 y Java 21.
 
-## Desarrollo local
+## Frontend Angular
+
+El laboratorio de migracion inicial esta en `frontend/`. Conserva el backend y la vista Thymeleaf
+de tutores, y agrega su equivalente en Angular 22 con Atomic Design y datos temporales. Para
+ejecutarlo se requiere una version de Node compatible con Angular 22:
 
 ```bash
+cd frontend
+npm ci
+npm start
+```
+
+La vista queda disponible en `http://localhost:4200`. Sentry permanece desactivado cuando no se
+define `SENTRY_DSN`; la configuracion de CI y mapas de codigo se describe en `docs/ci-cd.md`.
+
+## Desarrollo local (Backend)
+
+```bash
+cd backend
 # Solo es necesario si el checkout no preservo el permiso ejecutable.
 chmod +x mvnw
 ./mvnw verify
@@ -12,7 +28,7 @@ chmod +x mvnw
 ```
 
 `verify` compila, ejecuta Checkstyle y las pruebas, y genera el reporte JaCoCo en
-`target/site/jacoco/index.html`. Sentry no envia datos en local mientras `SENTRY_DSN` no este
+`backend/target/site/jacoco/index.html`. Sentry no envia datos en local mientras `SENTRY_DSN` no este
 definida. Las pruebas de integracion usan Testcontainers, por lo que Docker debe estar en ejecucion
 para completar `verify`.
 
@@ -38,7 +54,7 @@ create schema if not exists app;
 Los proyectos usan el esquema `app`; las migraciones versionadas crean sus tablas, relaciones y
 restricciones. RLS esta habilitado para impedir acceso directo desde clientes anonimos; el backend
 JDBC se conecta como propietario de la base. La definicion reproducible esta en
-`supabase/migrations/` y debe aplicarse en orden cronologico.
+`backend/supabase/migrations/` y debe aplicarse en orden cronologico.
 
 Para desarrollo, completa `SUPABASE_DEV_DB_PASSWORD` en `.env.local`. Conserva
 `SPRING_PROFILES_ACTIVE=dev`; Spring carga ese archivo automaticamente al iniciar desde IntelliJ o
