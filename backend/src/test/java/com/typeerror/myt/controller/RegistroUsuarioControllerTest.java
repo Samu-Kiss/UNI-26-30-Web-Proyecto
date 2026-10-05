@@ -132,7 +132,7 @@ class RegistroUsuarioControllerTest {
 
         String resultado = controller.guardarUsuario(usuario, bindingResult, perfil, model, SESION);
 
-        assertEquals("redirect:/usuarios?sesion=" + SESION, resultado);
+        assertEquals("redirect:/usuarios", resultado);
         verify(usuarioService).registrarTutor(argThat(entidad -> coincide(entidad, usuario)), eq("Tutor de prueba"),
                 eq(List.of("Cálculo", "Álgebra")), eq(new BigDecimal("50000")));
 

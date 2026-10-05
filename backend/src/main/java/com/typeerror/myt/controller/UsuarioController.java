@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.typeerror.myt.entities.Usuario;
@@ -53,7 +53,7 @@ public class UsuarioController {
     @PostMapping("/{id}/editar")
     public String guardar(@PathVariable Integer id,
             @Valid @ModelAttribute("usuario") UsuarioForm formulario,
-            BindingResult bindingResult, @RequestParam String sesion) {
+            BindingResult bindingResult, @RequestAttribute String sesion) {
         formulario.setId(id);
         if (bindingResult.hasErrors()) {
             return FORM_VIEW;
@@ -68,13 +68,13 @@ public class UsuarioController {
     }
 
     @PostMapping("/{id}/desactivar")
-    public String desactivar(@PathVariable Integer id, @RequestParam String sesion) {
+    public String desactivar(@PathVariable Integer id, @RequestAttribute String sesion) {
         usuarioService.desactivar(id);
         return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }
 
     @PostMapping("/{id}/activar")
-    public String activar(@PathVariable Integer id, @RequestParam String sesion) {
+    public String activar(@PathVariable Integer id, @RequestAttribute String sesion) {
         usuarioService.activar(id);
         return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
     }

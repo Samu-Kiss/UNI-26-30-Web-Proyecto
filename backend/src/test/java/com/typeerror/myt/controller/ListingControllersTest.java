@@ -93,7 +93,7 @@ class ListingControllersTest {
                 model);
 
         assertEquals(
-                "redirect:/reservas?sesion=ADMINISTRADOR:7",
+                "redirect:/reservas",
                 resultado);
 
         verify(reservaService).cambiarEstado(
@@ -153,7 +153,7 @@ class ListingControllersTest {
                 "TUTOR:3",
                 model);
 
-        assertEquals("redirect:/tutores/3/reservas?sesion=TUTOR:3", resultado);
+        assertEquals("redirect:/tutores/3/reservas", resultado);
         verify(reservaService).cambiarEstado(10, EstadoReserva.CONFIRMADA, null);
     }
 
@@ -306,7 +306,7 @@ class ListingControllersTest {
                 ModalidadReserva.PRESENCIAL,
                 7, 7, "ESTUDIANTE:7", model);
 
-        assertEquals("redirect:/estudiantes/7/reservas?sesion=ESTUDIANTE:7&reservaExitosa=true", vista);
+        assertEquals("redirect:/estudiantes/7/reservas?reservaExitosa=true", vista);
     }
 
     @Test
