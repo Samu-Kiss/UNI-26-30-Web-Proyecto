@@ -13,9 +13,11 @@
             <h1>¿Cómo quieres ingresar?</h1>
             <p class="descripcion">Tu cuenta tiene más de un perfil disponible.</p>
             <div class="acciones-formulario">
-                <a class="boton boton-primario" th:each="opcion : ${opciones}"
-                   th:href="${opcion.ruta}"
-                   th:text="${opcion.rol}"></a>
+                <form th:each="opcion : ${opciones}" th:action="@{/login/rol}" method="post">
+                    <button class="boton boton-primario" type="submit" name="perfil"
+                            th:value="${opcion.rol.name() + ':' + opcion.perfilId}"
+                            th:text="${opcion.rol}"></button>
+                </form>
             </div>
         </section>
     </main>

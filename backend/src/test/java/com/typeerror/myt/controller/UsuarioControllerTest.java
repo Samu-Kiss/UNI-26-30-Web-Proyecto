@@ -84,7 +84,7 @@ class UsuarioControllerTest {
         UsuarioForm formulario = formulario(1);
         BeanPropertyBindingResult sinErrores = errores(formulario);
 
-        assertEquals("redirect:/usuarios?sesion=" + SESION,
+        assertEquals("redirect:/usuarios",
                 controller.guardar(1, formulario, sinErrores, SESION));
         verify(usuarioService).guardar(any(Usuario.class));
 
@@ -97,8 +97,8 @@ class UsuarioControllerTest {
 
     @Test
     void activaDesactivaYReportaEdicionInexistente() {
-        assertEquals("redirect:/usuarios?sesion=" + SESION, controller.desactivar(1, SESION));
-        assertEquals("redirect:/usuarios?sesion=" + SESION, controller.activar(1, SESION));
+        assertEquals("redirect:/usuarios", controller.desactivar(1, SESION));
+        assertEquals("redirect:/usuarios", controller.activar(1, SESION));
         verify(usuarioService).desactivar(1);
         verify(usuarioService).activar(1);
 

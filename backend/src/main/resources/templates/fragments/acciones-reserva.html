@@ -12,7 +12,7 @@
                   method="post">
                 <input type="hidden" name="id" th:value="${reserva.id}">
                 <input type="hidden" name="estado" value="CONFIRMADA">
-                <input type="hidden" name="sesion" th:value="${sesion}">
+
                 <button type="submit" class="boton boton-primario">
                     Confirmar
                 </button>
@@ -36,7 +36,7 @@
               style="display: none;">
             <input type="hidden" name="id" th:value="${reserva.id}">
             <input type="hidden" name="estado" th:value="${reserva.estado.name() == 'PENDIENTE' ? 'RECHAZADA' : 'CANCELADA'}">
-            <input type="hidden" name="sesion" th:value="${sesion}">
+
             <label class="sr-only" for="motivo" th:for="|motivo-${reserva.id}|">Motivo de cancelación</label>
             <input id="motivo"
                    class="campo-motivo"

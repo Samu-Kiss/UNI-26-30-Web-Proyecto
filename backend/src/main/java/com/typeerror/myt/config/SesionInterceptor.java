@@ -10,6 +10,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.service.ContextoSesion;
 import com.typeerror.myt.service.SesionService;
+import com.typeerror.myt.service.JwtSesionService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,16 +26,20 @@ public class SesionInterceptor implements HandlerInterceptor {
             Pattern.compile("/tutores/(\\d+)/reservar");
 
     private final SesionService sesionService;
+    private final JwtSesionService jwtSesionService;
 
-    public SesionInterceptor(SesionService sesionService) {
+    public SesionInterceptor(SesionService sesionService, JwtSesionService jwtSesionService) {
+        this.jwtSesionService = jwtSesionService;
         this.sesionService = sesionService;
     }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
             Object handler) throws IOException {
-        var contexto = sesionService.resolver(request.getParameter("sesion"));
-        if (contexto.isEmpty() || !puedeVisitar(request.getRequestURI(), contexto.get())) {
+        var perfiles = jwtSesionService.perfiles(request, false);
+        var contexto = sesionService.resolver(perfiles.size() == 1 ? perfiles.getFirst() : null);
+        String ruta = request.getRequestURI().substring(request.getContextPath().length());
+        if (contexto.isEmpty() || !puedeVisitar(ruta, contexto.get())) {
             response.sendRedirect(request.getContextPath() + "/login");
             return false;
         }

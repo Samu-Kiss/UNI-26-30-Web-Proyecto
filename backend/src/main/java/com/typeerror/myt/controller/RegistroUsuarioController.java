@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.entities.RolUsuario;
@@ -65,7 +65,7 @@ public class RegistroUsuarioController {
     public String guardarUsuario(@Valid @ModelAttribute(MODEL_USUARIO) RegistroUsuarioForm formulario,
             BindingResult bindingResult,
             @ModelAttribute("perfil") RegistroPerfilForm perfil,
-            Model model, @RequestParam String sesion) {
+            Model model, @RequestAttribute String sesion) {
         model.addAttribute(MODEL_ROLES_PERFIL,
                 Set.of(RolUsuario.ESTUDIANTE, RolUsuario.TUTOR));
         if (bindingResult.hasErrors()) {
@@ -95,7 +95,7 @@ public class RegistroUsuarioController {
     @PostMapping("/{id}/perfil")
     public String guardarPerfil(@PathVariable Integer id,
             @ModelAttribute("perfil") RegistroPerfilForm perfil, Model model,
-            @RequestParam String sesion) {
+            @RequestAttribute String sesion) {
         Usuario usuario = usuarioService.findById(id)
                 .orElseThrow(() -> new UsuarioNotFoundException(id));
         try {

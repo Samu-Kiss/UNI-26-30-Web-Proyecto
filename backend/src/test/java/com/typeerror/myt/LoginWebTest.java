@@ -34,6 +34,14 @@ import com.typeerror.myt.repository.TutorRepository;
 @Transactional
 class LoginWebTest extends PostgreSqlIntegrationTest {
 
+    @Autowired
+    private com.typeerror.myt.service.JwtSesionService jwtSesionService;
+
+    private jakarta.servlet.http.Cookie sesionCookie(String perfil) {
+        return new jakarta.servlet.http.Cookie(com.typeerror.myt.service.JwtSesionService.COOKIE,
+                jwtSesionService.emitir(java.util.List.of(perfil), false));
+    }
+
     private final MockMvc mockMvc;
     private final UsuarioRepository clienteRepository;
     private final EstudianteRepository estudianteRepository;
@@ -57,17 +65,17 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     @Test
     void nuevoUsuarioAbreElRegistroConUnSoloBoton() throws Exception {
         String sesion = sesionAdmin(crearAdministrador("admin-listado@myt.test"));
-        String listado = mockMvc.perform(get("/usuarios").param("sesion", sesion))
+        String listado = mockMvc.perform(get("/usuarios").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertEquals(1, listado.split("href=\"/usuarios/nuevo\\?sesion=", -1).length - 1);
+        assertEquals(1, listado.split("href=\"/usuarios/nuevo\"", -1).length - 1);
         assertTrue(listado.contains(">Nuevo usuario</a>"));
         assertFalse(listado.contains("Registrar estudiante o tutor"));
-        String formulario = mockMvc.perform(get("/usuarios/nuevo").param("sesion", sesion))
+        String formulario = mockMvc.perform(get("/usuarios/nuevo").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("registro-usuario-form"))
                 .andReturn().getResponse().getContentAsString();
-        assertTrue(formulario.contains("action=\"/usuarios/registrar?sesion="));
+        assertTrue(formulario.contains("action=\"/usuarios/registrar\""));
         assertTrue(formulario.contains("value=\"ESTUDIANTE\""));
         assertTrue(formulario.contains("value=\"TUTOR\""));
     }
@@ -81,7 +89,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         for (String ruta : new String[] {"/clientes/guardar", "/clientes/1/activar", "/clientes/1/desactivar"}) {
             mockMvc.perform(post(ruta)).andExpect(status().isNotFound());
         }
-        mockMvc.perform(post("/usuarios/guardar").param("sesion", sesion))
+        mockMvc.perform(post("/usuarios/guardar").cookie(sesionCookie(sesion)))
                 .andExpect(status().isNotFound());
     }
 
@@ -89,7 +97,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     void conservaElRegistroYElPerfilCuandoFaltanDatosAcademicos() throws Exception {
         String sesion = sesionAdmin(crearAdministrador("admin-registro@myt.test"));
         String formulario = mockMvc.perform(post("/usuarios/registrar")
-                        .param("sesion", sesion)
+                        .cookie(sesionCookie(sesion))
                         .param("nombre", "Nora")
                         .param("apellido", "Nueva")
                         .param("correo", "nora-invalida@myt.test")
@@ -100,7 +108,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         assertTrue(formulario.matches(
                 "(?s).*<option\\s+value=\"ESTUDIANTE\"\\s+selected=\"selected\">.*"));
-        assertTrue(formulario.contains("action=\"/usuarios/registrar?sesion="));
+        assertTrue(formulario.contains("action=\"/usuarios/registrar\""));
     }
 
     @Test
@@ -113,19 +121,19 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                         .param("correo", administrador.getCorreo())
                         .param("contrasena", "clave-admin"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin?sesion=ADMINISTRADOR:" + administrador.getId()));
+                .andExpect(redirectedUrl("/admin"));
 
         mockMvc.perform(post("/login")
                         .param("correo", estudiante.getUsuario().getCorreo().toUpperCase())
                         .param("contrasena", "clave-estudiante"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/estudiante?sesion=ESTUDIANTE:" + estudiante.getId()));
+                .andExpect(redirectedUrl("/estudiante"));
 
         mockMvc.perform(post("/login")
                         .param("correo", tutor.getUsuario().getCorreo())
                         .param("contrasena", "clave-tutor"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/tutor?sesion=TUTOR:" + tutor.getId()));
+                .andExpect(redirectedUrl("/tutor"));
     }
 
     @Test
@@ -157,11 +165,11 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"));
-        mockMvc.perform(get("/admin").param("sesion", sesionAdmin(administrador)))
+        mockMvc.perform(get("/admin").cookie(sesionCookie(sesionAdmin(administrador))))
                 .andExpect(status().isOk())
                 .andExpect(view().name("menu-administrativo"));
         mockMvc.perform(get("/tutores/{tutorId}/reservas", tutor.getId())
-                        .param("sesion", "TUTOR:" + tutor.getId()))
+                        .cookie(sesionCookie("TUTOR:" + tutor.getId())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("reservas-tutor"));
     }
@@ -176,17 +184,17 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         mockMvc.perform(get("/admin"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
-        mockMvc.perform(get("/estudiante").param("sesion", "sesion-invalida"))
+        mockMvc.perform(get("/estudiante").cookie(sesionCookie("sesion-invalida")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
-        mockMvc.perform(get("/admin").param("sesion", "ADMINISTRADOR:999999"))
+        mockMvc.perform(get("/admin").cookie(sesionCookie("ADMINISTRADOR:999999")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
-        mockMvc.perform(get("/admin").param("sesion", sesionAdmin(inactivo)))
+        mockMvc.perform(get("/admin").cookie(sesionCookie(sesionAdmin(inactivo))))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
         mockMvc.perform(get("/admin")
-                        .param("sesion", "ESTUDIANTE:" + estudiante.getId()))
+                        .cookie(sesionCookie("ESTUDIANTE:" + estudiante.getId())))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
     }
@@ -201,14 +209,14 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         String sesionTutor = "TUTOR:" + tutor.getId();
 
         String menuAdministrador = mockMvc.perform(get("/admin")
-                        .param("sesion", sesionAdministrador))
+                        .cookie(sesionCookie(sesionAdministrador)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("menu-administrativo"))
                 .andReturn().getResponse().getContentAsString();
         assertTrue(menuAdministrador.contains(">Clientes</a>"));
 
         String menuEstudiante = mockMvc.perform(get("/estudiante")
-                        .param("sesion", sesionEstudiante))
+                        .cookie(sesionCookie(sesionEstudiante)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("menu-estudiante"))
                 .andReturn().getResponse().getContentAsString();
@@ -216,26 +224,26 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
         assertTrue(menuEstudiante.contains("Crear reserva"));
         assertTrue(menuEstudiante.contains("Mis tutorías"));
 
-        mockMvc.perform(get("/tutores").param("sesion", sesionEstudiante))
+        mockMvc.perform(get("/tutores").cookie(sesionCookie(sesionEstudiante)))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/estudiantes/{id}/reservas", estudiante.getId())
-                        .param("sesion", sesionEstudiante))
+                        .cookie(sesionCookie(sesionEstudiante)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("reservas-estudiante"));
 
-        String menuTutor = mockMvc.perform(get("/tutor").param("sesion", sesionTutor))
+        String menuTutor = mockMvc.perform(get("/tutor").cookie(sesionCookie(sesionTutor)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("menu-tutor"))
                 .andReturn().getResponse().getContentAsString();
         assertTrue(menuTutor.contains("Mis reservas"));
         mockMvc.perform(get("/tutores/{id}/reservas", tutor.getId())
-                        .param("sesion", sesionTutor))
+                        .cookie(sesionCookie(sesionTutor)))
                 .andExpect(status().isOk());
 
         for (String ruta : new String[] {
             "/usuarios", "/estudiantes", "/tutores", "/reservas", "/administradores"
         }) {
-            mockMvc.perform(get(ruta).param("sesion", sesionAdministrador))
+            mockMvc.perform(get(ruta).cookie(sesionCookie(sesionAdministrador)))
                     .andExpect(status().isOk());
         }
     }
@@ -244,7 +252,7 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
     void clienteCreadoDesdeElDashboardPuedeIniciarSesion() throws Exception {
         String sesion = sesionAdmin(crearAdministrador("admin-dashboard@myt.test"));
         mockMvc.perform(post("/usuarios/registrar")
-                        .param("sesion", sesion)
+                        .cookie(sesionCookie(sesion))
                         .param("nombre", "Nora")
                         .param("apellido", "Nueva")
                         .param("correo", "nora-dashboard@myt.test")
@@ -256,14 +264,14 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                         .param("programaAcademico", "Ingeniería")
                         .param("semestre", "6"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         mockMvc.perform(post("/login")
                         .param("correo", "nora-dashboard@myt.test")
                         .param("contrasena", "clave-dashboard"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(result -> assertTrue(result.getResponse().getRedirectedUrl()
-                        .startsWith("/estudiante?sesion=ESTUDIANTE:")));
+                        .startsWith("/estudiante")));
     }
 
     @Test
@@ -276,23 +284,23 @@ class LoginWebTest extends PostgreSqlIntegrationTest {
                 "Universidad de prueba", "Ingeniería", 6));
 
         String formulario = mockMvc.perform(get("/usuarios/{id}/perfil/nuevo", cliente.getId())
-                        .param("sesion", sesion))
+                        .cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("perfil-usuario-form"))
                 .andReturn().getResponse().getContentAsString();
         assertTrue(formulario.contains("action=\"/usuarios/" + cliente.getId()
-                + "/perfil?sesion="));
+                + "/perfil\""));
         assertTrue(formulario.contains("value=\"TUTOR\""));
         assertFalse(formulario.contains("value=\"ESTUDIANTE\""));
 
         mockMvc.perform(post("/usuarios/{id}/perfil", cliente.getId())
-                        .param("sesion", sesion)
+                        .cookie(sesionCookie(sesion))
                         .param("rol", "TUTOR")
                         .param("materias", "Cálculo, Álgebra")
                         .param("tarifaPorHora", "48000")
                         .param("biografia", "Tutor de matemáticas"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         tutorRepository.findByUsuarioId(cliente.getId()).orElseThrow();
         mockMvc.perform(post("/login")

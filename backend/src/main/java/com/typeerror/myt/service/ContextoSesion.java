@@ -2,7 +2,7 @@ package com.typeerror.myt.service;
 
 import com.typeerror.myt.entities.RolUsuario;
 
-/** Contexto temporal de navegación transportado en el parámetro de URL sesion. */
+/** Contexto de navegación obtenido exclusivamente de un JWT validado. */
 public record ContextoSesion(RolUsuario rol, Integer perfilId, String nombreUsuario) {
 
     public String valor() {
@@ -18,10 +18,10 @@ public record ContextoSesion(RolUsuario rol, Integer perfilId, String nombreUsua
     }
 
     public String rutaConSesion(String ruta) {
-        return ruta + "?sesion=" + valor();
+        return ruta;
     }
 
     public static String redireccion(String ruta, String sesion) {
-        return "redirect:" + ruta + "?sesion=" + sesion;
+        return "redirect:" + ruta;
     }
 }

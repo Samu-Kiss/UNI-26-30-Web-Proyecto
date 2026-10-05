@@ -10,7 +10,7 @@
     <main class="contenedor contenedor-formulario">
 
         <a class="volver"
-           th:href="@{/tutores(sesion=${sesion})}">
+           th:href="@{/tutores}">
             Volver a tutores
         </a>
 
@@ -48,7 +48,7 @@
 
             <form class="formulario" th:action="@{/tutores/{tutorId}/reservar(tutorId=${tutor.id})}" method="post">
 
-                <input type="hidden" name="sesion" th:value="${sesion}">
+
                 <input type="hidden" name="tutorId" th:value="${tutor.id}">
 
                 <label>
