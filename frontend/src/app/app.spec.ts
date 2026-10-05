@@ -1,9 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+import { RouterTestingHarness } from '@angular/router/testing';
 
 describe('App', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [App] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [provideRouter(routes)],
+    }).compileComponents();
   });
 
   it('creates the application', () => {
@@ -12,9 +18,8 @@ describe('App', () => {
   });
 
   it('shows the migrated tutors view', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Tutores');
+    const harness = await RouterTestingHarness.create('/');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Tutores');
   });
 
   it('provides the intentional error used to verify Sentry', () => {
@@ -34,7 +39,10 @@ describe('App', () => {
 
   it('renders sentry test panel when enabled', () => {
     const fixture = TestBed.createComponent(App);
-    Object.defineProperty(fixture.componentInstance, 'sentryTestEnabled', { value: true, writable: true });
+    Object.defineProperty(fixture.componentInstance, 'sentryTestEnabled', {
+      value: true,
+      writable: true,
+    });
     fixture.componentInstance.sentryEventId.set('test-123');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.sentry-test')).toBeTruthy();

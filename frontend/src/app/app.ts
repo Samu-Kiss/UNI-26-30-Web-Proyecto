@@ -1,9 +1,9 @@
 import { Component, HostListener, signal } from '@angular/core';
-import { TutoresPageComponent } from './pages/tutores-page/tutores-page';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { ButtonComponent } from './shared/components/atoms/button/button';
 
 @Component({
-  imports: [TutoresPageComponent, ButtonComponent],
+  imports: [RouterOutlet, RouterLink, ButtonComponent],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
