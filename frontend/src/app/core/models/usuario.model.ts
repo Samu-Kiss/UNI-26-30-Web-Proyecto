@@ -4,7 +4,7 @@ export interface Credenciales {
 }
 
 export interface Usuario {
-  id?: number;
+  id: number;
   nombre: string;
   apellido: string;
   correo: string;
@@ -13,7 +13,8 @@ export interface Usuario {
   roles: ('ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR')[];
 }
 
-export interface RegistroUsuario extends Usuario {
+export interface RegistroUsuario extends Omit<Usuario, 'id'> {
+  id?: number;
   contrasena: string;
   rol: 'ESTUDIANTE' | 'TUTOR';
   codigoEstudiantil: string;
