@@ -1,3 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { of } from 'rxjs';
+import { AuthService } from './core/services/auth.service';
+import { ApiService } from './core/services/api.service';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { provideRouter } from '@angular/router';
@@ -8,7 +14,25 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes)],
+      providers: [
+        provideRouter(routes),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: AuthService,
+          useValue: {
+            sesion: signal({ rol: 'ADMINISTRADOR' }),
+            restaurar: () => of({ actual: { rol: 'ADMINISTRADOR' }, opciones: [] }),
+          },
+        },
+        {
+          provide: ApiService,
+          useValue: {
+            materias: () => of([]),
+            tutores: () => of({ content: [], totalPages: 0, totalElements: 0, number: 0 }),
+          },
+        },
+      ],
     }).compileComponents();
   });
 

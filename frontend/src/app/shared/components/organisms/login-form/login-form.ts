@@ -7,45 +7,48 @@ import { Credenciales } from '../../../../core/models/usuario.model';
   imports: [FormsModule],
   template: `
     <form #form="ngForm" (ngSubmit)="enviarLogin(form)" class="laboratorio-form">
-      <h2>{{ titulo() }}</h2>
-      <label class="form-field"
-        >Correo
-        <input
-          class="text-input"
-          type="email"
-          name="correo"
-          [(ngModel)]="correo"
-          required
-          email
-          autocomplete="username"
-        />
-      </label>
-      <label class="form-field"
-        >Contraseña
-        <input
-          class="text-input"
-          type="password"
-          name="contrasena"
-          [(ngModel)]="contrasena"
-          required
-          autocomplete="current-password"
-        />
-      </label>
-      @if (form.submitted && form.invalid) {
-        <p class="form-error" role="alert">Ingresa un correo válido y tu contraseña.</p>
-      }
-      <button class="btn btn--primary btn--lg" type="submit">Ingresar</button>
+      <fieldset [disabled]="!habilitado()">
+        <h2>{{ titulo() }}</h2>
+        <label class="form-field"
+          >Correo
+          <input
+            class="text-input"
+            type="email"
+            name="correo"
+            [(ngModel)]="correo"
+            required
+            email
+            autocomplete="username"
+          />
+        </label>
+        <label class="form-field"
+          >Contraseña
+          <input
+            class="text-input"
+            type="password"
+            name="contrasena"
+            [(ngModel)]="contrasena"
+            required
+            autocomplete="current-password"
+          />
+        </label>
+        @if (form.submitted && form.invalid) {
+          <p class="form-error" role="alert">Ingresa un correo válido y tu contraseña.</p>
+        }
+        <button class="btn btn--primary btn--lg" type="submit">Ingresar</button>
+      </fieldset>
     </form>
   `,
 })
 export class LoginFormComponent {
+  readonly habilitado = input(true);
   readonly titulo = input('Iniciar sesión');
   readonly loginEnviado = output<Credenciales>();
   correo = '';
   contrasena = '';
 
   enviarLogin(form: NgForm): void {
-    if (form.invalid || !this.correo.trim()) return;
+    if (!this.habilitado() || form.invalid || !this.correo.trim()) return;
     this.loginEnviado.emit({ correo: this.correo.trim(), contrasena: this.contrasena });
     this.contrasena = '';
   }

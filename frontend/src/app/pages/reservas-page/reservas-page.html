@@ -1,0 +1,149 @@
+<main class="app-container laboratorio-page">
+  <section class="card card__body">
+    <h1>Reservas</h1>
+    <a routerLink="/tutores">Elegir tutor</a>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+      <button (click)="cargar()">Reintentar consulta</button>
+    }
+    @if (mensaje()) {
+      <p role="status">{{ mensaje() }}</p>
+    }
+    @if (guardando()) {
+      <p role="status">Guardando…</p>
+    }
+    @if (cargando()) {
+      <p role="status">Cargando reservas…</p>
+    }
+    @if (tutor(); as t) {
+      @if (auth.sesion()?.rol === 'ESTUDIANTE') {
+        <h2>Reservar con {{ t.nombre }}</h2>
+        <p>Tarifa por hora: {{ t.tarifaPorHora }} COP</p>
+        <form #form="ngForm" class="laboratorio-form" (ngSubmit)="form.valid && crear()">
+          <fieldset [disabled]="guardando()">
+            <label class="form-field"
+              >Materia<select
+                name="materia"
+                class="text-input"
+                [(ngModel)]="datos.materiaId"
+                required
+              >
+                @for (m of t.materias; track m.id) {
+                  <option [ngValue]="m.id">{{ m.nombre }}</option>
+                }
+              </select></label
+            >
+            <label class="form-field"
+              >Fecha<input
+                class="text-input"
+                name="fecha"
+                type="date"
+                [(ngModel)]="datos.fecha"
+                required
+            /></label>
+            <label class="form-field"
+              >Hora<input
+                class="text-input"
+                name="hora"
+                type="time"
+                [(ngModel)]="datos.horaInicio"
+                required
+            /></label>
+            <label class="form-field"
+              >Duración en minutos<input
+                class="text-input"
+                name="duracion"
+                type="number"
+                [(ngModel)]="datos.duracionMinutos"
+                min="15"
+                max="480"
+                required
+            /></label>
+            <label class="form-field"
+              >Tema<input
+                class="text-input"
+                name="tema"
+                [(ngModel)]="datos.tema"
+                required
+                maxlength="300"
+            /></label>
+            <label class="form-field"
+              >Modalidad<select class="text-input" name="modalidad" [(ngModel)]="datos.modalidad">
+                <option value="VIRTUAL">Virtual</option>
+                <option value="PRESENCIAL">Presencial</option>
+              </select></label
+            >
+            <button
+              class="btn btn--primary btn--md"
+              [disabled]="form.invalid || guardando() || !t.disponible"
+            >
+              Crear reserva
+            </button>
+          </fieldset>
+        </form>
+      }
+    }
+    <label class="form-field"
+      >Filtrar estado<select class="text-input" [(ngModel)]="estado" (ngModelChange)="cargar()">
+        <option value="">Todos</option>
+        <option>PENDIENTE</option>
+        <option>CONFIRMADA</option>
+        <option>EN_CURSO</option>
+        <option>COMPLETADA</option>
+        <option>CANCELADA</option>
+        <option>RECHAZADA</option>
+      </select></label
+    >
+    <label class="form-field"
+      >Motivo para cambio a cancelada<input class="text-input" [(ngModel)]="motivo" maxlength="500"
+    /></label>
+    @for (r of reservas(); track r.id) {
+      <article class="card card__body">
+        <h2>{{ r.tema }}</h2>
+        <p>
+          {{ r.tutor }} · {{ r.estudiante }} · {{ r.materia }} · {{ r.fecha }} {{ r.horaInicio }} ·
+          {{ r.costoTotal }} COP
+        </p>
+        @switch (r.estado) {
+          @case ('PENDIENTE') {
+            <p>Pendiente de confirmación</p>
+          }
+          @case ('CONFIRMADA') {
+            <p>Tutoría confirmada</p>
+          }
+          @case ('CANCELADA') {
+            <p>Cancelada · historial conservado</p>
+          }
+          @default {
+            <p>{{ r.estado }}</p>
+          }
+        }
+        @if (r.estado === 'PENDIENTE' || r.estado === 'CONFIRMADA' || r.estado === 'EN_CURSO') {
+          @if (auth.sesion()?.rol !== 'ESTUDIANTE' && r.estado === 'PENDIENTE') {
+            <button
+              class="btn btn--primary btn--sm"
+              [disabled]="guardando()"
+              (click)="cambiar(r, 'CONFIRMADA')"
+            >
+              Confirmar
+            </button>
+          }
+          <button
+            class="btn btn--secondary btn--sm"
+            [disabled]="guardando() || !motivo.trim()"
+            (click)="cambiar(r, 'CANCELADA')"
+          >
+            Cambiar estado a cancelada
+          </button>
+          <button class="btn btn--danger btn--sm" [disabled]="guardando()" (click)="cancelar(r)">
+            Cancelar reserva
+          </button>
+        }
+      </article>
+    } @empty {
+      @if (!cargando() && !error()) {
+        <p>No tienes reservas para este estado.</p>
+      }
+    }
+  </section>
+</main>

@@ -227,6 +227,7 @@ class ReservaServiceImplTest {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("60000"), true);
         Estudiante estudiante = estudiante(1);
         Materia materia = new Materia(10, "Física");
+        tutor.getMaterias().add(materia);
 
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
@@ -255,6 +256,7 @@ class ReservaServiceImplTest {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("40000"), true);
         Estudiante estudiante = estudiante(1);
         Materia materia = new Materia(10, "Química");
+        tutor.getMaterias().add(materia);
 
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));

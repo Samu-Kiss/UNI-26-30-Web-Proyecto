@@ -62,6 +62,7 @@ public class Usuario {
     @Size(max = 72)
     @Column(nullable = false, length = 72)
     @ToString.Exclude
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String contrasena;
 
     @Size(max = 30)

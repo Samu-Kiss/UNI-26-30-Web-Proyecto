@@ -94,7 +94,7 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.mensajeError()).toBe(
-      'No fue posible actualizar los usuarios',
+      'No hay conexión con el servidor. Conservamos tus datos; reintenta.',
     );
     spyError.mockRestore();
     fixture.destroy();
@@ -123,14 +123,14 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     httpMock.expectOne('/api/usuarios').flush(usuariosMock);
 
     fixture.componentInstance.seleccionarUsuario(1);
-    const reqPedro = httpMock.expectOne('/api/usuarios');
+    const reqPedro = httpMock.expectOne('/api/usuarios/1');
 
     // Selecciona inmediatamente a Juan antes de que responda Pedro
     fixture.componentInstance.seleccionarUsuario(2);
     expect(reqPedro.cancelled).toBe(true);
 
-    const reqJuan = httpMock.expectOne('/api/usuarios');
-    reqJuan.flush(usuariosMock);
+    const reqJuan = httpMock.expectOne('/api/usuarios/2');
+    reqJuan.flush(usuariosMock[1]);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.usuarioActual()?.nombre).toBe('Juan');
@@ -147,22 +147,22 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
 
     // concatMap: solo 1 petición activa a la vez
     fixture.componentInstance.revisarEnOrden();
-    const req1 = httpMock.expectOne('/api/usuarios');
-    req1.flush(usuariosMock);
-    const req2 = httpMock.expectOne('/api/usuarios');
-    req2.flush(usuariosMock);
-    const req3 = httpMock.expectOne('/api/usuarios');
-    req3.flush(usuariosMock);
+    const req1 = httpMock.expectOne('/api/usuarios/1');
+    req1.flush(usuariosMock[0]);
+    const req2 = httpMock.expectOne('/api/usuarios/2');
+    req2.flush(usuariosMock[1]);
+    const req3 = httpMock.expectOne('/api/usuarios/3');
+    req3.flush(usuariosMock[2]);
     expect(fixture.componentInstance.resultadosRevision().map((u) => u.id)).toEqual([1, 2, 3]);
 
     // mergeMap(..., 2): 2 peticiones activas simultáneamente
     fixture.componentInstance.revisarSimultaneamente();
-    const concurrentes = httpMock.match('/api/usuarios');
+    const concurrentes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
     expect(concurrentes.length).toBe(2);
-    concurrentes[0].flush(usuariosMock);
-    const reqRestante = httpMock.expectOne('/api/usuarios');
-    concurrentes[1].flush(usuariosMock);
-    reqRestante.flush(usuariosMock);
+    concurrentes[0].flush(usuariosMock[0]);
+    const reqRestante = httpMock.expectOne('/api/usuarios/3');
+    concurrentes[1].flush(usuariosMock[1]);
+    reqRestante.flush(usuariosMock[2]);
     expect(fixture.componentInstance.resultadosRevision().length).toBe(3);
 
     spyLog.mockRestore();
@@ -177,7 +177,7 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     fixture.componentInstance.solicitarActualizacion();
     fixture.componentInstance.solicitarActualizacion();
 
-    const pendientes = httpMock.match('/api/usuarios');
+    const pendientes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
     expect(pendientes.length).toBe(1);
     pendientes[0].flush(usuariosMock);
     fixture.destroy();
@@ -189,13 +189,13 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     httpMock.expectOne('/api/usuarios').flush(usuariosMock);
 
     fixture.componentInstance.compararUsuarios();
-    const peticiones = httpMock.match('/api/usuarios');
+    const peticiones = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
     expect(peticiones.length).toBe(2);
 
-    peticiones[0].flush(usuariosMock);
+    peticiones[0].flush(usuariosMock[0]);
     expect(fixture.componentInstance.comparacion()).toBeNull();
 
-    peticiones[1].flush(usuariosMock);
+    peticiones[1].flush(usuariosMock[1]);
     expect(fixture.componentInstance.comparacion()?.primero?.nombre).toBe('Pedro');
     expect(fixture.componentInstance.comparacion()?.segundo?.nombre).toBe('Juan');
     fixture.destroy();

@@ -1,9 +1,10 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import {
   catchError,
+  finalize,
   combineLatest,
   concatMap,
   debounceTime,
@@ -27,24 +28,26 @@ import {
   timer,
 } from 'rxjs';
 import { RegistroUsuario, Usuario } from '../../core/models/usuario.model';
+import { AuthService } from '../../core/services/auth.service';
+import { mensajeHttp } from '../../core/services/api.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark';
 import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-form/usuario-form';
 
 @Component({
   selector: 'app-usuarios-page',
-  imports: [
-    AsyncPipe,
-    ReactiveFormsModule,
-    UsuarioFormComponent,
-    BrandMarkComponent,
-    RouterLink,
-  ],
+  imports: [AsyncPipe, ReactiveFormsModule, UsuarioFormComponent, BrandMarkComponent, RouterLink],
   templateUrl: './usuarios-page.html',
 })
 export class UsuariosPageComponent implements OnInit, OnDestroy {
   private readonly usuarioService = inject(UsuarioService);
-  readonly sesion = inject(ActivatedRoute).snapshot.queryParamMap.get('sesion') ?? '';
+  readonly auth = inject(AuthService);
+  readonly guardando = signal(false);
+  readonly cargando = signal(false);
+  readonly guardado = signal('');
+  get sesion() {
+    return this.auth.sesion()?.rol === 'ADMINISTRADOR';
+  }
 
   usuarios = signal<Usuario[]>([]);
   mensajeError = signal('');
@@ -59,21 +62,25 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   private readonly actualizar$ = new Subject<void>();
   listado$ = this.actualizar$.pipe(
     startWith(undefined),
-    exhaustMap(() =>
-      this.usuarioService.obtenerUsuarios().pipe(
-        tap((lista) => {
-          this.usuarios.set(lista);
-          this.mensajeError.set('');
-        }),
-        catchError((error) => {
-          console.error(error);
-          this.mensajeError.set('No fue posible actualizar los usuarios');
-          return of(this.usuarios());
-        }),
-      ),
-    ),
+    exhaustMap(() => this.consultarListado()),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
+
+  private consultarListado() {
+    this.cargando.set(true);
+    return this.usuarioService.obtenerUsuarios().pipe(
+      tap((lista) => {
+        this.usuarios.set(lista);
+        this.mensajeError.set('');
+      }),
+      catchError((error) => {
+        console.error(error);
+        this.mensajeError.set(mensajeHttp(error));
+        return of(this.usuarios());
+      }),
+      finalize(() => this.cargando.set(false)),
+    );
+  }
 
   usuarioSeleccionado$ = this.usuarioService.usuarioSeleccionado$;
 
@@ -123,19 +130,7 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   }
 
   cargarUsuarios(): void {
-    this.mensajeError.set('');
-    this.suscripciones.add(
-      this.usuarioService
-        .obtenerUsuarios()
-        .pipe(
-          catchError((error) => {
-            console.error('Error al consultar usuarios', error);
-            this.mensajeError.set('No fue posible cargar los usuarios');
-            return of([] as Usuario[]);
-          }),
-        )
-        .subscribe((lista) => this.usuarios.set(lista)),
-    );
+    this.solicitarActualizacion();
   }
 
   solicitarActualizacion(): void {
@@ -224,6 +219,21 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   }
 
   guardarUsuario(usuario: RegistroUsuario): void {
-    this.usuarioService.guardar(usuario, this.sesion);
+    if (!this.sesion || this.guardando()) return;
+    this.guardando.set(true);
+    this.guardado.set('');
+    this.mensajeError.set('');
+    this.suscripciones.add(
+      this.usuarioService
+        .guardar(usuario)
+        .pipe(finalize(() => this.guardando.set(false)))
+        .subscribe({
+          next: () => {
+            this.guardado.set('Usuario registrado.');
+            this.solicitarActualizacion();
+          },
+          error: (e) => this.mensajeError.set(mensajeHttp(e)),
+        }),
+    );
   }
 }

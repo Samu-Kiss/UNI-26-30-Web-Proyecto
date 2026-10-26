@@ -1,7 +1,20 @@
 <main class="app-container laboratorio-page">
   <section class="card card__body" style="margin-bottom: 1.5rem">
     <app-brand-mark />
-    <h2>Usuarios registrados</h2>
+    <h2>Usuarios registrados · laboratorio RxJS</h2>
+    <p>
+      Herramientas de consulta para administradores. La gestión de tutorías está en Tutores y
+      Reservas.
+    </p>
+    @if (cargando()) {
+      <p role="status">Cargando usuarios…</p>
+    }
+    @if (guardando()) {
+      <p role="status">Registrando usuario…</p>
+    }
+    @if (guardado()) {
+      <p role="status">{{ guardado() }}</p>
+    }
 
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0">
       <button type="button" class="btn btn--primary btn--md" (click)="solicitarActualizacion()">
@@ -117,6 +130,9 @@
       <p role="alert">Inicia sesión como administrador y abre esta página con tu sesión.</p>
       <a routerLink="/login">Iniciar sesión</a>
     }
-    <app-usuario-form [habilitado]="!!sesion" (usuarioGuardado)="guardarUsuario($event)" />
+    <app-usuario-form
+      [habilitado]="!!sesion && !guardando()"
+      (usuarioGuardado)="guardarUsuario($event)"
+    />
   </section>
 </main>

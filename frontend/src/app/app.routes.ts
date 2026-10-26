@@ -1,16 +1,18 @@
 import { Routes } from '@angular/router';
-
+import { sessionGuard } from './core/services/auth.service';
 export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'tutores' },
   {
-    path: '',
-    pathMatch: 'full',
+    path: 'tutores',
+    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
   },
   {
-    path: 'tutores',
+    path: 'reservas',
+    canActivate: [sessionGuard],
     loadComponent: () =>
-      import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
+      import('./pages/reservas-page/reservas-page').then((m) => m.ReservasPageComponent),
   },
   {
     path: 'login',
@@ -18,13 +20,17 @@ export const routes: Routes = [
   },
   {
     path: 'usuarios',
+    canActivate: [sessionGuard],
+    data: { admin: true },
     loadComponent: () =>
       import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
   },
   {
     path: 'usuarios/nuevo',
+    canActivate: [sessionGuard],
+    data: { admin: true },
     loadComponent: () =>
       import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
   },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'tutores' },
 ];

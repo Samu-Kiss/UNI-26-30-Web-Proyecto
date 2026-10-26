@@ -4,9 +4,10 @@ Aplicacion web de tutorias construida con Spring Boot 4 y Java 21.
 
 ## Frontend Angular
 
-El laboratorio de migracion inicial esta en `frontend/`. Conserva el backend y la vista Thymeleaf
-de tutores, y agrega su equivalente en Angular 22 con Atomic Design y datos temporales. Para
-ejecutarlo se requiere una version de Node compatible con Angular 22:
+La aplicación Angular está en `frontend/` y consume la API autenticada de Spring Boot.
+Conserva las vistas Thymeleaf y añade catálogo paginado, editor reactivo y gestión de reservas.
+La guía reproducible está en [docs/entrega-2.md](docs/entrega-2.md). Para
+ejecutarla se requiere una version de Node compatible con Angular 22:
 
 ```bash
 cd frontend
@@ -126,13 +127,13 @@ Desde el cliente psql o SQL Editor de Supabase:
 
 ```bash
 # Cargar datos de prueba
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f seed_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/dev_seed.sql
 
 # Vaciar datos de las tablas reiniciando secuencias
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f truncate_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/truncate_myt.sql
 
 # Eliminar todas las tablas del esquema app
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f drop_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/drop_myt.sql
 ```
 
 ### Credenciales y Datos de Prueba

@@ -1,8 +1,19 @@
 <nav class="laboratorio-nav" aria-label="Navegación principal">
-  <a routerLink="/tutores">Tutores</a>
-  <a routerLink="/login">Ingresar</a>
-  <a routerLink="/usuarios/nuevo" queryParamsHandling="preserve">Nuevo usuario</a>
+  <a routerLink="/tutores" routerLinkActive="active">Tutores</a>
+  <a routerLink="/reservas" routerLinkActive="active">Reservas</a>
+  @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
+    <a routerLink="/usuarios" routerLinkActive="active">Usuarios / RxJS</a>
+  }
+  @if (auth.sesion(); as sesion) {
+    <span>{{ sesion.nombreUsuario }} · {{ sesion.rol }}</span>
+    <button class="btn btn--secondary btn--sm" (click)="cerrarSesion()">Cerrar sesión</button>
+  } @else {
+    <a routerLink="/login" routerLinkActive="active">Ingresar</a>
+  }
 </nav>
+@if (errorSesion()) {
+  <p role="alert">{{ errorSesion() }}</p>
+}
 <router-outlet />
 
 @if (sentryTestEnabled) {

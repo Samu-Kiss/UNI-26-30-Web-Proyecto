@@ -29,4 +29,15 @@ public interface ReservaRepository extends JpaRepository<Reserva, Integer> {
 
     List<Reserva> findByTutorIdAndFechaAndEstadoNotIn(
             Integer tutorId, LocalDate fecha, Collection<EstadoReserva> estados);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT r FROM Reserva r WHERE r.estudiante.id = :estudianteId
+        AND (:estado IS NULL OR r.estado = :estado)
+        ORDER BY r.fecha DESC, r.horaInicio DESC, r.id DESC
+        """)
+    List<Reserva> buscarPorEstudiante(
+            @org.springframework.data.repository.query.Param("estudianteId") Integer estudianteId,
+            @org.springframework.data.repository.query.Param("estado")
+            @org.jspecify.annotations.Nullable EstadoReserva estado);
+
 }

@@ -1,31 +1,186 @@
-<main class="app-container">
-  <a class="volver" href="http://localhost:8080/estudiante">← Volver al menú</a>
-
-  <header class="encabezado">
-    <div>
-      <app-brand-mark />
-      <h1>Tutores</h1>
-      <p>Consulta materias, tarifas, calificaciones y disponibilidad.</p>
+<main class="app-container gestion-page">
+  <section class="card card__body">
+    <h1>Tutores</h1>
+    <p>Encuentra una tutoría por materia y presupuesto.</p>
+    <form class="laboratorio-form" (ngSubmit)="filtrar()">
+      <label class="form-field"
+        >Materia
+        <select class="text-input" name="materia" [(ngModel)]="materiaId">
+          <option value="">Todas</option>
+          @for (m of materias(); track m.id) {
+            <option [value]="m.id">{{ m.nombre }}</option>
+          }
+        </select>
+      </label>
+      <label class="form-field"
+        >Tarifa máxima
+        <input class="text-input" name="tarifaMax" type="number" min="0" [(ngModel)]="tarifaMax" />
+      </label>
+      <button class="btn btn--primary btn--md" [disabled]="cargando()">Aplicar filtros</button>
+    </form>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+      <button (click)="cargar()">Reintentar consulta</button>
+    }
+    @switch (cargando()) {
+      @case (true) {
+        <p role="status">Cargando tutores…</p>
+      }
+      @case (false) {
+        @if (pagina(); as p) {
+          <p>
+            Página {{ p.number + 1 }} de {{ p.totalPages || 1 }} · {{ p.totalElements }} tutores
+          </p>
+        }
+      }
+    }
+    @if (guardando()) {
+      <p role="status">Procesando cambios…</p>
+    }
+    <p aria-live="polite">Operaciones completadas: {{ cambios() }}</p>
+    <div class="tabla-contenedor">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Materias</th>
+            <th>Tarifa / hora</th>
+            <th>Calificación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of pagina()?.content ?? []; track t.id) {
+            <tr>
+              <td>
+                {{ t.nombre }}
+                @if (!t.disponible) {
+                  (No disponible)
+                }
+              </td>
+              <td>
+                @for (m of t.materias; track m.id) {
+                  <span>{{ m.nombre }} </span>
+                }
+              </td>
+              <td>{{ t.tarifaPorHora }} COP</td>
+              <td>{{ t.calificacion ?? 'Sin reseñas' }}</td>
+              <td>
+                @if (auth.sesion()?.rol === 'ESTUDIANTE' && t.disponible) {
+                  <a
+                    class="btn btn--primary btn--sm"
+                    routerLink="/reservas"
+                    [queryParams]="{ tutor: t.id }"
+                    >Reservar</a
+                  >
+                }
+                @if (editable(t)) {
+                  <button
+                    class="btn btn--secondary btn--sm"
+                    [disabled]="guardando()"
+                    (click)="seleccionar(t.id)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    class="btn btn--danger btn--sm"
+                    [disabled]="guardando() || !t.disponible"
+                    (click)="desactivar(t)"
+                  >
+                    Desactivar
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            @if (!cargando() && !error()) {
+              <tr>
+                <td colspan="5">No hay tutores para estos filtros.</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
     </div>
-  </header>
-
-  <section class="filtros-contenedor" aria-label="Filtros de búsqueda">
-    <div class="filtros-grid">
-      <app-text-field
-        id="filtro-busqueda"
-        label="Buscar tutor o materia"
-        placeholder="Ej. Felipe, Cálculo..."
-        [(value)]="searchQuery"
-      />
-
-      <app-select
-        id="filtro-materia"
-        label="Filtrar por materia"
-        [options]="materiaOptions()"
-        [(value)]="selectedMateria"
-      />
-    </div>
+    <button
+      class="btn btn--secondary btn--md"
+      [disabled]="page === 0 || cargando()"
+      (click)="navegar(-1)"
+    >
+      Anterior
+    </button>
+    <button
+      class="btn btn--secondary btn--md"
+      [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
+      (click)="navegar(1)"
+    >
+      Siguiente
+    </button>
   </section>
-
-  <app-tutor-list [tutores]="filteredTutores()" />
+  @if (seleccionado(); as tutor) {
+    <section class="card card__body">
+      <app-tutor-editor
+        [tutor]="tutor"
+        [ocupado]="guardando()"
+        (guardado)="guardar($event)"
+        (cancelado)="seleccionado.set(null)"
+      />
+    </section>
+  }
+  @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
+    <section class="card card__body">
+      <h2>Asignar perfil tutor a una cuenta existente</h2>
+      <p>Consulta el ID de la cuenta en <a routerLink="/usuarios">Usuarios</a>.</p>
+      <form #alta="ngForm" class="laboratorio-form" (ngSubmit)="alta.valid && crear()">
+        <fieldset [disabled]="guardando()">
+          <label class="form-field"
+            >ID de usuario<input
+              class="text-input"
+              type="number"
+              name="usuarioId"
+              [(ngModel)]="usuarioId"
+              required
+              min="1"
+          /></label>
+          <label class="form-field"
+            >Biografía<textarea
+              class="text-input"
+              name="biografia"
+              [(ngModel)]="biografia"
+              required
+              maxlength="2000"
+            ></textarea>
+          </label>
+          <label class="form-field"
+            >Tarifa<input
+              class="text-input"
+              type="number"
+              name="tarifa"
+              [(ngModel)]="tarifa"
+              required
+              min="1"
+          /></label>
+          <label class="form-field"
+            >Materia<select
+              class="text-input"
+              name="nuevaMateria"
+              [(ngModel)]="nuevaMateria"
+              required
+            >
+              <option [ngValue]="0" disabled>Elige una materia</option>
+              @for (m of materias(); track m.id) {
+                <option [ngValue]="m.id">{{ m.nombre }}</option>
+              }
+            </select></label
+          >
+          <button
+            class="btn btn--primary btn--md"
+            [disabled]="alta.invalid || !nuevaMateria || guardando()"
+          >
+            Crear perfil tutor
+          </button>
+        </fieldset>
+      </form>
+    </section>
+  }
 </main>
