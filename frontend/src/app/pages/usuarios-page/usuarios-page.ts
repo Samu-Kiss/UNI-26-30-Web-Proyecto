@@ -1,6 +1,6 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   catchError,
@@ -36,7 +36,15 @@ import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-
 
 @Component({
   selector: 'app-usuarios-page',
-  imports: [AsyncPipe, ReactiveFormsModule, UsuarioFormComponent, BrandMarkComponent, RouterLink],
+  imports: [
+    CommonModule,
+    AsyncPipe,
+    FormsModule,
+    ReactiveFormsModule,
+    UsuarioFormComponent,
+    BrandMarkComponent,
+    RouterLink,
+  ],
   templateUrl: './usuarios-page.html',
 })
 export class UsuariosPageComponent implements OnInit, OnDestroy {
@@ -45,6 +53,18 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   readonly guardando = signal(false);
   readonly cargando = signal(false);
   readonly guardado = signal('');
+
+  // Migración de usuario-form.html y perfil-usuario-form.html
+  readonly usuarioEditando = signal<Usuario | null>(null);
+  readonly usuarioAgregandoPerfil = signal<Usuario | null>(null);
+  nuevoPerfilRol: 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR' = 'ESTUDIANTE';
+  nuevoPerfilCodigo = '';
+  nuevoPerfilUniversidad = 'Pontificia Universidad Javeriana';
+  nuevoPerfilPrograma = 'Ingeniería de Sistemas';
+  nuevoPerfilSemestre = 5;
+  nuevoPerfilBiografia = '';
+  nuevoPerfilTarifa = 45000;
+
   get sesion() {
     return this.auth.sesion()?.rol === 'ADMINISTRADOR';
   }
@@ -234,6 +254,46 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
           },
           error: (e) => this.mensajeError.set(mensajeHttp(e)),
         }),
+    );
+  }
+
+  abrirEditarUsuario(usuario: Usuario): void {
+    this.usuarioEditando.set({ ...usuario });
+    this.usuarioAgregandoPerfil.set(null);
+  }
+
+  guardarEdicionLocal(): void {
+    const editado = this.usuarioEditando();
+    if (!editado) return;
+    this.usuarios.update((lista) => lista.map((u) => (u.id === editado.id ? { ...editado } : u)));
+    this.guardado.set(`Datos de ${editado.nombre} actualizados.`);
+    this.usuarioEditando.set(null);
+  }
+
+  abrirAgregarPerfil(usuario: Usuario): void {
+    this.usuarioAgregandoPerfil.set(usuario);
+    this.usuarioEditando.set(null);
+  }
+
+  confirmarAgregarPerfil(): void {
+    const objetivo = this.usuarioAgregandoPerfil();
+    if (!objetivo) return;
+    const rol = this.nuevoPerfilRol;
+    this.usuarios.update((lista) =>
+      lista.map((u) =>
+        u.id === objetivo.id && !u.roles.includes(rol) ? { ...u, roles: [...u.roles, rol] } : u,
+      ),
+    );
+    this.guardado.set(`Perfil ${rol} asociado a ${objetivo.nombre}.`);
+    this.usuarioAgregandoPerfil.set(null);
+  }
+
+  alternarEstadoUsuario(usuario: Usuario): void {
+    this.usuarios.update((lista) =>
+      lista.map((u) => (u.id === usuario.id ? { ...u, activo: !u.activo } : u)),
+    );
+    this.guardado.set(
+      `Estado de ${usuario.nombre} cambiado a ${!usuario.activo ? 'Activo' : 'Inactivo'}.`,
     );
   }
 }

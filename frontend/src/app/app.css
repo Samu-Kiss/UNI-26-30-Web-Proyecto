@@ -1,3 +1,240 @@
+.myt-app-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+  background-color: #e9e9ea;
+  color: #46494c;
+}
+
+@media (max-width: 960px) {
+  .myt-app-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+.myt-sidebar {
+  background-color: #46494c;
+  color: #f5f5f3;
+  padding: 2rem 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 2;
+}
+
+@media (max-width: 960px) {
+  .myt-sidebar {
+    position: static;
+    height: auto;
+    padding: 1.25rem;
+  }
+}
+
+.myt-sidebar__brand {
+  padding: 0 0.35rem;
+}
+
+.myt-sidebar__logo {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #f5f5f3;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.myt-sidebar__tagline {
+  margin: 0.25rem 0 0;
+  font-size: 0.76rem;
+  color: #ddecef;
+}
+
+.myt-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+@media (max-width: 960px) {
+  .myt-sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.myt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.68rem 0.9rem;
+  border-radius: 12px;
+  color: #ddecef;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.myt-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f5f5f3;
+}
+
+.myt-nav-item.active {
+  background-color: #1985a1;
+  color: #f5f5f3;
+  font-weight: 700;
+}
+
+.myt-nav-item__icon {
+  width: 1.2rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.myt-sidebar__divider {
+  height: 1px;
+  background: rgba(221, 236, 239, 0.16);
+  margin: 0.45rem 0;
+}
+
+.myt-sidebar__section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c5c3c6;
+  padding: 0 0.6rem;
+}
+
+.myt-sidebar__help {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(221, 236, 239, 0.18);
+  border-radius: 14px;
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.myt-sidebar__help strong {
+  font-size: 0.82rem;
+  color: #f5f5f3;
+}
+
+.myt-sidebar__help p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #ddecef;
+}
+
+.myt-sidebar__help-link {
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #ddecef;
+  text-decoration: none;
+}
+
+.myt-sidebar__help-link:hover {
+  text-decoration: underline;
+}
+
+.myt-workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.myt-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: rgba(245, 245, 243, 0.85);
+  border-bottom: 1px solid #dcdcdd;
+  backdrop-filter: blur(8px);
+}
+
+.myt-topbar__brand-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4c5c68;
+  background: #ddecef;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+}
+
+.myt-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.myt-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.myt-user-chip__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #1985a1;
+  color: #f5f5f3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.myt-user-chip__info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.myt-user-chip__info strong {
+  font-size: 0.85rem;
+  color: #46494c;
+}
+
+.myt-user-chip__info span {
+  font-size: 0.72rem;
+  color: #4c5c68;
+}
+
+.myt-content-viewport {
+  padding: 1.75rem 2rem 3rem;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .myt-content-viewport {
+    padding: 1rem;
+  }
+}
+
+.myt-paper-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background-image: url('/assets/paper-grain.svg');
+  background-size: 160px 160px;
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
+
 .sentry-test {
   position: fixed;
   right: 1rem;

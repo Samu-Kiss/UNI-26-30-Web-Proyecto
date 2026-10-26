@@ -1,10 +1,31 @@
-<main class="app-container gestion-page">
-  <section class="card card__body">
-    <h1>Tutores</h1>
-    <p>Encuentra una tutoría por materia y presupuesto.</p>
-    <form class="laboratorio-form" (ngSubmit)="filtrar()">
-      <label class="form-field"
-        >Materia
+<main class="myt-page-shell gestion-page">
+  <section class="myt-surface-card">
+    <!-- Figma 01 · Header -->
+    <div class="myt-explore-header">
+      <div>
+        <h1>Tutores · Encuentra al tutor ideal</h1>
+        <p class="myt-subtitle">Compara experiencia, horarios y tarifas antes de reservar.</p>
+      </div>
+      <div class="myt-explore-quicklinks">
+        <a routerLink="/landing" class="myt-btn myt-btn--secondary myt-btn--sm">Ver Landing MyT</a>
+        <a routerLink="/calendario" class="myt-btn myt-btn--secondary myt-btn--sm">Ver Calendario</a>
+      </div>
+    </div>
+
+    <!-- Figma Search & Filter Bar -->
+    <form class="myt-search-toolbar" (ngSubmit)="filtrar()">
+      <label class="myt-search-input-wrap" aria-label="Buscar por materia o nombre">
+        <span class="myt-search-icon" aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          name="busquedaTexto"
+          [(ngModel)]="busquedaTexto"
+          placeholder="¿Qué quieres aprender? Ej. Cálculo, Python, Inglés…"
+        />
+      </label>
+
+      <label class="myt-filter-inline">
+        <span>Materia</span>
         <select class="text-input" name="materia" [(ngModel)]="materiaId">
           <option value="">Todas</option>
           @for (m of materias(); track m.id) {
@@ -12,63 +33,193 @@
           }
         </select>
       </label>
-      <label class="form-field"
-        >Tarifa máxima
-        <input class="text-input" name="tarifaMax" type="number" min="0" [(ngModel)]="tarifaMax" />
+
+      <label class="myt-filter-inline">
+        <span>Tarifa máxima</span>
+        <input
+          class="text-input"
+          name="tarifaMax"
+          type="number"
+          min="0"
+          placeholder="$ / h"
+          [(ngModel)]="tarifaMax"
+        />
       </label>
-      <button class="btn btn--primary btn--md" [disabled]="cargando()">Aplicar filtros</button>
+
+      <button class="myt-btn myt-btn--primary" [disabled]="cargando()">Aplicar filtros</button>
     </form>
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar consulta</button>
-    }
-    @switch (cargando()) {
-      @case (true) {
-        <output>Cargando tutores…</output>
+
+    <!-- Category Pills from Figma 01 -->
+    <div class="myt-category-pills" role="group" aria-label="Categorías destacadas">
+      @for (chip of categoriaChips; track chip) {
+        <button
+          type="button"
+          class="myt-pill-chip"
+          [class.myt-pill-chip--active]="categoriaActiva() === chip"
+          (click)="seleccionarCategoriaChip(chip)"
+        >
+          {{ chip }}
+        </button>
       }
-      @case (false) {
-        @if (pagina(); as p) {
-          <p>
-            Página {{ p.number + 1 }} de {{ p.totalPages || 1 }} · {{ p.totalElements }} tutores
-          </p>
+    </div>
+
+    @if (error()) {
+      <div class="myt-alert myt-alert--error">
+        <p role="alert">{{ error() }}</p>
+        <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargar()">
+          Reintentar consulta
+        </button>
+      </div>
+    }
+
+    <div class="myt-results-meta">
+      @switch (cargando()) {
+        @case (true) {
+          <output class="myt-status-output">Cargando tutores…</output>
+        }
+        @case (false) {
+          @if (pagina(); as p) {
+            <p class="myt-results-count">
+              <strong>{{ p.totalElements }} tutores disponibles</strong> · Página {{ p.number + 1 }}
+              de {{ p.totalPages || 1 }}
+            </p>
+          }
         }
       }
-    }
+
+      <div class="myt-results-meta__right">
+        <p class="myt-ops-counter" aria-live="polite">Operaciones completadas: {{ cambios() }}</p>
+        <button type="button" class="myt-sort-btn" (click)="alternarOrden()">
+          Ordenar: {{ ordenActivo() === 'calificacion' ? 'Mejor calificados ▾' : 'Menor tarifa ▾' }}
+        </button>
+      </div>
+    </div>
+
     @if (guardando()) {
-      <output>Procesando cambios…</output>
+      <output class="myt-status-output">Procesando cambios…</output>
     }
-    <p aria-live="polite">Operaciones completadas: {{ cambios() }}</p>
-    <div class="tabla-contenedor">
-      <table class="table">
+
+    <!-- Figma Tutor Cards Grid -->
+    @if ((pagina()?.content ?? []).length > 0) {
+      <div class="myt-tutor-grid" aria-label="Tarjetas de tutores">
+        @for (t of tutoresMostrados(); track t.id) {
+          <article class="myt-tutor-card" [class.myt-tutor-card--disabled]="!t.disponible">
+            <div class="myt-tutor-card__header">
+              <div class="myt-tutor-card__identity">
+                <app-avatar
+                  [name]="t.nombre"
+                  [initials]="inicialTutor(t.nombre)"
+                  size="lg"
+                  tone="primary"
+                />
+                <div>
+                  <h3>
+                    <a [routerLink]="['/tutores', t.id]" class="myt-tutor-card__name">
+                      {{ t.nombre }}
+                    </a>
+                  </h3>
+                  <p class="myt-tutor-card__specialty">
+                    @for (m of t.materias; track m.id; let last = $last) {
+                      <span>{{ m.nombre }}{{ !last ? ' · ' : '' }}</span>
+                    } @empty {
+                      <span>Tutoría académica personalizada</span>
+                    }
+                  </p>
+                </div>
+              </div>
+              <span class="myt-rating-pill">
+                ★ {{ t.calificacion ?? '4.9' }}
+                <small>({{ resenasCountTutor(t.id) }})</small>
+              </span>
+            </div>
+
+            <p class="myt-tutor-card__bio">
+              {{
+                t.biografia ||
+                  'Sesiones enfocadas en resolución de ejercicios reales, preparación de parciales y acompañamiento paso a paso.'
+              }}
+            </p>
+
+            <div class="myt-tutor-card__tags">
+              @for (m of t.materias; track m.id) {
+                <span class="myt-subject-tag">{{ m.nombre }}</span>
+              }
+              <span class="myt-modality-tag">{{ modalidadTutor(t.id) }}</span>
+              @if (!t.disponible) {
+                <span class="myt-unavailable-tag">No disponible</span>
+              }
+            </div>
+
+            <div class="myt-tutor-card__footer">
+              <div class="myt-tutor-card__price">
+                <strong>${{ t.tarifaPorHora | number }}</strong>
+                <span>COP / hora</span>
+              </div>
+              <div class="myt-tutor-card__actions">
+                <a [routerLink]="['/tutores', t.id]" class="myt-btn myt-btn--secondary myt-btn--sm">
+                  Ver perfil
+                </a>
+                @if (t.disponible) {
+                  <a
+                    class="myt-btn myt-btn--primary myt-btn--sm"
+                    routerLink="/reservas"
+                    [queryParams]="{ tutor: t.id }"
+                  >
+                    Reservar
+                  </a>
+                }
+                @if (editable(t)) {
+                  <button
+                    type="button"
+                    class="myt-btn myt-btn--secondary myt-btn--sm"
+                    [disabled]="guardando()"
+                    (click)="seleccionar(t.id)"
+                  >
+                    Editar
+                  </button>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- Accessible Data Table & Management View -->
+    <div class="myt-table-scroll tabla-contenedor" role="region" aria-label="Tabla de tutores" tabindex="0">
+      <table class="myt-table table">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Materias</th>
-            <th>Tarifa / hora</th>
-            <th>Calificación</th>
-            <th>Acciones</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Materias</th>
+            <th scope="col">Tarifa / hora</th>
+            <th scope="col">Calificación</th>
+            <th scope="col">Acciones</th>
           </tr>
         </thead>
         <tbody>
           @for (t of pagina()?.content ?? []; track t.id) {
             <tr>
               <td>
-                {{ t.nombre }}
+                <a [routerLink]="['/tutores', t.id]" class="myt-table-link">{{ t.nombre }}</a>
                 @if (!t.disponible) {
                   (No disponible)
                 }
               </td>
               <td>
                 @for (m of t.materias; track m.id) {
-                  <span>{{ m.nombre }} </span>
+                  <span class="myt-subject-tag">{{ m.nombre }} </span>
                 }
               </td>
               <td>{{ t.tarifaPorHora }} COP</td>
               <td>{{ t.calificacion ?? 'Sin reseñas' }}</td>
-              <td>
+              <td class="myt-table-actions">
+                <a class="myt-btn myt-btn--secondary myt-btn--sm" [routerLink]="['/tutores', t.id]">
+                  Perfil
+                </a>
                 @if (auth.sesion()?.rol === 'ESTUDIANTE' && t.disponible) {
                   <a
-                    class="btn btn--primary btn--sm"
+                    class="btn btn--primary btn--sm myt-btn myt-btn--primary myt-btn--sm"
                     routerLink="/reservas"
                     [queryParams]="{ tutor: t.id }"
                     >Reservar</a
@@ -76,14 +227,16 @@
                 }
                 @if (editable(t)) {
                   <button
-                    class="btn btn--secondary btn--sm"
+                    type="button"
+                    class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
                     [disabled]="guardando()"
                     (click)="seleccionar(t.id)"
                   >
                     Editar
                   </button>
                   <button
-                    class="btn btn--danger btn--sm"
+                    type="button"
+                    class="btn btn--danger btn--sm myt-btn myt-btn--danger myt-btn--sm"
                     [disabled]="guardando() || !t.disponible"
                     (click)="desactivar(t)"
                   >
@@ -102,23 +255,29 @@
         </tbody>
       </table>
     </div>
-    <button
-      class="btn btn--secondary btn--md"
-      [disabled]="page === 0 || cargando()"
-      (click)="navegar(-1)"
-    >
-      Anterior
-    </button>
-    <button
-      class="btn btn--secondary btn--md"
-      [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
-      (click)="navegar(1)"
-    >
-      Siguiente
-    </button>
+
+    <div class="myt-pagination-bar">
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        [disabled]="page === 0 || cargando()"
+        (click)="navegar(-1)"
+      >
+        Anterior
+      </button>
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
+        (click)="navegar(1)"
+      >
+        Siguiente
+      </button>
+    </div>
   </section>
+
   @if (seleccionado(); as tutor) {
-    <section class="card card__body">
+    <section class="myt-surface-card card card__body">
       <app-tutor-editor
         [tutor]="tutor"
         [ocupado]="guardando()"
@@ -127,11 +286,12 @@
       />
     </section>
   }
+
   @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
-    <section class="card card__body">
+    <section class="myt-surface-card card card__body">
       <h2>Asignar perfil tutor a una cuenta existente</h2>
       <p>Consulta el ID de la cuenta en <a routerLink="/usuarios">Usuarios</a>.</p>
-      <form #alta="ngForm" class="laboratorio-form" (ngSubmit)="alta.valid && crear()">
+      <form #alta="ngForm" class="laboratorio-form myt-admin-tutor-form" (ngSubmit)="alta.valid && crear()">
         <fieldset [disabled]="guardando()">
           <label class="form-field"
             >ID de usuario<input
@@ -174,7 +334,7 @@
             </select></label
           >
           <button
-            class="btn btn--primary btn--md"
+            class="btn btn--primary btn--md myt-btn myt-btn--primary"
             [disabled]="alta.invalid || !nuevaMateria || guardando()"
           >
             Crear perfil tutor

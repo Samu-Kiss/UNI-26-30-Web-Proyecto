@@ -1,38 +1,64 @@
-<main class="app-container laboratorio-page">
-  <section class="card card__body" style="margin-bottom: 1.5rem">
-    <app-brand-mark />
-    <h2>Usuarios registrados · laboratorio RxJS</h2>
-    <p>
-      Herramientas de consulta para administradores. La gestión de tutorías está en Tutores y
-      Reservas.
-    </p>
+<main class="myt-page-shell app-container laboratorio-page">
+  <section class="myt-surface-card card card__body">
+    <div class="myt-explore-header">
+      <div style="display: flex; align-items: center; gap: 0.9rem">
+        <app-brand-mark />
+        <div>
+          <a routerLink="/menu" class="myt-back-link">← Volver al menú</a>
+          <h2>Usuarios registrados · laboratorio RxJS</h2>
+          <p class="myt-subtitle">
+            Herramientas de consulta y gestión de cuentas para administradores. La gestión de
+            tutorías está en Tutores y Reservas.
+          </p>
+        </div>
+      </div>
+      <div class="myt-explore-quicklinks">
+        <a routerLink="/estudiantes" class="myt-btn myt-btn--secondary myt-btn--sm">Estudiantes</a>
+        <a routerLink="/administradores" class="myt-btn myt-btn--secondary myt-btn--sm">
+          Administradores
+        </a>
+      </div>
+    </div>
+
     @if (cargando()) {
-      <output>Cargando usuarios…</output>
+      <output class="myt-status-output">Cargando usuarios…</output>
     }
     @if (guardando()) {
-      <output>Registrando usuario…</output>
+      <output class="myt-status-output">Registrando usuario…</output>
     }
     @if (guardado()) {
-      <output>{{ guardado() }}</output>
+      <output class="myt-alert myt-alert--success">{{ guardado() }}</output>
     }
 
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0">
-      <button type="button" class="btn btn--primary btn--md" (click)="solicitarActualizacion()">
+    <div class="myt-toolbar-actions">
+      <button
+        type="button"
+        class="btn btn--primary btn--md myt-btn myt-btn--primary"
+        (click)="solicitarActualizacion()"
+      >
         Actualizar listado
       </button>
-      <button type="button" class="btn btn--secondary btn--md" (click)="cargarUsuarios()">
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        (click)="cargarUsuarios()"
+      >
         Recargar usuarios
       </button>
-      <button type="button" class="btn btn--secondary btn--md" (click)="examinarUsuarios()">
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        (click)="examinarUsuarios()"
+      >
         Examinar usuarios con RxJS
       </button>
     </div>
 
     @if (mensajeError()) {
-      <p role="alert" class="form-error">{{ mensajeError() }}</p>
+      <p role="alert" class="form-error myt-alert myt-alert--error">{{ mensajeError() }}</p>
     }
 
-    <div class="form-field" style="margin: 1rem 0">
+    <div class="form-field myt-filter-block">
       <label class="form-label" for="filtro-usuarios">Filtrar usuarios</label>
       <input
         id="filtro-usuarios"
@@ -42,32 +68,171 @@
       />
     </div>
 
-    <div style="display: grid; gap: 0.5rem; margin: 1rem 0">
-      @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--color-border-subtle);
-          "
-        >
-          <p>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</p>
-          <button
-            type="button"
-            class="btn btn--secondary btn--sm"
-            (click)="seleccionarUsuario(usuario.id)"
-          >
-            Ver {{ usuario.nombre }}
-          </button>
-        </div>
-      }
+    <!-- Tabla administrativa migrada de usuarios.html + listado reactivo -->
+    <div class="myt-table-scroll" role="region" aria-label="Tabla de clientes y usuarios" tabindex="0">
+      <table class="myt-table">
+        <thead>
+          <tr>
+            <th scope="col">Usuario (ID - Nombre)</th>
+            <th scope="col">Correo</th>
+            <th scope="col">Roles</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
+            <tr>
+              <td>
+                <strong>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</strong>
+              </td>
+              <td>{{ usuario.correo }}</td>
+              <td>
+                @for (rol of usuario.roles; track rol) {
+                  <span class="myt-subject-tag">{{ rol }}</span>
+                }
+              </td>
+              <td>
+                <span
+                  class="myt-status-pill"
+                  [class.myt-status-pill--active]="usuario.activo"
+                  [class.myt-status-pill--inactive]="!usuario.activo"
+                >
+                  {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="myt-table-actions">
+                <button
+                  type="button"
+                  class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="seleccionarUsuario(usuario.id)"
+                >
+                  Ver {{ usuario.nombre }}
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="abrirAgregarPerfil(usuario)"
+                >
+                  Agregar perfil
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="abrirEditarUsuario(usuario)"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="alternarEstadoUsuario(usuario)"
+                >
+                  {{ usuario.activo ? 'Desactivar' : 'Activar' }}
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">No hay usuarios que coincidan con el filtro.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
 
+    <!-- Panel migrado de usuario-form.html (Editar usuario) -->
+    @if (usuarioEditando(); as edit) {
+      <div class="myt-subpanel">
+        <h3>Editar usuario #{{ edit.id }}</h3>
+        <div class="myt-form-row-2">
+          <label class="form-field"
+            >Nombre
+            <input class="text-input" [(ngModel)]="edit.nombre" name="editNombre" required />
+          </label>
+          <label class="form-field"
+            >Apellido
+            <input class="text-input" [(ngModel)]="edit.apellido" name="editApellido" required />
+          </label>
+        </div>
+        <div class="myt-form-row-2">
+          <label class="form-field"
+            >Correo
+            <input
+              class="text-input"
+              type="email"
+              [(ngModel)]="edit.correo"
+              name="editCorreo"
+              required
+            />
+          </label>
+          <label class="form-field"
+            >Teléfono
+            <input class="text-input" [(ngModel)]="edit.telefono" name="editTelefono" />
+          </label>
+        </div>
+        <div class="myt-toolbar-actions">
+          <button type="button" class="myt-btn myt-btn--primary myt-btn--sm" (click)="guardarEdicionLocal()">
+            Guardar cambios
+          </button>
+          <button
+            type="button"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+            (click)="usuarioEditando.set(null)"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Panel migrado de perfil-usuario-form.html (Agregar perfil) -->
+    @if (usuarioAgregandoPerfil(); as target) {
+      <div class="myt-subpanel">
+        <h3>Agregar perfil a {{ target.nombre }} {{ target.apellido }}</h3>
+        <div class="myt-form-row-2">
+          <label class="form-field"
+            >Nuevo perfil / rol
+            <select class="text-input" [(ngModel)]="nuevoPerfilRol" name="nuevoPerfilRol">
+              <option value="ESTUDIANTE">ESTUDIANTE</option>
+              <option value="TUTOR">TUTOR</option>
+              <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+            </select>
+          </label>
+          @if (nuevoPerfilRol === 'ESTUDIANTE') {
+            <label class="form-field"
+              >Código estudiantil
+              <input class="text-input" [(ngModel)]="nuevoPerfilCodigo" placeholder="Ej. 20261580" />
+            </label>
+          }
+          @if (nuevoPerfilRol === 'TUTOR') {
+            <label class="form-field"
+              >Tarifa por hora (COP)
+              <input class="text-input" type="number" [(ngModel)]="nuevoPerfilTarifa" />
+            </label>
+          }
+        </div>
+        <div class="myt-toolbar-actions">
+          <button
+            type="button"
+            class="myt-btn myt-btn--primary myt-btn--sm"
+            (click)="confirmarAgregarPerfil()"
+          >
+            Guardar perfil
+          </button>
+          <button
+            type="button"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+            (click)="usuarioAgregandoPerfil.set(null)"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    }
+
     @if (usuarioActual(); as usuario) {
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border)">
+      <div class="myt-subpanel">
         <h3>Usuario seleccionado</h3>
         <p>ID: {{ usuario.id }}</p>
         <p>Nombre: {{ usuario.nombre }} {{ usuario.apellido }}</p>
@@ -78,21 +243,28 @@
       <p style="margin-top: 0.5rem">Selección compartida: {{ usuario.nombre }}</p>
     }
 
-    <div
-      style="
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--color-border);
-        display: grid;
-        gap: 0.75rem;
-      "
-    >
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
-        <button type="button" class="btn btn--secondary btn--md" (click)="revisarEnOrden()">
+    <div class="myt-subpanel">
+      <div class="myt-toolbar-actions">
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          (click)="revisarEnOrden()"
+        >
           Revisar en orden
         </button>
-        <button type="button" class="btn btn--secondary btn--md" (click)="revisarSimultaneamente()">
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          (click)="revisarSimultaneamente()"
+        >
           Revisar simultáneamente
+        </button>
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          (click)="compararUsuarios()"
+        >
+          Consultar dos usuarios
         </button>
       </div>
 
@@ -100,20 +272,6 @@
       @for (usuario of resultadosRevision(); track usuario.id) {
         <p>{{ usuario.nombre }}</p>
       }
-    </div>
-
-    <div
-      style="
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--color-border);
-        display: grid;
-        gap: 0.75rem;
-      "
-    >
-      <button type="button" class="btn btn--secondary btn--md" (click)="compararUsuarios()">
-        Consultar dos usuarios
-      </button>
 
       @if (comparacion(); as datos) {
         <h3>Comparación</h3>
@@ -123,12 +281,14 @@
     </div>
   </section>
 
-  <section class="card card__body">
+  <section class="myt-surface-card card card__body">
     <h1>Nuevo usuario</h1>
-    <p>Registra una cuenta de estudiante o tutor.</p>
+    <p class="myt-subtitle">Registra una cuenta de estudiante, tutor o administrador.</p>
     @if (!sesion) {
-      <p role="alert">Inicia sesión como administrador y abre esta página con tu sesión.</p>
-      <a routerLink="/login">Iniciar sesión</a>
+      <p role="alert" class="myt-alert myt-alert--warning">
+        Inicia sesión como administrador y abre esta página con tu sesión.
+      </p>
+      <a routerLink="/login" class="myt-btn myt-btn--secondary myt-btn--sm">Iniciar sesión</a>
     }
     <app-usuario-form
       [habilitado]="!!sesion && !guardando()"
