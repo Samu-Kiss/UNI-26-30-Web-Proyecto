@@ -106,6 +106,9 @@ Angular queda disponible en `http://localhost:4200` y la aplicacion MVC en
 rutas de Angular. El navegador consulta directamente `http://localhost:8080/api/...`;
 Spring Boot admite CORS con credenciales desde `http://localhost:4200`.
 La configuracion y las verificaciones del laboratorio estan en [docs/docker.md](docs/docker.md).
+La documentación interactiva de la API y el laboratorio Swagger están en
+[docs/swagger.md](docs/swagger.md); con el backend iniciado, abre
+`http://localhost:8080/swagger-ui/index.html`.
 Para detener los contenedores usa
 `docker compose down`; este comando no elimina ni modifica el proyecto de Supabase.
 

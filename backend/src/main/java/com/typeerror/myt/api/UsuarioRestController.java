@@ -18,8 +18,19 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
+@Tag(name = "Usuarios", description = "Consulta y registro de usuarios. Requiere sesión de administrador.")
+@ApiResponse(responseCode = "401", description = "Sesión ausente o vencida",
+        content = @Content(mediaType = "application/json", schema = @Schema(type = "object")))
+@ApiResponse(responseCode = "403", description = "Perfil sin permisos o encabezado CSRF ausente",
+        content = @Content(mediaType = "application/json", schema = @Schema(type = "object")))
 @RequestMapping("/api/usuarios")
 @Transactional(readOnly = true)
 public class UsuarioRestController {
@@ -57,17 +68,27 @@ public class UsuarioRestController {
     }
 
     @GetMapping
+    @Operation(summary = "Listar usuarios", description = "Consulta usuarios sin exponer contraseñas.")
+    @ApiResponse(responseCode = "200", description = "Consulta exitosa")
     public List<ApiDtos.UsuarioDto> listar() {
         return usuarios.findAll().stream().map(ApiDtos::usuario).toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiDtos.UsuarioDto> consultar(@PathVariable Integer id) {
+    @Operation(summary = "Consultar usuario por identificador")
+    @ApiResponse(responseCode = "200", description = "Usuario encontrado")
+    @ApiResponse(responseCode = "404", description = "No existe un usuario con ese identificador",
+            content = @Content)
+    public ResponseEntity<ApiDtos.UsuarioDto> consultar(
+            @Parameter(description = "Identificador del usuario", example = "1") @PathVariable Integer id) {
         return usuarios.findById(id).map(u -> ResponseEntity.ok(ApiDtos.usuario(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
+    @Operation(summary = "Registrar usuario", description = "Crea una cuenta con perfil ESTUDIANTE o TUTOR.")
+    @ApiResponse(responseCode = "201", description = "Usuario registrado; respuesta sin cuerpo")
+    @ApiResponse(responseCode = "400", description = "Datos de registro inválidos")
     @Transactional
     public ResponseEntity<Void> registrar(@Valid @RequestBody Registro datos) {
         var usuario = datos.toEntity();
