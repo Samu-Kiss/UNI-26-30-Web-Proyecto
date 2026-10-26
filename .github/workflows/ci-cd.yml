@@ -432,6 +432,7 @@ jobs:
           application_id="$(docker run --detach \
             --network "$network_name" \
             --env SENTRY_DSN= \
+            --env JWT_SECRET="$(openssl rand -hex 32)" \
             --env 'SUPABASE_DB_URL=jdbc:postgresql://database:5432/myt' \
             --env DB_USERNAME=postgres \
             --env DB_PASSWORD="$database_secret" \
