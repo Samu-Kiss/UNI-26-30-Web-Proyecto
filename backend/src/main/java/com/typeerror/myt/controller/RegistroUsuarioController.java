@@ -89,7 +89,7 @@ public class RegistroUsuarioController {
             }
             return REGISTRO_FORM_VIEW;
         }
-        return ContextoSesion.redireccion("/usuarios", sesion);
+        return ContextoSesion.redireccion("/usuarios");
     }
 
     @PostMapping("/{id}/perfil")
@@ -100,7 +100,7 @@ public class RegistroUsuarioController {
                 .orElseThrow(() -> new UsuarioNotFoundException(id));
         try {
             guardarPerfil(usuario, perfil);
-            return ContextoSesion.redireccion("/usuarios", sesion);
+            return ContextoSesion.redireccion("/usuarios");
         } catch (IllegalArgumentException exception) {
             model.addAttribute(MODEL_USUARIO, usuario);
             model.addAttribute(MODEL_ROLES_PERFIL, usuarioService.perfilesDisponibles(id));

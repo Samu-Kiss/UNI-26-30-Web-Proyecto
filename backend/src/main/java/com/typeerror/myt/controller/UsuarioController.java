@@ -64,18 +64,18 @@ public class UsuarioController {
             bindingResult.reject("usuario.invalido", exception.getMessage());
             return FORM_VIEW;
         }
-        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH);
     }
 
     @PostMapping("/{id}/desactivar")
     public String desactivar(@PathVariable Integer id, @RequestAttribute String sesion) {
         usuarioService.desactivar(id);
-        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH);
     }
 
     @PostMapping("/{id}/activar")
     public String activar(@PathVariable Integer id, @RequestAttribute String sesion) {
         usuarioService.activar(id);
-        return ContextoSesion.redireccion(USUARIOS_PATH, sesion);
+        return ContextoSesion.redireccion(USUARIOS_PATH);
     }
 }

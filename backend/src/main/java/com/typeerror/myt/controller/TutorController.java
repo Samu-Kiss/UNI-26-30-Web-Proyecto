@@ -113,7 +113,7 @@ public class TutorController {
             reservaService.crearReserva(tutorId, idEstudiante, materiaId,
                     fecha, horaInicio, duracionMinutos, tema, modalidad);
             String redireccion = ContextoSesion.redireccion(
-                    "/estudiantes/" + idEstudiante + "/reservas", sesion);
+                    "/estudiantes/" + idEstudiante + "/reservas");
             return redireccion + "?reservaExitosa=true";
         } catch (IllegalArgumentException | IllegalStateException exception) {
             Tutor tutor = tutorService.findById(tutorId).orElse(null);
@@ -156,7 +156,7 @@ public class TutorController {
             return "reservas-tutor";
         }
 
-        return ContextoSesion.redireccion("/tutores/" + tutorId + "/reservas", sesion);
+        return ContextoSesion.redireccion("/tutores/" + tutorId + "/reservas");
     }
 
     private List<Map<String, String>> obtenerDisponibilidadesDto(Integer tutorId, Tutor tutor) {

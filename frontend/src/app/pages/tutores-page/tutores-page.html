@@ -24,7 +24,7 @@
     }
     @switch (cargando()) {
       @case (true) {
-        <p role="status">Cargando tutores…</p>
+        <output>Cargando tutores…</output>
       }
       @case (false) {
         @if (pagina(); as p) {
@@ -35,7 +35,7 @@
       }
     }
     @if (guardando()) {
-      <p role="status">Procesando cambios…</p>
+      <output>Procesando cambios…</output>
     }
     <p aria-live="polite">Operaciones completadas: {{ cambios() }}</p>
     <div class="tabla-contenedor">

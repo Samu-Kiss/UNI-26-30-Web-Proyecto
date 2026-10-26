@@ -26,7 +26,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   readonly sesion = signal<Sesion | null>(null);
   readonly opciones = signal<string[]>([]);
-  private aplicar = (estado: EstadoSesion) => {
+  private readonly aplicar = (estado: EstadoSesion) => {
     this.sesion.set(estado.actual);
     this.opciones.set(estado.opciones);
   };

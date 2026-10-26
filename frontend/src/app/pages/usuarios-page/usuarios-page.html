@@ -7,13 +7,13 @@
       Reservas.
     </p>
     @if (cargando()) {
-      <p role="status">Cargando usuarios…</p>
+      <output>Cargando usuarios…</output>
     }
     @if (guardando()) {
-      <p role="status">Registrando usuario…</p>
+      <output>Registrando usuario…</output>
     }
     @if (guardado()) {
-      <p role="status">{{ guardado() }}</p>
+      <output>{{ guardado() }}</output>
     }
 
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0">

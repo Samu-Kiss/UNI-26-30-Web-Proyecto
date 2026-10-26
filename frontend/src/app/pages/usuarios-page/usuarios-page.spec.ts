@@ -69,7 +69,7 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     vi.advanceTimersByTime(300);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.usuarios().length).toBe(3);
+    expect(fixture.componentInstance.usuarios()).toHaveLength(3);
     expect(fixture.nativeElement.textContent).toContain('Pedro');
     expect(fixture.nativeElement.textContent).toContain('Juan');
 
@@ -158,12 +158,12 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     // mergeMap(..., 2): 2 peticiones activas simultáneamente
     fixture.componentInstance.revisarSimultaneamente();
     const concurrentes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
-    expect(concurrentes.length).toBe(2);
+    expect(concurrentes).toHaveLength(2);
     concurrentes[0].flush(usuariosMock[0]);
     const reqRestante = httpMock.expectOne('/api/usuarios/3');
     concurrentes[1].flush(usuariosMock[1]);
     reqRestante.flush(usuariosMock[2]);
-    expect(fixture.componentInstance.resultadosRevision().length).toBe(3);
+    expect(fixture.componentInstance.resultadosRevision()).toHaveLength(3);
 
     spyLog.mockRestore();
     fixture.destroy();
@@ -178,7 +178,7 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     fixture.componentInstance.solicitarActualizacion();
 
     const pendientes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
-    expect(pendientes.length).toBe(1);
+    expect(pendientes).toHaveLength(1);
     pendientes[0].flush(usuariosMock);
     fixture.destroy();
   });
@@ -190,7 +190,7 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
 
     fixture.componentInstance.compararUsuarios();
     const peticiones = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
-    expect(peticiones.length).toBe(2);
+    expect(peticiones).toHaveLength(2);
 
     peticiones[0].flush(usuariosMock[0]);
     expect(fixture.componentInstance.comparacion()).toBeNull();

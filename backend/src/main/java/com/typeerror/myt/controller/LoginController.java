@@ -19,6 +19,9 @@ import jakarta.servlet.http.HttpServletResponse;
 @Controller
 public class LoginController {
 
+    private static final String REDIRECT_PREFIX = "redirect:";
+    private static final String REDIRECT_LOGIN = REDIRECT_PREFIX + "/login";
+
     private final LoginService loginService;
     private final JwtSesionService jwtSesionService;
     private final SesionService sesionService;
@@ -36,7 +39,7 @@ public class LoginController {
         if (perfiles.size() == 1) {
             var contexto = sesionService.resolver(perfiles.getFirst());
             if (contexto.isPresent()) {
-                return "redirect:" + contexto.get().rutaMenu();
+                return REDIRECT_PREFIX + contexto.get().rutaMenu();
             }
         }
         return "login";
@@ -64,21 +67,21 @@ public class LoginController {
     public String seleccionarRol(@RequestParam String perfil, HttpServletRequest request,
             HttpServletResponse response) {
         if (!jwtSesionService.perfiles(request, true).contains(perfil)) {
-            return "redirect:/login";
+            return REDIRECT_LOGIN;
         }
         var contexto = sesionService.resolver(perfil);
         if (contexto.isEmpty()) {
             jwtSesionService.cerrar(response);
-            return "redirect:/login";
+            return REDIRECT_LOGIN;
         }
         jwtSesionService.guardar(response, List.of(perfil), false);
-        return "redirect:" + contexto.get().rutaMenu();
+        return REDIRECT_PREFIX + contexto.get().rutaMenu();
     }
 
     @PostMapping("/logout")
     public String cerrarSesion(HttpServletResponse response) {
         jwtSesionService.cerrar(response);
-        return "redirect:/login";
+        return REDIRECT_LOGIN;
     }
 
     private String perfil(UsuarioAutenticado usuario) {
@@ -86,7 +89,7 @@ public class LoginController {
     }
 
     private String rutaSegunRol(UsuarioAutenticado usuario) {
-        return "redirect:" + usuario.ruta();
+        return REDIRECT_PREFIX + usuario.ruta();
     }
 
     private String mostrarCredencialesInvalidas(String correo, Model model) {

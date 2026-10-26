@@ -88,6 +88,8 @@
 }
 .laboratorio-page {
   max-width: 640px;
+  display: grid;
+  gap: 1.5rem;
 }
 .laboratorio-page h1 {
   margin: 1rem 0 0.5rem;
@@ -490,10 +492,6 @@ tbody tr:last-child td {
   display: grid;
   gap: 1.5rem;
 }
-.laboratorio-page {
-  display: grid;
-  gap: 1.5rem;
-}
 .laboratorio-form fieldset {
   display: grid;
   gap: 1rem;
@@ -510,7 +508,8 @@ tbody tr:last-child td {
   color: var(--color-danger);
   padding: 0.75rem 0;
 }
-[role='status'] {
+output {
+  display: block;
   padding: 0.75rem 0;
 }
 td .btn {

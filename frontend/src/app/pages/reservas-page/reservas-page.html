@@ -7,13 +7,13 @@
       <button (click)="cargar()">Reintentar consulta</button>
     }
     @if (mensaje()) {
-      <p role="status">{{ mensaje() }}</p>
+      <output>{{ mensaje() }}</output>
     }
     @if (guardando()) {
-      <p role="status">Guardando…</p>
+      <output>Guardando…</output>
     }
     @if (cargando()) {
-      <p role="status">Cargando reservas…</p>
+      <output>Cargando reservas…</output>
     }
     @if (tutor(); as t) {
       @if (auth.sesion()?.rol === 'ESTUDIANTE') {

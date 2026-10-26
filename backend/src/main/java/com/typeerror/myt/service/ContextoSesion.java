@@ -21,7 +21,7 @@ public record ContextoSesion(RolUsuario rol, Integer perfilId, String nombreUsua
         return ruta;
     }
 
-    public static String redireccion(String ruta, String sesion) {
+    public static String redireccion(String ruta) {
         return "redirect:" + ruta;
     }
 }

@@ -17,7 +17,7 @@ import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/bra
         <p role="alert">{{ error() }}</p>
       }
       @if (cargando()) {
-        <p role="status">Comprobando sesión…</p>
+        <output>Comprobando sesión…</output>
       }
       @if (auth.opciones().length) {
         <h2>Elige tu perfil</h2>

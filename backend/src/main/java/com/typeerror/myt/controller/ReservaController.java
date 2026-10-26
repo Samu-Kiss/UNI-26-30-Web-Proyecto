@@ -44,7 +44,7 @@ public class ReservaController {
         return "mostrar_reservas";
     }
 
-    return ContextoSesion.redireccion("/reservas", sesion);
+    return ContextoSesion.redireccion("/reservas");
 }
 
 }

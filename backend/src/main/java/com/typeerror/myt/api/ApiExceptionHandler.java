@@ -24,10 +24,13 @@ import com.typeerror.myt.errors.UsuarioYaExistenteException;
 @Order(-1)
 @RestControllerAdvice(basePackages = "com.typeerror.myt.api")
 public class ApiExceptionHandler {
+    private static final String MESSAGE_KEY = "mensaje";
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> status(ResponseStatusException exception) {
         return ResponseEntity.status(exception.getStatusCode())
-                .body(Map.of("mensaje", exception.getReason() == null ? "Solicitud inválida" : exception.getReason()));
+                .body(Map.of(MESSAGE_KEY,
+                        exception.getReason() == null ? "Solicitud inválida" : exception.getReason()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -35,20 +38,20 @@ public class ApiExceptionHandler {
         String message = exception.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(java.util.stream.Collectors.joining("; "));
-        return ResponseEntity.badRequest().body(Map.of("mensaje", message));
+        return ResponseEntity.badRequest().body(Map.of(MESSAGE_KEY, message));
     }
 
     @ExceptionHandler({TutorNotFoundException.class, ReservaNotFoundException.class,
         MateriaNotFoundException.class, EstudianteNotFoundException.class, UsuarioNotFoundException.class})
     public ResponseEntity<Map<String, String>> missing(RuntimeException exception) {
-        return ResponseEntity.status(404).body(Map.of("mensaje", "Registro no encontrado"));
+        return ResponseEntity.status(404).body(Map.of(MESSAGE_KEY, "Registro no encontrado"));
     }
 
     @ExceptionHandler({DataIntegrityViolationException.class, OptimisticLockingFailureException.class,
         IllegalStateException.class, UsuarioYaExistenteException.class})
     public ResponseEntity<Map<String, String>> conflict(RuntimeException exception) {
         return ResponseEntity.status(409)
-                .body(Map.of("mensaje", "Conflicto: revisa disponibilidad o datos duplicados"));
+                .body(Map.of(MESSAGE_KEY, "Conflicto: revisa disponibilidad o datos duplicados"));
     }
 
     @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class,
@@ -56,6 +59,6 @@ public class ApiExceptionHandler {
         InformacionNoValidaException.class, SelfReservation.class,
         jakarta.validation.ConstraintViolationException.class})
     public ResponseEntity<Map<String, String>> invalid(Exception exception) {
-        return ResponseEntity.badRequest().body(Map.of("mensaje", "Revisa los datos y el horario solicitado"));
+        return ResponseEntity.badRequest().body(Map.of(MESSAGE_KEY, "Revisa los datos y el horario solicitado"));
     }
 }
