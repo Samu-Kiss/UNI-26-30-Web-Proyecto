@@ -5,6 +5,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.typeerror.myt.service.ReservaService;
@@ -32,7 +33,7 @@ public class ReservaController {
         @RequestParam Integer id,
         @RequestParam EstadoReserva estado,
         @RequestParam(required = false) String motivo,
-        @RequestParam String sesion,
+        @RequestAttribute String sesion,
         Model model) {
 
     try {

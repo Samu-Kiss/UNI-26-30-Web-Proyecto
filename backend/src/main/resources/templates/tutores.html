@@ -8,7 +8,7 @@
 </head>
 <body>
     <main class="contenedor">
-        <a class="volver" th:href="${rutaMenu + '?sesion=' + sesion}">Volver al menú</a>
+        <a class="volver" th:href="${rutaMenu}">Volver al menú</a>
         <header class="encabezado">
             <div>
                 <p class="marca">MyT</p>
@@ -33,7 +33,7 @@
                                   th:text="${tutor.disponible ? 'Disponible' : 'No disponible'}"></span></td>
 
                         <td class="acciones">
-                            <a class="enlace" th:if="${tutor.disponible}" th:href="@{/tutores/{id}/reservar(id=${tutor.id},sesion=${sesion})}">
+                            <a class="enlace" th:if="${tutor.disponible}" th:href="@{/tutores/{id}/reservar(id=${tutor.id})}">
                                 Reservar
                             </a>
 

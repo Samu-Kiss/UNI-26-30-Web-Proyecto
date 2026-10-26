@@ -17,11 +17,12 @@
         </header>
         <nav class="rejilla-menu" aria-label="Opciones de tutor">
             <a class="tarjeta opcion-menu"
-               th:href="@{/tutores/{id}/reservas(id=${perfilIdSesion},sesion=${sesion})}">
+               th:href="@{/tutores/{id}/reservas(id=${perfilIdSesion})}">
                 Mis reservas
                 <small>Revisa fechas, estudiantes y temas de tus sesiones.</small>
             </a>
         </nav>
+    <form th:action="@{/logout}" method="post"><button class="boton" type="submit">Cerrar sesión</button></form>
     </main>
 </body>
 </html>

@@ -10,6 +10,6 @@ public record UsuarioAutenticado(RolUsuario rol, Integer perfilId) {
             case ESTUDIANTE -> "/estudiante";
             case TUTOR -> "/tutor";
         };
-        return inicio + "?sesion=" + rol.name() + ":" + perfilId;
+        return inicio;
     }
 }
