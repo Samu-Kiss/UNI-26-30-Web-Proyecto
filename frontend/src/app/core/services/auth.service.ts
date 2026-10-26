@@ -1,4 +1,5 @@
 import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
+import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, map, of, tap } from 'rxjs';
@@ -14,12 +15,18 @@ export interface EstadoSesion {
   opciones: string[];
 }
 
-export const apiInterceptor: HttpInterceptorFn = (req, next) =>
-  next(
+export const apiInterceptor: HttpInterceptorFn = (req, next) => {
+  const base = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl?.replace(/\/+$/, '') ?? '';
+  return next(
     req.url.startsWith('/api/')
-      ? req.clone({ withCredentials: true, setHeaders: { 'X-MYT-Request': '1' } })
+      ? req.clone({
+          url: `${base}${req.url}`,
+          withCredentials: true,
+          setHeaders: { 'X-MYT-Request': '1' },
+        })
       : req,
   );
+};
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

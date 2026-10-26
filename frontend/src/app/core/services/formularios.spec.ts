@@ -1,4 +1,4 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { AuthService, apiInterceptor } from './auth.service';
@@ -18,7 +18,26 @@ describe('Sesión y formularios HTTP', () => {
     http = TestBed.inject(HttpTestingController);
     auth = TestBed.inject(AuthService);
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    delete window.__MYT_CONFIG__;
+    http.verify();
+  });
+  it('envía la API al backend configurado y conserva cookies y protección CSRF', () => {
+    window.__MYT_CONFIG__ = { backendUrl: 'http://localhost:8080/' };
+    auth.iniciarSesion({ correo: 'ana@test.edu', contrasena: 'clave' }).subscribe();
+    const req = http.expectOne('http://localhost:8080/api/sesion/login');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.headers.get('X-MYT-Request')).toBe('1');
+    req.flush({ actual: null, opciones: [] });
+  });
+  it('no añade credenciales ni cambia destinos ajenos a la API', () => {
+    window.__MYT_CONFIG__ = { backendUrl: 'http://localhost:8080' };
+    TestBed.inject(HttpClient).get('https://example.com/data').subscribe();
+    const req = http.expectOne('https://example.com/data');
+    expect(req.request.withCredentials).toBe(false);
+    expect(req.request.headers.has('X-MYT-Request')).toBe(false);
+    req.flush({});
+  });
   it('envía credenciales por HTTP con protección CSRF y restaura estado sin guardar JWT en JavaScript', () => {
     auth.iniciarSesion({ correo: 'ana@test.edu', contrasena: 'clave' }).subscribe();
     const req = http.expectOne('/api/sesion/login');

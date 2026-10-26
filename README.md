@@ -90,14 +90,23 @@ modo que nunca modifica tablas implicitamente.
 
 ### Docker conectado a Supabase
 
-El archivo `compose.yaml` ejecuta el backend local y carga la conexion de desarrollo desde
-`.env.local`, que esta ignorado por Git. Completa `SUPABASE_DEV_DB_PASSWORD` y ejecuta:
+El archivo `compose.yaml` construye y ejecuta dos contenedores: `frontend` (Angular con Nginx)
+y `backend` (Spring Boot con Java 21). La base de datos permanece en Supabase.
+El backend carga las variables de `.env.local`, que esta ignorado por Git. Si no existe,
+copia `.env.example` a `.env.local`, completa la conexion de desarrollo y `JWT_SECRET`
+(al menos 32 bytes aleatorios), y ejecuta desde la raiz:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
+docker compose ps
 ```
 
-La aplicacion queda disponible en `http://localhost:8080/usuarios`. Para detenerla usa
+Angular queda disponible en `http://localhost:4200` y la aplicacion MVC en
+`http://localhost:8080/usuarios`. Nginx sirve los archivos estaticos y permite recargar
+rutas de Angular. El navegador consulta directamente `http://localhost:8080/api/...`;
+Spring Boot admite CORS con credenciales desde `http://localhost:4200`.
+La configuracion y las verificaciones del laboratorio estan en [docs/docker.md](docs/docker.md).
+Para detener los contenedores usa
 `docker compose down`; este comando no elimina ni modifica el proyecto de Supabase.
 
 El boton «Nuevo usuario» abre `/usuarios/nuevo`, donde se registra la cuenta con su primer perfil
