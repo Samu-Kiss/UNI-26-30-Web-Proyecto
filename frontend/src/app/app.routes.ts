@@ -2,12 +2,13 @@ import { Routes } from '@angular/router';
 import { sessionGuard } from './core/services/auth.service';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'tutores' },
   {
-    path: 'landing',
+    path: '',
+    pathMatch: 'full',
     loadComponent: () =>
       import('./pages/landing-page/landing-page').then((m) => m.LandingPageComponent),
   },
+  { path: 'landing', redirectTo: '', pathMatch: 'full' },
   {
     path: 'tutores',
     canActivate: [sessionGuard],
@@ -102,5 +103,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
   },
-  { path: '**', redirectTo: 'tutores' },
+  { path: '**', redirectTo: '' },
 ];

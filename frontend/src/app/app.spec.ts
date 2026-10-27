@@ -22,6 +22,7 @@ describe('App', () => {
           provide: AuthService,
           useValue: {
             sesion: signal({ rol: 'ADMINISTRADOR' }),
+            opciones: signal<string[]>([]),
             restaurar: () => of({ actual: { rol: 'ADMINISTRADOR' }, opciones: [] }),
           },
         },
@@ -41,9 +42,25 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('shows the migrated tutors view', async () => {
+  it('shows the landing view on / and migrated tutors view on /tutores', async () => {
     const harness = await RouterTestingHarness.create('/');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain(
+      'Tu próxima tutoría empieza con la persona correcta.',
+    );
+    await harness.navigateByUrl('/tutores');
     expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Tutores');
+  });
+
+  it('renders /login without sidebar or topbar', async () => {
+    const auth = TestBed.inject(AuthService);
+    auth.restaurar = () => of({ actual: null, opciones: [] });
+    const fixture = TestBed.createComponent(App);
+    const router = fixture.debugElement.injector.get((await import('@angular/router')).Router);
+    await router.navigateByUrl('/login');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.esLanding()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.myt-sidebar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.myt-topbar')).toBeNull();
   });
 
   it('provides the intentional error used to verify Sentry', () => {

@@ -1,34 +1,37 @@
 <main class="myt-page-shell app-container laboratorio-page">
-  <section class="myt-surface-card card card__body">
-    <div class="myt-explore-header">
-      <div style="display: flex; align-items: center; gap: 0.9rem">
-        <app-brand-mark />
-        <div>
-          <a routerLink="/menu" class="myt-back-link">← Volver al menú</a>
-          <h2>Usuarios registrados · laboratorio RxJS</h2>
-          <p class="myt-subtitle">
-            Herramientas de consulta y gestión de cuentas para administradores. La gestión de
-            tutorías está en Tutores y Reservas.
-          </p>
-        </div>
-      </div>
-      <div class="myt-explore-quicklinks">
-        <a routerLink="/estudiantes" class="myt-btn myt-btn--secondary myt-btn--sm">Estudiantes</a>
-        <a routerLink="/administradores" class="myt-btn myt-btn--secondary myt-btn--sm">
-          Administradores
-        </a>
-      </div>
+  <header class="myt-explore-header">
+    <div>
+      <h2>Usuarios registrados</h2>
+      <p class="myt-subtitle">
+        Gestión de cuentas, perfiles y herramientas de consulta para administradores.
+      </p>
     </div>
+  </header>
 
-    @if (cargando()) {
-      <output class="myt-status-output">Cargando usuarios…</output>
-    }
-    @if (guardando()) {
-      <output class="myt-status-output">Registrando usuario…</output>
-    }
-    @if (guardado()) {
-      <output class="myt-alert myt-alert--success">{{ guardado() }}</output>
-    }
+  @if (cargando()) {
+    <output class="myt-status-output">Cargando usuarios…</output>
+  }
+  @if (guardando()) {
+    <output class="myt-status-output">Registrando usuario…</output>
+  }
+  @if (guardado()) {
+    <output class="myt-alert myt-alert--success">{{ guardado() }}</output>
+  }
+  @if (mensajeError()) {
+    <p role="alert" class="form-error myt-alert myt-alert--error">{{ mensajeError() }}</p>
+  }
+
+  <!-- Barra de búsqueda y acciones en una sola fila intuitiva -->
+  <div class="myt-results-meta">
+    <div class="form-field" style="flex: 1 1 280px; max-width: 420px;">
+      <label class="form-label" for="filtro-usuarios">Filtrar usuarios</label>
+      <input
+        id="filtro-usuarios"
+        class="text-input"
+        [formControl]="filtro"
+        placeholder="Buscar por nombre…"
+      />
+    </div>
 
     <div class="myt-toolbar-actions">
       <button
@@ -53,235 +56,221 @@
         Examinar usuarios con RxJS
       </button>
     </div>
+  </div>
 
-    @if (mensajeError()) {
-      <p role="alert" class="form-error myt-alert myt-alert--error">{{ mensajeError() }}</p>
-    }
-
-    <div class="form-field myt-filter-block">
-      <label class="form-label" for="filtro-usuarios">Filtrar usuarios</label>
-      <input
-        id="filtro-usuarios"
-        class="text-input"
-        [formControl]="filtro"
-        placeholder="Parte del nombre"
-      />
-    </div>
-
-    <!-- Tabla administrativa migrada de usuarios.html + listado reactivo -->
-    <div class="myt-table-scroll" role="region" aria-label="Tabla de clientes y usuarios" tabindex="0">
-      <table class="myt-table">
-        <thead>
-          <tr>
-            <th scope="col">Usuario (ID - Nombre)</th>
-            <th scope="col">Correo</th>
-            <th scope="col">Roles</th>
-            <th scope="col">Estado</th>
-            <th scope="col">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
-            <tr>
-              <td>
-                <strong>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</strong>
-              </td>
-              <td>{{ usuario.correo }}</td>
-              <td>
-                @for (rol of usuario.roles; track rol) {
-                  <span class="myt-subject-tag">{{ rol }}</span>
-                }
-              </td>
-              <td>
-                <span
-                  class="myt-status-pill"
-                  [class.myt-status-pill--active]="usuario.activo"
-                  [class.myt-status-pill--inactive]="!usuario.activo"
-                >
-                  {{ usuario.activo ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td class="myt-table-actions">
-                <button
-                  type="button"
-                  class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
-                  (click)="seleccionarUsuario(usuario.id)"
-                >
-                  Ver {{ usuario.nombre }}
-                </button>
-                <button
-                  type="button"
-                  class="myt-btn myt-btn--secondary myt-btn--sm"
-                  (click)="abrirAgregarPerfil(usuario)"
-                >
-                  Agregar perfil
-                </button>
-                <button
-                  type="button"
-                  class="myt-btn myt-btn--secondary myt-btn--sm"
-                  (click)="abrirEditarUsuario(usuario)"
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  class="myt-btn myt-btn--secondary myt-btn--sm"
-                  (click)="alternarEstadoUsuario(usuario)"
-                >
-                  {{ usuario.activo ? 'Desactivar' : 'Activar' }}
-                </button>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5">No hay usuarios que coincidan con el filtro.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Panel migrado de usuario-form.html (Editar usuario) -->
-    @if (usuarioEditando(); as edit) {
-      <div class="myt-subpanel">
-        <h3>Editar usuario #{{ edit.id }}</h3>
-        <div class="myt-form-row-2">
-          <label class="form-field"
-            >Nombre
-            <input class="text-input" [(ngModel)]="edit.nombre" name="editNombre" required />
-          </label>
-          <label class="form-field"
-            >Apellido
-            <input class="text-input" [(ngModel)]="edit.apellido" name="editApellido" required />
-          </label>
-        </div>
-        <div class="myt-form-row-2">
-          <label class="form-field"
-            >Correo
-            <input
-              class="text-input"
-              type="email"
-              [(ngModel)]="edit.correo"
-              name="editCorreo"
-              required
-            />
-          </label>
-          <label class="form-field"
-            >Teléfono
-            <input class="text-input" [(ngModel)]="edit.telefono" name="editTelefono" />
-          </label>
-        </div>
-        <div class="myt-toolbar-actions">
-          <button type="button" class="myt-btn myt-btn--primary myt-btn--sm" (click)="guardarEdicionLocal()">
-            Guardar cambios
-          </button>
-          <button
-            type="button"
-            class="myt-btn myt-btn--secondary myt-btn--sm"
-            (click)="usuarioEditando.set(null)"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-    }
-
-    <!-- Panel migrado de perfil-usuario-form.html (Agregar perfil) -->
-    @if (usuarioAgregandoPerfil(); as target) {
-      <div class="myt-subpanel">
-        <h3>Agregar perfil a {{ target.nombre }} {{ target.apellido }}</h3>
-        <div class="myt-form-row-2">
-          <label class="form-field"
-            >Nuevo perfil / rol
-            <select class="text-input" [(ngModel)]="nuevoPerfilRol" name="nuevoPerfilRol">
-              <option value="ESTUDIANTE">ESTUDIANTE</option>
-              <option value="TUTOR">TUTOR</option>
-              <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-            </select>
-          </label>
-          @if (nuevoPerfilRol === 'ESTUDIANTE') {
-            <label class="form-field"
-              >Código estudiantil
-              <input class="text-input" [(ngModel)]="nuevoPerfilCodigo" placeholder="Ej. 20261580" />
-            </label>
-          }
-          @if (nuevoPerfilRol === 'TUTOR') {
-            <label class="form-field"
-              >Tarifa por hora (COP)
-              <input class="text-input" type="number" [(ngModel)]="nuevoPerfilTarifa" />
-            </label>
-          }
-        </div>
-        <div class="myt-toolbar-actions">
-          <button
-            type="button"
-            class="myt-btn myt-btn--primary myt-btn--sm"
-            (click)="confirmarAgregarPerfil()"
-          >
-            Guardar perfil
-          </button>
-          <button
-            type="button"
-            class="myt-btn myt-btn--secondary myt-btn--sm"
-            (click)="usuarioAgregandoPerfil.set(null)"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-    }
-
-    @if (usuarioActual(); as usuario) {
-      <div class="myt-subpanel">
-        <h3>Usuario seleccionado</h3>
-        <p>ID: {{ usuario.id }}</p>
-        <p>Nombre: {{ usuario.nombre }} {{ usuario.apellido }}</p>
-      </div>
-    }
-
-    @if (usuarioSeleccionado$ | async; as usuario) {
-      <p style="margin-top: 0.5rem">Selección compartida: {{ usuario.nombre }}</p>
-    }
-
+  <!-- Paneles contextuales justo encima de la tabla para edición/inspección inmediata -->
+  @if (usuarioEditando(); as edit) {
     <div class="myt-subpanel">
+      <h3>Editar usuario #{{ edit.id }}</h3>
+      <div class="myt-form-row-2">
+        <label class="form-field"
+          >Nombre
+          <input class="text-input" [(ngModel)]="edit.nombre" name="editNombre" required />
+        </label>
+        <label class="form-field"
+          >Apellido
+          <input class="text-input" [(ngModel)]="edit.apellido" name="editApellido" required />
+        </label>
+      </div>
+      <div class="myt-form-row-2">
+        <label class="form-field"
+          >Correo
+          <input
+            class="text-input"
+            type="email"
+            [(ngModel)]="edit.correo"
+            name="editCorreo"
+            required
+          />
+        </label>
+        <label class="form-field"
+          >Teléfono
+          <input class="text-input" [(ngModel)]="edit.telefono" name="editTelefono" />
+        </label>
+      </div>
+      <div class="myt-toolbar-actions">
+        <button type="button" class="myt-btn myt-btn--primary myt-btn--sm" (click)="guardarEdicionLocal()">
+          Guardar cambios
+        </button>
+        <button
+          type="button"
+          class="myt-btn myt-btn--secondary myt-btn--sm"
+          (click)="usuarioEditando.set(null)"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (usuarioAgregandoPerfil(); as target) {
+    <div class="myt-subpanel">
+      <h3>Agregar perfil a {{ target.nombre }} {{ target.apellido }}</h3>
+      <div class="myt-form-row-2">
+        <label class="form-field"
+          >Nuevo perfil / rol
+          <select class="text-input" [(ngModel)]="nuevoPerfilRol" name="nuevoPerfilRol">
+            <option value="ESTUDIANTE">ESTUDIANTE</option>
+            <option value="TUTOR">TUTOR</option>
+            <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+          </select>
+        </label>
+        @if (nuevoPerfilRol === 'ESTUDIANTE') {
+          <label class="form-field"
+            >Código estudiantil
+            <input class="text-input" [(ngModel)]="nuevoPerfilCodigo" placeholder="Ej. 20261580" />
+          </label>
+        }
+        @if (nuevoPerfilRol === 'TUTOR') {
+          <label class="form-field"
+            >Tarifa por hora (COP)
+            <input class="text-input" type="number" [(ngModel)]="nuevoPerfilTarifa" />
+          </label>
+        }
+      </div>
       <div class="myt-toolbar-actions">
         <button
           type="button"
-          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-          (click)="revisarEnOrden()"
+          class="myt-btn myt-btn--primary myt-btn--sm"
+          (click)="confirmarAgregarPerfil()"
         >
-          Revisar en orden
+          Guardar perfil
         </button>
         <button
           type="button"
-          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-          (click)="revisarSimultaneamente()"
+          class="myt-btn myt-btn--secondary myt-btn--sm"
+          (click)="usuarioAgregandoPerfil.set(null)"
         >
-          Revisar simultáneamente
-        </button>
-        <button
-          type="button"
-          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-          (click)="compararUsuarios()"
-        >
-          Consultar dos usuarios
+          Cancelar
         </button>
       </div>
-
-      <h3>Resultados</h3>
-      @for (usuario of resultadosRevision(); track usuario.id) {
-        <p>{{ usuario.nombre }}</p>
-      }
-
-      @if (comparacion(); as datos) {
-        <h3>Comparación</h3>
-        <p>Primero: {{ datos.primero?.nombre }}</p>
-        <p>Segundo: {{ datos.segundo?.nombre }}</p>
-      }
     </div>
-  </section>
+  }
 
-  <section class="myt-surface-card card card__body">
+  @if (usuarioActual(); as usuario) {
+    <div class="myt-subpanel">
+      <h3>Usuario seleccionado</h3>
+      <p>ID: {{ usuario.id }}</p>
+      <p>Nombre: {{ usuario.nombre }} {{ usuario.apellido }}</p>
+    </div>
+  }
+
+  @if (usuarioSeleccionado$ | async; as usuario) {
+    <p style="margin-top: 0.25rem">Selección compartida: {{ usuario.nombre }}</p>
+  }
+
+  <!-- Tabla administrativa -->
+  <div class="myt-table-scroll" role="region" aria-label="Tabla de clientes y usuarios" tabindex="0">
+    <table class="myt-table">
+      <thead>
+        <tr>
+          <th scope="col">Usuario (ID - Nombre)</th>
+          <th scope="col">Correo</th>
+          <th scope="col">Roles</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
+          <tr>
+            <td>
+              <strong>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</strong>
+            </td>
+            <td>{{ usuario.correo }}</td>
+            <td>
+              @for (rol of usuario.roles; track rol) {
+                <span class="myt-subject-tag">{{ rol }}</span>
+              }
+            </td>
+            <td>
+              <span
+                class="myt-status-pill"
+                [class.myt-status-pill--active]="usuario.activo"
+                [class.myt-status-pill--inactive]="!usuario.activo"
+              >
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="myt-table-actions">
+              <button
+                type="button"
+                class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
+                (click)="seleccionarUsuario(usuario.id)"
+              >
+                Ver {{ usuario.nombre }}
+              </button>
+              <button
+                type="button"
+                class="myt-btn myt-btn--secondary myt-btn--sm"
+                (click)="abrirAgregarPerfil(usuario)"
+              >
+                Agregar perfil
+              </button>
+              <button
+                type="button"
+                class="myt-btn myt-btn--secondary myt-btn--sm"
+                (click)="abrirEditarUsuario(usuario)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="myt-btn myt-btn--secondary myt-btn--sm"
+                (click)="alternarEstadoUsuario(usuario)"
+              >
+                {{ usuario.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">No hay usuarios que coincidan con el filtro.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Herramientas de revisión RxJS -->
+  <div class="myt-subpanel">
+    <div class="myt-toolbar-actions">
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        (click)="revisarEnOrden()"
+      >
+        Revisar en orden
+      </button>
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        (click)="revisarSimultaneamente()"
+      >
+        Revisar simultáneamente
+      </button>
+      <button
+        type="button"
+        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+        (click)="compararUsuarios()"
+      >
+        Consultar dos usuarios
+      </button>
+    </div>
+
+    <h3>Resultados</h3>
+    @for (usuario of resultadosRevision(); track usuario.id) {
+      <p>{{ usuario.nombre }}</p>
+    }
+
+    @if (comparacion(); as datos) {
+      <h3>Comparación</h3>
+      <p>Primero: {{ datos.primero?.nombre }}</p>
+      <p>Segundo: {{ datos.segundo?.nombre }}</p>
+    }
+  </div>
+
+  <section class="myt-surface-card">
     <h1>Nuevo usuario</h1>
     <p class="myt-subtitle">Registra una cuenta de estudiante, tutor o administrador.</p>
     @if (!sesion) {

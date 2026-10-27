@@ -3,13 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-reserva-detalle-page',
-  imports: [RouterLink, FormsModule, AvatarComponent],
+  imports: [RouterLink, FormsModule, AvatarComponent, LucideIconComponent],
   template: `
     <main class="myt-screen" data-node-id="1:1037">
-      <a routerLink="/calendario" class="myt-back-link">← Volver al calendario</a>
+      <a routerLink="/calendario" class="myt-back-link">
+        <app-lucide-icon name="arrow-left" [size]="16" />
+        <span>Volver al calendario</span>
+      </a>
 
       <header class="myt-page-header" data-node-id="12:114">
         <div>
@@ -18,9 +22,9 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
         </div>
         <span
           class="myt-status-pill"
-          [class.myt-status-pill--confirmed]="eventoActual().estado === 'CONFIRMADA'"
-          [class.myt-status-pill--pending]="eventoActual().estado === 'PENDIENTE'"
-          [class.myt-status-pill--danger]="eventoActual().estado === 'CANCELADA'"
+          [class.myt-status-pill--active]="eventoActual().estado === 'CONFIRMADA'"
+          [class.myt-badge--pending]="eventoActual().estado === 'PENDIENTE'"
+          [class.myt-status-pill--inactive]="eventoActual().estado === 'CANCELADA'"
         >
           ●
           @switch (eventoActual().estado) {
@@ -41,7 +45,7 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
       </header>
 
       @if (aviso()) {
-        <output class="myt-banner-output">{{ aviso() }}</output>
+        <output class="myt-alert myt-alert--success">{{ aviso() }}</output>
       }
 
       <div class="myt-detail-grid" data-node-id="12:120">
@@ -97,9 +101,13 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
               target="_blank"
               rel="noopener noreferrer"
             >
-              Abrir videollamada
+              <app-lucide-icon name="video" [size]="16" />
+              <span>Abrir videollamada</span>
             </a>
-            <a routerLink="/mensajes" class="myt-btn myt-btn--neutral">Enviar mensaje</a>
+            <a routerLink="/mensajes" class="myt-btn myt-btn--secondary">
+              <app-lucide-icon name="message-square" [size]="16" />
+              <span>Enviar mensaje</span>
+            </a>
           </div>
         </section>
 
@@ -167,7 +175,7 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 
             <button
               type="button"
-              class="myt-btn myt-btn--subtle-danger"
+              class="myt-btn myt-btn--danger myt-btn--full"
               [disabled]="eventoActual().estado === 'CANCELADA'"
               (click)="cancelarTutoria()"
             >
@@ -178,6 +186,143 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
       </div>
     </main>
   `,
+  styles: [
+    `
+      .myt-screen {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .myt-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1985a1;
+        text-decoration: none;
+        align-self: flex-start;
+      }
+      .myt-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .myt-page-header h1 {
+        font-size: 1.8rem;
+        color: #46494c;
+        margin: 0;
+      }
+      .myt-detail-grid {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .myt-detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .myt-paper-card {
+        background: #f5f5f3;
+        border: 1px solid #dcdcdd;
+        border-radius: 18px;
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+      }
+      .myt-detail-tutor {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #dcdcdd;
+      }
+      .myt-detail-tutor h2 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+      .myt-kv-box {
+        margin: 0;
+        padding: 0.25rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+      .myt-kv-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.88rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid #e4e4e5;
+      }
+      .myt-kv-row dt {
+        color: #6f7479;
+      }
+      .myt-kv-row dd {
+        margin: 0;
+        font-weight: 700;
+        color: #46494c;
+        text-align: right;
+      }
+      .myt-kv-link {
+        color: #1985a1 !important;
+      }
+      .myt-detail-message {
+        padding-top: 0.25rem;
+      }
+      .myt-detail-message h3 {
+        font-size: 0.82rem;
+        margin-bottom: 0.3rem;
+      }
+      .myt-detail-message p {
+        font-size: 0.86rem;
+      }
+      .myt-button-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .myt-form-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .myt-date-split {
+        border: 0;
+        margin: 0;
+        padding: 0;
+      }
+      .myt-date-split__inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.3fr;
+        gap: 0.6rem;
+        margin-top: 0.35rem;
+      }
+      .myt-warning-callout {
+        background: rgba(240, 167, 38, 0.14);
+        border: 1px solid #f0a726;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+      }
+      .myt-warning-callout strong {
+        font-size: 0.82rem;
+        color: #8c5d00;
+      }
+      .myt-warning-callout p {
+        font-size: 0.8rem;
+        color: #8c5d00;
+        margin-top: 0.2rem;
+      }
+    `,
+  ],
 })
 export class ReservaDetallePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

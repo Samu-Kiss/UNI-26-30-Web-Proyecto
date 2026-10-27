@@ -6,67 +6,103 @@ import { AuthService, EstadoSesion } from '../../core/services/auth.service';
 import { mensajeHttp } from '../../core/services/api.service';
 import { LoginFormComponent } from '../../shared/components/organisms/login-form/login-form';
 import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-login-page',
-  imports: [LoginFormComponent, BrandMarkComponent, RouterLink],
+  imports: [LoginFormComponent, BrandMarkComponent, LucideIconComponent, RouterLink],
   template: `
-    <main class="myt-login-shell app-container laboratorio-page">
-      <section class="myt-login-card card card__body">
-        <div class="myt-login-brand">
-          <app-brand-mark />
-          <div>
-            <span class="myt-eyebrow">Plataforma de tutorías académicas</span>
-            <h1>Ingreso a MyT</h1>
-            <p class="myt-subtitle">Encuentra. Aprende. Avanza.</p>
-          </div>
-        </div>
-
-        @if (error()) {
-          <p class="myt-alert myt-alert--error" role="alert">{{ error() }}</p>
-        }
-        @if (cargando()) {
-          <output class="myt-status-output">Comprobando sesión…</output>
-        }
-
-        @if (auth.opciones().length) {
-          <div class="myt-role-picker">
-            <h2>Elige tu perfil</h2>
-            <p class="myt-subtitle">
-              Tu cuenta tiene varios perfiles asociados. Selecciona el perfil con el que deseas
-              continuar en esta sesión.
-            </p>
-            <div class="myt-role-picker__grid">
-              @for (perfil of auth.opciones(); track perfil) {
-                <button
-                  type="button"
-                  class="btn btn--primary btn--md myt-btn myt-btn--primary"
-                  [disabled]="cargando()"
-                  (click)="elegir(perfil)"
-                >
-                  Continuar como {{ perfil }}
-                </button>
-              }
+    <div class="myt-login-viewport">
+      <div class="myt-paper-grain" aria-hidden="true"></div>
+      <main class="myt-login-shell app-container laboratorio-page">
+        <a routerLink="/" class="myt-login-back">
+          <app-lucide-icon name="arrow-left" [size]="16" />
+          <span>Volver al inicio</span>
+        </a>
+        <section class="myt-login-card card card__body">
+          <div class="myt-login-brand">
+            <app-brand-mark />
+            <div>
+              <span class="myt-eyebrow">Plataforma de tutorías académicas</span>
+              <h1>Ingreso a MyT</h1>
+              <p class="myt-subtitle">Encuentra. Aprende. Avanza.</p>
             </div>
           </div>
-        } @else {
-          <app-login-form [habilitado]="!cargando()" (loginEnviado)="procesarLogin($event)" />
-          <div class="myt-login-footer">
-            <p>
-              ¿Quieres conocer primero la plataforma?
-              <a routerLink="/landing">Explora la Landing de MyT</a> o
-              <a routerLink="/tutores">consulta el catálogo de tutores</a>.
-            </p>
-          </div>
-        }
-      </section>
-    </main>
+
+          @if (error()) {
+            <p class="myt-alert myt-alert--error" role="alert">{{ error() }}</p>
+          }
+          @if (cargando()) {
+            <output class="myt-status-output">Comprobando sesión…</output>
+          }
+
+          @if (auth.opciones().length) {
+            <div class="myt-role-picker">
+              <h2>Elige tu perfil</h2>
+              <p class="myt-subtitle">
+                Tu cuenta tiene varios perfiles asociados. Selecciona el perfil con el que deseas
+                continuar en esta sesión.
+              </p>
+              <div class="myt-role-picker__grid">
+                @for (perfil of auth.opciones(); track perfil) {
+                  <button
+                    type="button"
+                    class="btn btn--primary btn--md myt-btn myt-btn--primary"
+                    [disabled]="cargando()"
+                    (click)="elegir(perfil)"
+                  >
+                    Continuar como {{ perfil }}
+                  </button>
+                }
+              </div>
+            </div>
+          } @else {
+            <app-login-form [habilitado]="!cargando()" (loginEnviado)="procesarLogin($event)" />
+            <div class="myt-login-footer">
+              <p>
+                ¿Quieres conocer primero la plataforma?
+                <a routerLink="/">Explora la Landing de MyT</a> o
+                <a routerLink="/tutores">consulta el catálogo de tutores</a>.
+              </p>
+            </div>
+          }
+        </section>
+      </main>
+    </div>
   `,
   styles: [
     `
+      .myt-login-viewport {
+        min-height: 100vh;
+        background: #e9e9ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.25rem;
+        position: relative;
+      }
       .myt-login-shell {
+        width: 100%;
         max-width: 580px;
-        margin: 1.5rem auto;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+      .myt-login-back {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #4c5c68;
+        text-decoration: none;
+      }
+      .myt-login-back:hover {
+        color: #1985a1;
       }
       .myt-login-card {
         background: #f5f5f3;
@@ -76,6 +112,7 @@ import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/bra
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
+        box-shadow: 0 22px 48px -28px rgba(70, 73, 76, 0.25);
       }
       .myt-login-brand {
         display: flex;

@@ -1,124 +1,97 @@
-<div class="myt-app-shell">
-  <!-- Figma Left Sidebar (240px, #46494c) -->
-  <aside class="myt-sidebar" aria-label="Menú lateral MyT">
-    <div class="myt-sidebar__brand">
-      <a routerLink="/landing" class="myt-sidebar__logo">MyT</a>
-      <p class="myt-sidebar__tagline">Encuentra. Aprende. Avanza.</p>
-    </div>
-
-    <nav class="myt-sidebar__nav laboratorio-nav" aria-label="Navegación principal">
-      <a
-        routerLink="/tutores"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: false }"
-        class="myt-nav-item"
-      >
-        <span class="myt-nav-item__icon" aria-hidden="true">⌂</span>
-        <span>Explorar · Tutores</span>
-      </a>
-
-      <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">□</span>
-        <span>Mis tutorías · Reservas</span>
-      </a>
-
-      <a routerLink="/calendario" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">◇</span>
-        <span>Calendario</span>
-      </a>
-
-      <a routerLink="/mensajes" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">✉</span>
-        <span>Mensajes</span>
-      </a>
-
-      <a routerLink="/resenas" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">☆</span>
-        <span>Dejar reseña</span>
-      </a>
-
-      <div class="myt-sidebar__divider" role="separator"></div>
-
-      <a routerLink="/menu" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">❖</span>
-        <span>Panel por rol</span>
-      </a>
-
-      <a routerLink="/landing" routerLinkActive="active" class="myt-nav-item">
-        <span class="myt-nav-item__icon" aria-hidden="true">◎</span>
-        <span>Landing MyT</span>
-      </a>
-
-      @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
-        <div class="myt-sidebar__divider" role="separator"></div>
-        <span class="myt-sidebar__section-label">Administración</span>
-        <a routerLink="/usuarios" routerLinkActive="active" class="myt-nav-item">
-          <span class="myt-nav-item__icon" aria-hidden="true">⚙</span>
-          <span>Usuarios / RxJS</span>
-        </a>
-        <a routerLink="/estudiantes" routerLinkActive="active" class="myt-nav-item">
-          <span class="myt-nav-item__icon" aria-hidden="true">🎓</span>
-          <span>Estudiantes</span>
-        </a>
-        <a routerLink="/administradores" routerLinkActive="active" class="myt-nav-item">
-          <span class="myt-nav-item__icon" aria-hidden="true">🛡</span>
-          <span>Administradores</span>
-        </a>
-      }
-    </nav>
-
-    <div class="myt-sidebar__help">
-      <strong>¿Necesitas ayuda?</strong>
-      <p>Nuestro equipo te orienta</p>
-      <a routerLink="/mensajes" class="myt-sidebar__help-link">Escribir a soporte →</a>
-    </div>
-  </aside>
-
-  <!-- Main Workspace Area -->
-  <div class="myt-workspace">
-    <header class="myt-topbar">
-      <div class="myt-topbar__left">
-        <span class="myt-topbar__brand-pill">MyT · Plataforma de Tutorías</span>
+@if (esLanding()) {
+  <router-outlet />
+} @else {
+  <div class="myt-app-shell">
+    <!-- Left Sidebar -->
+    <aside class="myt-sidebar" aria-label="Menú lateral MyT">
+      <div class="myt-sidebar__brand">
+        <a routerLink="/tutores" class="myt-sidebar__logo">MyT</a>
+        <p class="myt-sidebar__tagline">Encuentra. Aprende. Avanza.</p>
       </div>
 
-      <div class="myt-topbar__right">
+      <nav class="myt-sidebar__nav laboratorio-nav" aria-label="Navegación principal">
+        <a
+          routerLink="/tutores"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="myt-nav-item"
+        >
+          <app-lucide-icon name="compass" [size]="18" />
+          <span>Explorar</span>
+        </a>
+
+        <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
+          <app-lucide-icon name="book-open" [size]="18" />
+          <span>Mis tutorías</span>
+        </a>
+
+        <a routerLink="/calendario" routerLinkActive="active" class="myt-nav-item">
+          <app-lucide-icon name="calendar" [size]="18" />
+          <span>Calendario</span>
+        </a>
+
+        <a routerLink="/mensajes" routerLinkActive="active" class="myt-nav-item">
+          <app-lucide-icon name="message-square" [size]="18" />
+          <span>Mensajes</span>
+        </a>
+
+        @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
+          <div class="myt-sidebar__divider" role="separator"></div>
+          <span class="myt-sidebar__section-label">Administración</span>
+          <a routerLink="/usuarios" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="users" [size]="18" />
+            <span>Usuarios</span>
+          </a>
+          <a routerLink="/estudiantes" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="graduation-cap" [size]="18" />
+            <span>Estudiantes</span>
+          </a>
+          <a routerLink="/administradores" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="shield-check" [size]="18" />
+            <span>Administradores</span>
+          </a>
+        }
+      </nav>
+
+      <div class="myt-sidebar__footer">
         @if (auth.sesion(); as sesion) {
-          <div class="myt-user-chip">
+          <div class="myt-sidebar__user">
             <span class="myt-user-chip__avatar" aria-hidden="true">
               {{ (sesion.nombreUsuario || 'M').charAt(0).toUpperCase() }}
             </span>
-            <div class="myt-user-chip__info">
-              <strong>Hola, {{ sesion.nombreUsuario || 'Mariana' }}</strong>
+            <div class="myt-sidebar__user-info">
+              <strong>{{ sesion.nombreUsuario || 'Usuario' }}</strong>
               <span>{{ sesion.rol }}</span>
             </div>
           </div>
-          <button
-            type="button"
-            class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
-            (click)="cerrarSesion()"
-          >
-            Cerrar sesión
+          <button type="button" class="myt-sidebar__logout" (click)="cerrarSesion()">
+            <app-lucide-icon name="log-out" [size]="15" />
+            <span>Cerrar sesión</span>
           </button>
         } @else {
-          <a routerLink="/login" routerLinkActive="active" class="myt-btn myt-btn--primary myt-btn--sm">
-            Ingresar
+          <a routerLink="/login" class="myt-sidebar__logout">
+            <app-lucide-icon name="log-in" [size]="15" />
+            <span>Iniciar sesión</span>
           </a>
         }
       </div>
-    </header>
+    </aside>
 
-    @if (errorSesion()) {
-      <p class="myt-alert myt-alert--error" role="alert">{{ errorSesion() }}</p>
-    }
+    <!-- Main Workspace Area -->
+    <div class="myt-workspace">
+      @if (errorSesion()) {
+        <p class="myt-alert myt-alert--error" role="alert">{{ errorSesion() }}</p>
+      }
 
-    <div class="myt-content-viewport">
-      <router-outlet />
+      <div class="myt-content-viewport">
+        <router-outlet />
+      </div>
     </div>
-  </div>
 
-  <!-- Figma Paper Grain Texture Overlay -->
-  <div class="myt-paper-grain" aria-hidden="true"></div>
-</div>
+    <!-- Figma Paper Grain Texture Overlay -->
+    <div class="myt-paper-grain" aria-hidden="true"></div>
+  </div>
+}
 
 @if (sentryTestEnabled) {
   <aside class="sentry-test" aria-label="Verificación de Sentry">

@@ -65,6 +65,12 @@ export class AuthService {
 export const sessionGuard: CanActivateFn = (route) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const actual = auth.sesion();
+  if (actual) {
+    return route.data['admin'] && actual.rol !== 'ADMINISTRADOR'
+      ? router.createUrlTree(['/tutores'])
+      : true;
+  }
   return auth.restaurar().pipe(
     map((estado) => {
       if (!estado.actual) return router.createUrlTree(['/login']);

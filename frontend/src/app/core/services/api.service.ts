@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { tap } from 'rxjs';
 export interface Materia {
   id: number;
   nombre: string;
@@ -32,7 +33,12 @@ export interface Pagina<T> {
   number: number;
 }
 export type EstadoReserva =
-  'PENDIENTE' | 'CONFIRMADA' | 'EN_CURSO' | 'COMPLETADA' | 'RECHAZADA' | 'CANCELADA';
+  | 'PENDIENTE'
+  | 'CONFIRMADA'
+  | 'EN_CURSO'
+  | 'COMPLETADA'
+  | 'RECHAZADA'
+  | 'CANCELADA';
 export interface ReservaApi {
   id: number;
   tutorId: number;
@@ -69,14 +75,28 @@ export function mensajeHttp(error: unknown): string {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
+  private readonly tutoresCache = new Map<number, TutorApi>();
+
+  tutorEnCache(id: number): TutorApi | undefined {
+    return this.tutoresCache.get(id);
+  }
+
   tutores(page = 0, materiaId = '', tarifaMax = '') {
     let params = new HttpParams().set('page', page).set('size', 5);
     if (materiaId) params = params.set('materiaId', materiaId);
     if (tarifaMax) params = params.set('tarifaMax', tarifaMax);
-    return this.http.get<Pagina<TutorApi>>('/api/tutores', { params });
+    return this.http.get<Pagina<TutorApi>>('/api/tutores', { params }).pipe(
+      tap((p) => {
+        for (const t of p.content ?? []) {
+          this.tutoresCache.set(t.id, t);
+        }
+      }),
+    );
   }
   tutor(id: number) {
-    return this.http.get<TutorApi>(`/api/tutores/${id}`);
+    return this.http
+      .get<TutorApi>(`/api/tutores/${id}`)
+      .pipe(tap((t) => this.tutoresCache.set(t.id, t)));
   }
   materias() {
     return this.http.get<Materia[]>('/api/tutores/materias');

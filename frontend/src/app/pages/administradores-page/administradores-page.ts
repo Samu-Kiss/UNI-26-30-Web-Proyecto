@@ -1,19 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { Usuario } from '../../core/models/usuario.model';
+import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 
 @Component({
   selector: 'app-administradores-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <main class="myt-page-shell" aria-label="Directorio de administradores">
       <header class="myt-page-header">
         <div>
-          <a routerLink="/menu" class="myt-back-link">← Volver al menú</a>
           <h1>Administradores</h1>
           <p>Consulta las cuentas con acceso administrativo.</p>
         </div>
@@ -28,44 +27,42 @@ import { UsuarioService } from '../../core/services/usuario.service';
         </div>
       </header>
 
-      <section class="myt-card">
-        <div class="myt-table-scroll" role="region" aria-label="Tabla de administradores" tabindex="0">
-          <table class="myt-table">
-            <thead>
+      <div class="myt-table-scroll" role="region" aria-label="Tabla de administradores" tabindex="0">
+        <table class="myt-table">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Correo</th>
+              <th scope="col">Teléfono</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (admin of administradoresFiltrados(); track admin.id) {
               <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Nombre</th>
-                <th scope="col">Correo</th>
-                <th scope="col">Teléfono</th>
-                <th scope="col">Estado</th>
+                <td>{{ admin.id }}</td>
+                <td><strong>{{ admin.nombre }} {{ admin.apellido }}</strong></td>
+                <td>{{ admin.correo }}</td>
+                <td>{{ admin.telefono || '300 555 0199' }}</td>
+                <td>
+                  <span
+                    class="myt-status-pill"
+                    [class.myt-status-pill--active]="admin.activo"
+                    [class.myt-status-pill--inactive]="!admin.activo"
+                  >
+                    {{ admin.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (admin of administradoresFiltrados(); track admin.id) {
-                <tr>
-                  <td>{{ admin.id }}</td>
-                  <td><strong>{{ admin.nombre }} {{ admin.apellido }}</strong></td>
-                  <td>{{ admin.correo }}</td>
-                  <td>{{ admin.telefono || '300 555 0199' }}</td>
-                  <td>
-                    <span
-                      class="myt-status-pill"
-                      [class.myt-status-pill--active]="admin.activo"
-                      [class.myt-status-pill--inactive]="!admin.activo"
-                    >
-                      {{ admin.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="5">No hay administradores registrados.</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+            } @empty {
+              <tr>
+                <td colspan="5">No hay administradores registrados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </main>
   `,
   styles: [
@@ -73,27 +70,17 @@ import { UsuarioService } from '../../core/services/usuario.service';
       .myt-page-shell {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1.25rem;
       }
       .myt-page-header {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 18px;
-        padding: 1.5rem 1.75rem;
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
         gap: 1rem;
         flex-wrap: wrap;
       }
-      .myt-back-link {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #1985a1;
-        text-decoration: none;
-      }
       .myt-page-header h1 {
-        margin: 0.35rem 0 0.2rem;
+        margin: 0 0 0.2rem;
         font-size: 1.75rem;
         color: #46494c;
       }
@@ -110,17 +97,12 @@ import { UsuarioService } from '../../core/services/usuario.service';
         background: #ffffff;
         color: #46494c;
       }
-      .myt-card {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 18px;
-        padding: 1.25rem;
-      }
     `,
   ],
 })
 export class AdministradoresPageComponent implements OnInit {
   private readonly usuarioService = inject(UsuarioService);
+  private readonly auth = inject(AuthService);
 
   readonly filtro = signal('');
   readonly administradores = signal<Usuario[]>([
@@ -158,6 +140,9 @@ export class AdministradoresPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (this.auth.sesion()?.rol !== 'ADMINISTRADOR') {
+      return;
+    }
     this.usuarioService.obtenerUsuarios().subscribe({
       next: (usuarios) => {
         const admins = usuarios.filter((u) => u.roles.includes('ADMINISTRADOR'));

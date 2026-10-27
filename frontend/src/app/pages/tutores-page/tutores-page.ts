@@ -14,6 +14,7 @@ import {
 } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { TutorEditorComponent } from '../../shared/components/organisms/tutor-editor/tutor-editor';
 
 export function normalizeText(value: string): string {
@@ -25,7 +26,14 @@ export function normalizeText(value: string): string {
 
 @Component({
   selector: 'app-tutores-page',
-  imports: [CommonModule, FormsModule, RouterLink, TutorEditorComponent, AvatarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    TutorEditorComponent,
+    AvatarComponent,
+    LucideIconComponent,
+  ],
   templateUrl: './tutores-page.html',
 })
 export class TutoresPageComponent implements OnInit {

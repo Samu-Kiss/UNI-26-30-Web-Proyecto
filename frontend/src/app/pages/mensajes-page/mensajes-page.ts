@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-mensajes-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
   template: `
     <main class="myt-chat-layout" aria-label="Chat de coordinación">
       <!-- Conversation List -->
@@ -16,7 +17,7 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
         <header class="myt-chat-sidebar__header">
           <h1>Mensajes</h1>
           <label class="myt-search-box" aria-label="Buscar conversación">
-            <span class="myt-search-box__icon" aria-hidden="true">⌕</span>
+            <app-lucide-icon name="search" [size]="16" class="myt-search-box__icon" />
             <input
               type="search"
               [ngModel]="busqueda()"
@@ -112,7 +113,8 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
               required
             />
             <button type="submit" class="myt-btn myt-btn--primary" [disabled]="!nuevoMensaje.trim()">
-              Enviar
+              <app-lucide-icon name="send" [size]="15" />
+              <span>Enviar</span>
             </button>
           </form>
         }
@@ -299,28 +301,36 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
       .myt-bubble--incoming {
         align-self: flex-start;
         background: #ffffff;
-        border: 1px solid #dcdcdd;
-        color: #46494c;
+        border: 1px solid #c5c3c6;
+        color: #24272a;
       }
       .myt-bubble--outgoing {
         align-self: flex-end;
-        background: #1985a1;
-        color: #f5f5f3;
+        background: #126e87;
+        color: #ffffff;
       }
       .myt-bubble__text {
         margin: 0;
-        font-size: 0.9rem;
-        line-height: 1.45;
+        font-size: 0.92rem;
+        line-height: 1.48;
+        color: inherit;
+      }
+      .myt-bubble--incoming .myt-bubble__text {
+        color: #24272a;
+      }
+      .myt-bubble--outgoing .myt-bubble__text {
+        color: #ffffff;
+        font-weight: 500;
       }
       .myt-bubble__meta {
-        font-size: 0.72rem;
-        opacity: 0.85;
+        font-size: 0.74rem;
+        font-weight: 600;
       }
       .myt-bubble--incoming .myt-bubble__meta {
-        color: #6f7479;
+        color: #4e555b;
       }
       .myt-bubble--outgoing .myt-bubble__meta {
-        color: #ddecef;
+        color: #e6f6fa;
         align-self: flex-end;
       }
       .myt-chat-composer {

@@ -15,10 +15,11 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-reservas-page',
-  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
   templateUrl: './reservas-page.html',
 })
 export class ReservasPageComponent implements OnInit {
@@ -60,6 +61,12 @@ export class ReservasPageComponent implements OnInit {
   ngOnInit() {
     const id = Number(this.route.snapshot.queryParamMap.get('tutor'));
     if (id > 0) {
+      const enCache = this.api.tutorEnCache(id);
+      if (enCache) {
+        this.tutor.set(enCache);
+        this.datos.tutorId = enCache.id;
+        this.datos.materiaId = enCache.materias[0]?.id ?? 0;
+      }
       this.api
         .tutor(id)
         .pipe(takeUntilDestroyed(this.destroyRef))

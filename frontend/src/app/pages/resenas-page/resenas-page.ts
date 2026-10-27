@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-resenas-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
   template: `
     <main class="myt-review-wrapper" aria-label="Dejar reseña">
       <section class="myt-review-card">
@@ -49,7 +50,7 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
                   (click)="calificacion.set(star)"
                   [attr.aria-label]="star + ' estrellas'"
                 >
-                  ★
+                  <app-lucide-icon name="star" [size]="20" [filled]="star <= calificacion()" />
                 </button>
               }
               <span class="myt-stars-caption">{{ etiquetaCalificacion() }}</span>
@@ -68,9 +69,9 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
                   (click)="alternarDestacado(item)"
                 >
                   @if (esDestacado(item)) {
-                    <span>✓ </span>
+                    <app-lucide-icon name="check" [size]="14" />
                   }
-                  {{ item }}
+                  <span>{{ item }}</span>
                 </button>
               }
             </div>
@@ -235,6 +236,9 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
         gap: 0.55rem;
       }
       .myt-chip-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
         padding: 0.45rem 0.9rem;
         border-radius: 999px;
         border: 1px solid #c5c3c6;

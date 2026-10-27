@@ -13,7 +13,6 @@ import {
   exhaustMap,
   forkJoin,
   from,
-  interval,
   map,
   mergeMap,
   Observable,
@@ -25,13 +24,11 @@ import {
   Subscription,
   switchMap,
   tap,
-  timer,
 } from 'rxjs';
 import { RegistroUsuario, Usuario } from '../../core/models/usuario.model';
 import { AuthService } from '../../core/services/auth.service';
 import { mensajeHttp } from '../../core/services/api.service';
 import { UsuarioService } from '../../core/services/usuario.service';
-import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark';
 import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-form/usuario-form';
 
 @Component({
@@ -42,7 +39,6 @@ import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-
     FormsModule,
     ReactiveFormsModule,
     UsuarioFormComponent,
-    BrandMarkComponent,
     RouterLink,
   ],
   templateUrl: './usuarios-page.html',
@@ -139,9 +135,6 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
           this.usuarioService.seleccionarUsuario(usuario);
         }),
     );
-
-    this.suscripciones.add(timer(5000).subscribe(() => this.solicitarActualizacion()));
-    this.suscripciones.add(interval(15000).subscribe(() => this.solicitarActualizacion()));
   }
 
   ngOnDestroy(): void {

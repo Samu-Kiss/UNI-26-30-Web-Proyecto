@@ -47,6 +47,11 @@
   letter-spacing: -0.02em;
 }
 
+.myt-sidebar__logo:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
 .myt-sidebar__tagline {
   margin: 0.25rem 0 0;
   font-size: 0.76rem;
@@ -83,11 +88,13 @@
 .myt-nav-item:hover {
   background-color: rgba(255, 255, 255, 0.08);
   color: #f5f5f3;
+  text-decoration: none;
 }
 
-.myt-nav-item.active {
+.myt-nav-item.active,
+.myt-nav-item.active:hover {
   background-color: #1985a1;
-  color: #f5f5f3;
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -99,49 +106,90 @@
 
 .myt-sidebar__divider {
   height: 1px;
-  background: rgba(221, 236, 239, 0.16);
+  background: rgba(221, 236, 239, 0.22);
   margin: 0.45rem 0;
 }
 
 .myt-sidebar__section-label {
   font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #c5c3c6;
+  color: #ddecef;
   padding: 0 0.6rem;
 }
 
-.myt-sidebar__help {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(221, 236, 239, 0.18);
-  border-radius: 14px;
-  padding: 0.95rem 1rem;
+.myt-sidebar__footer {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(221, 236, 239, 0.16);
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.75rem;
 }
 
-.myt-sidebar__help strong {
-  font-size: 0.82rem;
+.myt-sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.myt-user-chip__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #1985a1;
   color: #f5f5f3;
-}
-
-.myt-sidebar__help p {
-  margin: 0;
-  font-size: 0.76rem;
-  color: #ddecef;
-}
-
-.myt-sidebar__help-link {
-  margin-top: 0.35rem;
-  font-size: 0.76rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
-  color: #ddecef;
-  text-decoration: none;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
-.myt-sidebar__help-link:hover {
-  text-decoration: underline;
+.myt-sidebar__user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.myt-sidebar__user-info strong {
+  font-size: 0.84rem;
+  color: #f5f5f3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.myt-sidebar__user-info span {
+  font-size: 0.7rem;
+  color: #c5c3c6;
+}
+
+.myt-sidebar__logout {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(221, 236, 239, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f5f3;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.myt-sidebar__logout:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  text-decoration: none;
 }
 
 .myt-workspace {
@@ -152,75 +200,14 @@
   z-index: 1;
 }
 
-.myt-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  background: rgba(245, 245, 243, 0.85);
-  border-bottom: 1px solid #dcdcdd;
-  backdrop-filter: blur(8px);
-}
-
-.myt-topbar__brand-pill {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #4c5c68;
-  background: #ddecef;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-}
-
-.myt-topbar__right {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-}
-
-.myt-user-chip {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.myt-user-chip__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  background: #1985a1;
-  color: #f5f5f3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.myt-user-chip__info {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.myt-user-chip__info strong {
-  font-size: 0.85rem;
-  color: #46494c;
-}
-
-.myt-user-chip__info span {
-  font-size: 0.72rem;
-  color: #4c5c68;
-}
-
 .myt-content-viewport {
-  padding: 1.75rem 2rem 3rem;
+  padding: 2.25rem 2.5rem 3rem;
   flex: 1;
 }
 
 @media (max-width: 768px) {
   .myt-content-viewport {
-    padding: 1rem;
+    padding: 1.25rem 1rem;
   }
 }
 
