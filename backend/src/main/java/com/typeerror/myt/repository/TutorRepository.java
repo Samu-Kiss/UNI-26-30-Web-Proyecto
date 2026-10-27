@@ -12,6 +12,13 @@ import com.typeerror.myt.entities.Tutor;
 
 public interface TutorRepository extends JpaRepository<Tutor, Integer> {
 
+    interface CalificacionTutor {
+        Integer getTutorId();
+
+        Double getPromedio();
+    }
+
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles", "materias"})
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Tutor t WHERE t.id = :id")
     Optional<Tutor> bloquearPorId(@Param("id") Integer id);
@@ -19,14 +26,17 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
     boolean existsByUsuarioId(Integer usuarioId);
 
     @Override
-    @EntityGraph(attributePaths = {"usuario", "materias"})
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles", "materias"})
     List<Tutor> findAll();
 
-    @EntityGraph(attributePaths = {"usuario", "materias", "disponibilidades", "reservas", "reservas.estudiante",
-        "reservas.estudiante.usuario"})
+    @Override
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles", "materias"})
+    Optional<Tutor> findById(Integer id);
+
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles", "materias", "disponibilidades"})
     Optional<Tutor> findOneById(Integer id);
 
-    @EntityGraph(attributePaths = "usuario")
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles"})
     Optional<Tutor> findByUsuarioId(Integer usuarioId);
 
     @Query("""
@@ -36,11 +46,21 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
         JOIN reserva.resena resena
         WHERE tutor.id = :tutorId
         """)
-
-        Optional<Double> findCalificacionPromedioByTutorId(
+    Optional<Double> findCalificacionPromedioByTutorId(
             @Param("tutorId") Integer tutorId);
 
+    @Query("""
+        SELECT tutor.id AS tutorId, AVG(resena.calificacion) AS promedio
+        FROM Tutor tutor
+        JOIN tutor.reservas reserva
+        JOIN reserva.resena resena
+        WHERE tutor.id IN :tutorIds
+        GROUP BY tutor.id
+        """)
+    List<CalificacionTutor> findCalificacionesPromedioByTutorIds(
+            @Param("tutorIds") java.util.Collection<Integer> tutorIds);
 
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles", "materias"})
     @Query("""
         SELECT DISTINCT t FROM Tutor t LEFT JOIN t.materias m
         WHERE (:materiaId IS NULL OR m.id = :materiaId)

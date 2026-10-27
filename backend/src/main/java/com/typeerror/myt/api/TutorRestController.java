@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -50,8 +52,14 @@ public class TutorRestController {
         if (page < 0 || size < 1 || size > 50 || (tarifaMax != null && tarifaMax.signum() < 0)) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(tutores.buscar(materiaId, tarifaMax,
-                PageRequest.of(page, size, Sort.by("id"))).map(this::dto));
+        var pagina = tutores.buscar(materiaId, tarifaMax, PageRequest.of(page, size, Sort.by("id")));
+        var ids = pagina.getContent().stream().map(Tutor::getId).toList();
+        Map<Integer, Double> promedios = ids.isEmpty() ? Map.of()
+                : tutores.findCalificacionesPromedioByTutorIds(ids).stream()
+                        .collect(Collectors.toMap(
+                                TutorRepository.CalificacionTutor::getTutorId,
+                                TutorRepository.CalificacionTutor::getPromedio));
+        return ResponseEntity.ok(pagina.map(t -> ApiDtos.tutor(t, promedios.get(t.getId()))));
     }
 
     @GetMapping("/{id}")
@@ -84,7 +92,8 @@ public class TutorRestController {
         usuarios.save(usuario);
         Tutor tutor = tutores.save(new Tutor(null, usuario, datos.biografia(), new HashSet<>(asignaturas),
                 datos.tarifaPorHora(), true));
-        return ResponseEntity.created(URI.create("/api/tutores/" + tutor.getId())).body(dto(tutor));
+        return ResponseEntity.created(URI.create("/api/tutores/" + tutor.getId()))
+                .body(ApiDtos.tutor(tutor, null));
     }
 
     @PutMapping("/{id}")
