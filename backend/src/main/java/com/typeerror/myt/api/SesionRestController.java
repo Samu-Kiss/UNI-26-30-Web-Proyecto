@@ -17,8 +17,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
+@Tag(name = "Sesión", description = "Autenticación mediante cookie HttpOnly conservada por el navegador")
 @RequestMapping("/api/sesion")
 public class SesionRestController {
     private final JwtSesionService jwt;
@@ -38,6 +42,10 @@ public class SesionRestController {
     public record Estado(ContextoSesion actual, List<String> opciones) { }
 
     @PostMapping("/login")
+    @Operation(summary = "Iniciar sesión", description = "Usa una cuenta de prueba existente. "
+            + "Si opciones contiene varios perfiles, elige uno mediante POST /api/sesion/perfil.")
+    @ApiResponse(responseCode = "200", description = "Cookie de sesión emitida")
+    @ApiResponse(responseCode = "401", description = "Credenciales incorrectas")
     public Estado login(@Valid @RequestBody Credenciales datos, HttpServletResponse response) {
         var opciones = login.autenticar(datos.correo(), datos.contrasena()).stream()
                 .map(u -> u.rol().name() + ":" + u.perfilId()).toList();
@@ -52,6 +60,9 @@ public class SesionRestController {
     }
 
     @GetMapping
+    @Operation(summary = "Consultar sesión actual")
+    @ApiResponse(responseCode = "200", description = "Sesión activa u opciones de perfil pendientes")
+    @ApiResponse(responseCode = "401", description = "Sesión ausente o vencida")
     public Estado actual(HttpServletRequest request) {
         var perfiles = jwt.perfiles(request, false);
         if (perfiles.size() == 1) {
@@ -69,6 +80,7 @@ public class SesionRestController {
     }
 
     @PostMapping("/perfil")
+    @Operation(summary = "Seleccionar perfil autenticado")
     public Estado perfil(@Valid @RequestBody Perfil datos, HttpServletRequest request,
             HttpServletResponse response) {
         if (!jwt.perfiles(request, true).contains(datos.perfil())) {
@@ -81,6 +93,7 @@ public class SesionRestController {
     }
 
     @PostMapping("/logout")
+    @Operation(summary = "Cerrar sesión")
     public void logout(HttpServletResponse response) {
         jwt.cerrar(response);
     }

@@ -11,8 +11,13 @@ npm run test:ci
 npm run build
 ```
 
-El proxy envía /api a localhost:8080. Para levantar base de demo y backend,
+`runtime-config.js` define `backendUrl` (por defecto `http://localhost:8080`);
+el interceptor envía las peticiones `/api/` a esa dirección con cookies y la cabecera
+de protección CSRF. Con `MYT_BACKEND_URL` vacío se utilizan rutas relativas y el proxy
+de desarrollo envía `/api` a localhost:8080. Para levantar base de demo y backend,
 consulta [la guía reproducible](../docs/entrega-2.md).
 
 prestart / prebuild generan runtime-config.js; no se incluyen claves JWT en el navegador.
-En producción publica frontend y API bajo el mismo origen. Sentry es opcional.
+En producción publica frontend y API bajo el mismo origen (`MYT_BACKEND_URL` vacío).
+Sentry es opcional. Para ejecutar Angular con Nginx y Spring Boot en Docker,
+consulta [el laboratorio Docker](../docs/docker.md).

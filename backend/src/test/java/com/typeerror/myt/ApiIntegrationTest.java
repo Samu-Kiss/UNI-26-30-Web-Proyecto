@@ -106,6 +106,23 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
     }
 
     @Test
+    void documentacionPublicaSinDesprotegerLaApi() throws Exception {
+        mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("API de MyT"))
+                .andExpect(jsonPath("$.paths['/api/usuarios'].get.summary").value("Listar usuarios"))
+                .andExpect(jsonPath("$.paths['/api/usuarios/{id}'].get.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/sesion/login'].post.parameters[0].name")
+                        .value("X-MYT-Request"))
+                .andExpect(jsonPath("$.paths['/usuarios']").doesNotExist());
+        mvc.perform(get("/v3/api-docs.yaml")).andExpect(status().isOk());
+        mvc.perform(get("/api/usuarios")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/usuarios/2147483647").cookie(cookie(adminPerfil())))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void permisosDtoCsrfYOrigen() throws Exception {
         mvc.perform(get("/api/tutores")).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.mensaje").exists());
