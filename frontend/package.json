@@ -35,7 +35,7 @@
     "@emnapi/wasi-threads": "^2.1.0",
     "@eslint/js": "^10.0.1",
     "@sentry/cli": "^3.8.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.3",
     "angular-eslint": "22.5.0",
     "eslint": "^10.9.1",
     "jsdom": "^28.0.0",
