@@ -4,9 +4,10 @@ Aplicacion web de tutorias construida con Spring Boot 4 y Java 21.
 
 ## Frontend Angular
 
-El laboratorio de migracion inicial esta en `frontend/`. Conserva el backend y la vista Thymeleaf
-de tutores, y agrega su equivalente en Angular 22 con Atomic Design y datos temporales. Para
-ejecutarlo se requiere una version de Node compatible con Angular 22:
+La aplicación Angular está en `frontend/` y consume la API autenticada de Spring Boot.
+Conserva las vistas Thymeleaf y añade catálogo paginado, editor reactivo y gestión de reservas.
+La guía reproducible está en [docs/entrega-2.md](docs/entrega-2.md). Para
+ejecutarla se requiere una version de Node compatible con Angular 22:
 
 ```bash
 cd frontend
@@ -31,6 +32,29 @@ chmod +x mvnw
 `backend/target/site/jacoco/index.html`. Sentry no envia datos en local mientras `SENTRY_DSN` no este
 definida. Las pruebas de integracion usan Testcontainers, por lo que Docker debe estar en ejecucion
 para completar `verify`.
+
+## Persistencia de sesiones con JWT
+
+El backend emite JWT firmados con HS256 y los guarda en la cookie `myt_sesion`,
+con `HttpOnly`, `SameSite=Strict` y una vida predeterminada de 8 horas. La sesion
+sobrevive a recargas y al cierre del navegador hasta su vencimiento; no se transporta
+por URL ni se guarda en localStorage. Cada peticion verifica la firma, el emisor,
+el vencimiento, el perfil y que el usuario siga activo en la base de datos.
+
+Define `JWT_SECRET` en `.env.local` o en el entorno antes de iniciar el backend:
+usa un secreto aleatorio de al menos 32 bytes, compartido entre instancias y estable
+entre reinicios. Puedes generarlo con `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+No lo guardes en Git. `JWT_DURATION=PT8H` permite ajustar la duracion.
+El perfil `dev` admite HTTP local; en produccion usa HTTPS y `JWT_COOKIE_SECURE=true`.
+
+Cuando la cuenta tiene varios perfiles, el login emite un JWT temporal de 5 minutos
+que solo permite elegir entre los perfiles autenticados mediante `POST /login/rol`.
+Ese token no concede acceso a los menus. `POST /logout` elimina la cookie; no hay
+renovacion automatica ni revocacion individual de tokens copiados, que vencen al
+cumplir su duracion. Cambiar el secreto invalida todas las sesiones existentes.
+
+Esta implementacion corresponde al backend Thymeleaf. El laboratorio Angular
+continua usando sus datos temporales y todavia no tiene un flujo de autenticacion.
 
 ## PostgreSQL y Supabase
 
@@ -103,13 +127,13 @@ Desde el cliente psql o SQL Editor de Supabase:
 
 ```bash
 # Cargar datos de prueba
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f seed_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/dev_seed.sql
 
 # Vaciar datos de las tablas reiniciando secuencias
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f truncate_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/truncate_myt.sql
 
 # Eliminar todas las tablas del esquema app
-psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f drop_myt.sql
+psql -h <HOST> -p 5432 -d <DATABASE> -U <USER> -f backend/supabase/seeds/drop_myt.sql
 ```
 
 ### Credenciales y Datos de Prueba

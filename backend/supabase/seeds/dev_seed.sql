@@ -681,23 +681,20 @@ commit;
 -- =============================================================================
 -- Resumen final (un solo resultado): conteos, reservas por mes/estado y cuentas
 -- =============================================================================
-with meta as (
-    select 'Conteos' as seccion_conteos
-)
 select seccion, detalle, valor
 from (
-    select 1 as o, 1 as s, m.seccion_conteos as seccion, 'usuarios' as detalle, count(*)::text as valor from app.usuarios cross join meta m
-    union all select 1, 2, m.seccion_conteos, 'usuario_roles', count(*)::text from app.usuario_roles cross join meta m
-    union all select 1, 3, m.seccion_conteos, 'estudiantes', count(*)::text from app.estudiantes cross join meta m
-    union all select 1, 4, m.seccion_conteos, 'tutores', count(*)::text from app.tutores cross join meta m
-    union all select 1, 5, m.seccion_conteos, 'materias', count(*)::text from app.materias cross join meta m
-    union all select 1, 6, m.seccion_conteos, 'tutor_materias', count(*)::text from app.tutor_materias cross join meta m
-    union all select 1, 7, m.seccion_conteos, 'disponibilidades_tutor', count(*)::text from app.disponibilidades_tutor cross join meta m
-    union all select 1, 8, m.seccion_conteos, 'reservas', count(*)::text from app.reservas cross join meta m
-    union all select 1, 9, m.seccion_conteos, 'resenas', count(*)::text from app.resenas cross join meta m
-    union all select 1, 10, m.seccion_conteos, 'bloqueos_agenda', count(*)::text from app.bloqueos_agenda cross join meta m
-    union all select 1, 11, m.seccion_conteos, 'conversaciones', count(*)::text from app.conversaciones cross join meta m
-    union all select 1, 12, m.seccion_conteos, 'mensajes', count(*)::text from app.mensajes cross join meta m
+    select 1 as o, 1 as s, 'Conteos' as seccion, 'usuarios' as detalle, count(*)::text as valor from app.usuarios
+    union all select 1, 2, 'Conteos', 'usuario_roles', count(*)::text from app.usuario_roles
+    union all select 1, 3, 'Conteos', 'estudiantes', count(*)::text from app.estudiantes
+    union all select 1, 4, 'Conteos', 'tutores', count(*)::text from app.tutores
+    union all select 1, 5, 'Conteos', 'materias', count(*)::text from app.materias
+    union all select 1, 6, 'Conteos', 'tutor_materias', count(*)::text from app.tutor_materias
+    union all select 1, 7, 'Conteos', 'disponibilidades_tutor', count(*)::text from app.disponibilidades_tutor
+    union all select 1, 8, 'Conteos', 'reservas', count(*)::text from app.reservas
+    union all select 1, 9, 'Conteos', 'resenas', count(*)::text from app.resenas
+    union all select 1, 10, 'Conteos', 'bloqueos_agenda', count(*)::text from app.bloqueos_agenda
+    union all select 1, 11, 'Conteos', 'conversaciones', count(*)::text from app.conversaciones
+    union all select 1, 12, 'Conteos', 'mensajes', count(*)::text from app.mensajes
     union all
     select 2, 0, 'Reservas por mes', to_char(date_trunc('month', fecha), 'YYYY-MM'), count(*)::text
     from app.reservas group by date_trunc('month', fecha)

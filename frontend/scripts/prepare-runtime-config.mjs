@@ -35,6 +35,7 @@ const tracesSampleRate = Number.parseFloat(
 );
 
 const config = {
+  backendUrl: process.env.MYT_BACKEND_URL ?? 'http://localhost:8080',
   sentryDsn: process.env.SENTRY_FRONTEND_DSN ?? process.env.SENTRY_DSN ?? '',
   environment: process.env.SENTRY_FRONTEND_ENVIRONMENT ?? process.env.SENTRY_ENVIRONMENT ?? 'local',
   release: process.env.SENTRY_FRONTEND_RELEASE ?? process.env.SENTRY_RELEASE ?? 'myt-frontend@dev',

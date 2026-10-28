@@ -1,3 +1,4 @@
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
   ErrorHandler,
@@ -7,12 +8,14 @@ import {
 } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import * as Sentry from '@sentry/angular';
+import { apiInterceptor } from './core/services/auth.service';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    provideHttpClient(withInterceptors([apiInterceptor])),
     {
       provide: ErrorHandler,
       useValue: Sentry.createErrorHandler({ showDialog: false }),

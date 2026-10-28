@@ -1,0 +1,22 @@
+name: myt-demo
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: myt_demo
+      POSTGRES_USER: myt_demo
+      POSTGRES_PASSWORD: myt_demo_local_only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - demo_data:/var/lib/postgresql/data
+      - ./backend/supabase/migrations:/docker-entrypoint-initdb.d/00-migrations:ro
+      - ./backend/supabase/demo-init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+      - ./backend/supabase/seeds/dev_seed.sql:/demo-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myt_demo -d myt_demo"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+volumes:
+  demo_data:

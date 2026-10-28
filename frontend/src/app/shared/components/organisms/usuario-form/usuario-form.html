@@ -1,0 +1,156 @@
+<form #form="ngForm" (ngSubmit)="guardar(form)" class="laboratorio-form">
+  <fieldset [disabled]="!habilitado()" class="laboratorio-form">
+    <legend>Datos de la cuenta</legend>
+    <label class="form-field"
+      >Nombre *
+      <input
+        class="text-input"
+        name="nombre"
+        [(ngModel)]="nombre"
+        required
+        maxlength="100"
+        autocomplete="given-name"
+      />
+    </label>
+    @if (form.submitted && !nombre.trim()) {
+      <p class="form-error" role="alert">Debe ingresar el nombre del usuario.</p>
+    }
+    <label class="form-field"
+      >Apellido *
+      <input
+        class="text-input"
+        name="apellido"
+        [(ngModel)]="apellido"
+        required
+        maxlength="100"
+        autocomplete="family-name"
+      />
+    </label>
+    <label class="form-field"
+      >Correo *
+      <input
+        class="text-input"
+        type="email"
+        name="correo"
+        [(ngModel)]="correo"
+        required
+        email
+        maxlength="120"
+        autocomplete="email"
+      />
+    </label>
+    <label class="form-field"
+      >Contraseña *
+      <input
+        class="text-input"
+        type="password"
+        name="contrasena"
+        [(ngModel)]="contrasena"
+        required
+        maxlength="72"
+        autocomplete="new-password"
+      />
+    </label>
+    <label class="form-field"
+      >Teléfono
+      <input
+        class="text-input"
+        type="tel"
+        name="telefono"
+        [(ngModel)]="telefono"
+        maxlength="30"
+        autocomplete="tel"
+      />
+    </label>
+    <label class="form-field"
+      >Perfil *
+      <select class="select-input" name="rol" [(ngModel)]="rol" required>
+        <option value="ESTUDIANTE">Estudiante</option>
+        <option value="TUTOR">Tutor</option>
+      </select>
+    </label>
+    @if (rol === 'ESTUDIANTE') {
+      <label class="form-field"
+        >Código estudiantil *
+        <input
+          class="text-input"
+          name="codigoEstudiantil"
+          [(ngModel)]="codigoEstudiantil"
+          required
+          maxlength="30"
+        />
+      </label>
+      <label class="form-field"
+        >Universidad *
+        <input
+          class="text-input"
+          name="universidad"
+          [(ngModel)]="universidad"
+          required
+          maxlength="150"
+        />
+      </label>
+      <label class="form-field"
+        >Programa académico *
+        <input
+          class="text-input"
+          name="programaAcademico"
+          [(ngModel)]="programaAcademico"
+          required
+          maxlength="150"
+        />
+      </label>
+      <label class="form-field"
+        >Semestre *
+        <input
+          class="text-input"
+          type="number"
+          name="semestre"
+          [(ngModel)]="semestre"
+          required
+          min="1"
+          max="30"
+        />
+      </label>
+    } @else {
+      <label class="form-field"
+        >Materias *
+        <input
+          class="text-input"
+          name="materias"
+          [(ngModel)]="materias"
+          required
+          maxlength="500"
+          placeholder="Cálculo, Física, Programación"
+        />
+      </label>
+      <label class="form-field"
+        >Tarifa por hora *
+        <input
+          class="text-input"
+          type="number"
+          name="tarifaPorHora"
+          [(ngModel)]="tarifaPorHora"
+          required
+          min="0.01"
+          step="0.01"
+        />
+      </label>
+      <label class="form-field"
+        >Biografía
+        <textarea
+          class="text-input"
+          name="biografia"
+          [(ngModel)]="biografia"
+          maxlength="2000"
+          rows="4"
+        ></textarea>
+      </label>
+    }
+    <p class="form-hint">La cuenta se crea activa. Los campos con * son obligatorios.</p>
+    @if (form.submitted && form.invalid) {
+      <p class="form-error" role="alert">Revisa los campos obligatorios y sus valores.</p>
+    }
+    <button class="btn btn--primary btn--lg" type="submit">Guardar usuario</button>
+  </fieldset>
+</form>

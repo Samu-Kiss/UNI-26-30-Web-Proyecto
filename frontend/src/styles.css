@@ -77,6 +77,35 @@
   --transition-base: all 0.15s ease-in-out;
 }
 
+.laboratorio-nav {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  justify-content: center;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.laboratorio-page {
+  max-width: 640px;
+  display: grid;
+  gap: 1.5rem;
+}
+.laboratorio-page h1 {
+  margin: 1rem 0 0.5rem;
+}
+.laboratorio-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+fieldset.laboratorio-form {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -459,3 +488,30 @@ tbody tr:last-child td {
   text-align: center;
 }
 
+.gestion-page {
+  display: grid;
+  gap: 1.5rem;
+}
+.laboratorio-form fieldset {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.laboratorio-nav .active {
+  color: var(--color-primary-active);
+  text-decoration: underline;
+  font-weight: 750;
+}
+[role='alert'] {
+  color: var(--color-danger);
+  padding: 0.75rem 0;
+}
+output {
+  display: block;
+  padding: 0.75rem 0;
+}
+td .btn {
+  margin: 0.2rem;
+}

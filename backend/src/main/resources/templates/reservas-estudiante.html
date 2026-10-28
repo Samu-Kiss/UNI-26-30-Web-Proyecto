@@ -8,7 +8,7 @@
 </head>
 <body>
     <main class="contenedor">
-        <a class="volver" th:href="@{/estudiante(sesion=${sesion})}">Volver al menú</a>
+        <a class="volver" th:href="@{/estudiante}">Volver al menú</a>
         <header class="encabezado">
             <div>
                 <p class="marca">MyT</p>
@@ -16,7 +16,7 @@
                 <p class="descripcion"
                    th:text="|Estudiante: ${estudiante.usuario.nombre} ${estudiante.usuario.apellido}|"></p>
             </div>
-            <a class="boton boton-primario" th:href="@{/tutores(sesion=${sesion})}">Buscar tutor</a>
+            <a class="boton boton-primario" th:href="@{/tutores}">Buscar tutor</a>
         </header>
 
         <div th:if="${param.reservaExitosa}" class="alerta exito" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">

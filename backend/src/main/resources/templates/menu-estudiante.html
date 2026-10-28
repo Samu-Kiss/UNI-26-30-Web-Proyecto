@@ -16,20 +16,21 @@
             </div>
         </header>
         <nav class="rejilla-menu" aria-label="Opciones de estudiante">
-            <a class="tarjeta opcion-menu" th:href="@{/tutores(sesion=${sesion})}">
+            <a class="tarjeta opcion-menu" th:href="@{/tutores}">
                 Consultar tutores
                 <small>Compara materias, tarifas y disponibilidad.</small>
             </a>
-            <a class="tarjeta opcion-menu" th:href="@{/tutores(sesion=${sesion})}">
+            <a class="tarjeta opcion-menu" th:href="@{/tutores}">
                 Crear reserva
                 <small>Empieza seleccionando el tutor ideal.</small>
             </a>
             <a class="tarjeta opcion-menu"
-               th:href="@{/estudiantes/{id}/reservas(id=${perfilIdSesion},sesion=${sesion})}">
+               th:href="@{/estudiantes/{id}/reservas(id=${perfilIdSesion})}">
                 Mis tutorías
                 <small>Consulta tus reservas programadas y anteriores.</small>
             </a>
         </nav>
+    <form th:action="@{/logout}" method="post"><button class="boton" type="submit">Cerrar sesión</button></form>
     </main>
 </body>
 </html>

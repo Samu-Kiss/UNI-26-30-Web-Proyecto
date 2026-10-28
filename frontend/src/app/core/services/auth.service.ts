@@ -1,0 +1,70 @@
+import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { catchError, map, of, tap } from 'rxjs';
+import { Credenciales } from '../models/usuario.model';
+
+export interface Sesion {
+  rol: 'ADMINISTRADOR' | 'ESTUDIANTE' | 'TUTOR';
+  perfilId: number;
+  nombreUsuario: string;
+}
+export interface EstadoSesion {
+  actual: Sesion | null;
+  opciones: string[];
+}
+
+export const apiInterceptor: HttpInterceptorFn = (req, next) =>
+  next(
+    req.url.startsWith('/api/')
+      ? req.clone({ withCredentials: true, setHeaders: { 'X-MYT-Request': '1' } })
+      : req,
+  );
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly http = inject(HttpClient);
+  readonly sesion = signal<Sesion | null>(null);
+  readonly opciones = signal<string[]>([]);
+  private readonly aplicar = (estado: EstadoSesion) => {
+    this.sesion.set(estado.actual);
+    this.opciones.set(estado.opciones);
+  };
+  iniciarSesion(datos: Credenciales) {
+    return this.http.post<EstadoSesion>('/api/sesion/login', datos).pipe(tap(this.aplicar));
+  }
+  restaurar() {
+    return this.http.get<EstadoSesion>('/api/sesion').pipe(
+      tap(this.aplicar),
+      catchError((error) => {
+        this.sesion.set(null);
+        this.opciones.set([]);
+        throw error;
+      }),
+    );
+  }
+  elegir(perfil: string) {
+    return this.http.post<EstadoSesion>('/api/sesion/perfil', { perfil }).pipe(tap(this.aplicar));
+  }
+  cerrar() {
+    return this.http.post<void>('/api/sesion/logout', {}).pipe(
+      tap(() => {
+        this.sesion.set(null);
+        this.opciones.set([]);
+      }),
+    );
+  }
+}
+export const sessionGuard: CanActivateFn = (route) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.restaurar().pipe(
+    map((estado) => {
+      if (!estado.actual) return router.createUrlTree(['/login']);
+      return route.data['admin'] && estado.actual.rol !== 'ADMINISTRADOR'
+        ? router.createUrlTree(['/tutores'])
+        : true;
+    }),
+    catchError(() => of(router.createUrlTree(['/login']))),
+  );
+};

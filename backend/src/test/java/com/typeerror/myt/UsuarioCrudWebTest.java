@@ -30,6 +30,14 @@ import java.util.Set;
 @Transactional
 class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
 
+    @Autowired
+    private com.typeerror.myt.service.JwtSesionService jwtSesionService;
+
+    private jakarta.servlet.http.Cookie sesionCookie(String perfil) {
+        return new jakarta.servlet.http.Cookie(com.typeerror.myt.service.JwtSesionService.COOKIE,
+                jwtSesionService.emitir(java.util.List.of(perfil), false));
+    }
+
     private final MockMvc mockMvc;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -57,7 +65,7 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
     @Test
     void completaElCrudLogicoSinExponerLaContrasena() throws Exception {
         mockMvc.perform(post("/usuarios/registrar")
-                        .param("sesion", sesion)
+                        .cookie(sesionCookie(sesion))
                         .param("nombre", "Laura")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
@@ -69,7 +77,7 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
                         .param("programaAcademico", "Ingeniería")
                         .param("semestre", "5"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         Usuario creado = usuarioRepository.findByCorreoIgnoreCase("LAURA@MYT.TEST").orElseThrow();
         assertTrue(creado.getActivo());
@@ -78,16 +86,16 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
         String hashInicial = creado.getContrasena();
 
         mockMvc.perform(post("/usuarios/{id}/desactivar", creado.getId())
-                        .param("sesion", sesion))
+                        .cookie(sesionCookie(sesion)))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         Usuario desactivado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertFalse(desactivado.getActivo());
         assertEquals(2, usuarioRepository.count());
 
         String formulario = mockMvc.perform(get("/usuarios/{id}/editar", creado.getId())
-                        .param("sesion", sesion))
+                        .cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("usuario-form"))
                 .andReturn()
@@ -96,14 +104,14 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
         assertFalse(formulario.contains("secreto-inicial"));
 
         mockMvc.perform(post("/usuarios/{id}/editar", creado.getId())
-                        .param("sesion", sesion)
+                        .cookie(sesionCookie(sesion))
                         .param("nombre", "Laura Maria")
                         .param("apellido", "Gomez")
                         .param("correo", "laura@myt.test")
                         .param("contrasena", "")
                         .param("telefono", "3101112233"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         Usuario editado = usuarioRepository.findById(creado.getId()).orElseThrow();
         assertEquals("Laura Maria", editado.getNombre());
@@ -111,9 +119,9 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
         assertFalse(editado.getActivo());
 
         mockMvc.perform(post("/usuarios/{id}/activar", creado.getId())
-                        .param("sesion", sesion))
+                        .cookie(sesionCookie(sesion)))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/usuarios?sesion=" + sesion));
+                .andExpect(redirectedUrl("/usuarios"));
 
         assertTrue(usuarioRepository.findById(creado.getId()).orElseThrow().getActivo());
         assertEquals(2, usuarioRepository.count());
@@ -121,16 +129,16 @@ class UsuarioCrudWebTest extends PostgreSqlIntegrationTest {
 
     @Test
     void renderizaLosListadosPublicados() throws Exception {
-        mockMvc.perform(get("/administradores").param("sesion", sesion))
+        mockMvc.perform(get("/administradores").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("administradores"));
-        mockMvc.perform(get("/estudiantes").param("sesion", sesion))
+        mockMvc.perform(get("/estudiantes").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("estudiantes"));
-        mockMvc.perform(get("/tutores").param("sesion", sesion))
+        mockMvc.perform(get("/tutores").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("tutores"));
-        mockMvc.perform(get("/reservas").param("sesion", sesion))
+        mockMvc.perform(get("/reservas").cookie(sesionCookie(sesion)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("mostrar_reservas"));
     }

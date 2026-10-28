@@ -101,7 +101,7 @@ public class TutorController {
             @RequestParam ModalidadReserva modalidad,
             @RequestParam(required = false) Integer estudianteId,
             @RequestAttribute(value = "perfilIdSesion", required = false) Integer estudianteIdSesion,
-            @RequestParam String sesion,
+            @RequestAttribute String sesion,
             Model model) {
 
         Integer idEstudiante = estudianteIdSesion != null ? estudianteIdSesion : estudianteId;
@@ -113,8 +113,8 @@ public class TutorController {
             reservaService.crearReserva(tutorId, idEstudiante, materiaId,
                     fecha, horaInicio, duracionMinutos, tema, modalidad);
             String redireccion = ContextoSesion.redireccion(
-                    "/estudiantes/" + idEstudiante + "/reservas", sesion);
-            return redireccion + "&reservaExitosa=true";
+                    "/estudiantes/" + idEstudiante + "/reservas");
+            return redireccion + "?reservaExitosa=true";
         } catch (IllegalArgumentException | IllegalStateException exception) {
             Tutor tutor = tutorService.findById(tutorId).orElse(null);
             model.addAttribute("error", exception.getMessage());
@@ -139,7 +139,7 @@ public class TutorController {
             @RequestParam Integer id,
             @RequestParam EstadoReserva estado,
             @RequestParam(required = false) String motivo,
-            @RequestParam String sesion,
+            @RequestAttribute String sesion,
             Model model) {
         try {
             Reserva reserva = reservaService.findById(id)
@@ -156,7 +156,7 @@ public class TutorController {
             return "reservas-tutor";
         }
 
-        return ContextoSesion.redireccion("/tutores/" + tutorId + "/reservas", sesion);
+        return ContextoSesion.redireccion("/tutores/" + tutorId + "/reservas");
     }
 
     private List<Map<String, String>> obtenerDisponibilidadesDto(Integer tutorId, Tutor tutor) {

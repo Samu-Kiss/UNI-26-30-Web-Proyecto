@@ -143,6 +143,11 @@ public class ReservaServiceImpl implements ReservaService {
         Materia materia = materiaRepository.findById(materiaId)
                 .orElseThrow(() -> new MateriaNotFoundException(materiaId));
 
+        if (fecha == null || horaInicio == null || duracionMinutos == null || duracionMinutos <= 0
+                || duracionMinutos > 480 || !horaInicio.plusMinutes(duracionMinutos).isAfter(horaInicio)
+                || tutor.getMaterias().stream().noneMatch(m -> m.getId().equals(materiaId))) {
+            throw new InformacionNoValidaException();
+        }
         String ubicacionOEnlace = modalidad == ModalidadReserva.VIRTUAL
                 ? "https://meet.google.com/myt-tutoria"
                 : "Campus Universitario / Aula del Tutor";
