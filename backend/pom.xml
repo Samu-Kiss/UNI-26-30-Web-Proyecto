@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.typeError</groupId>
@@ -20,7 +20,7 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sentry.maven.plugin.version>0.11.0</sentry.maven.plugin.version>
-        <sentry.version>8.59.0</sentry.version>
+        <sentry.version>8.61.1</sentry.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
         <sonar.coverage.jacoco.xmlReportPaths>
