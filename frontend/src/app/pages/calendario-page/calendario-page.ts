@@ -1,477 +1,245 @@
+import { CommonModule } from '@angular/common';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { ApiService, ReservaApi } from '../../core/services/api.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, EMPTY, finalize, forkJoin, merge, of, Subject, switchMap, timer } from 'rxjs';
+import { AgendaApi, ApiService, ReservaApi, mensajeHttp } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { MytStateService } from '../../core/services/myt-state.service';
-import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
-
-interface CeldaCalendario {
-  numero: number;
-  fueraDeMes: boolean;
-  evento?: {
-    id: number;
-    etiqueta: string;
-    hora: string;
-    tono: 'pending' | 'teal' | 'green';
-  };
-}
-
 @Component({
   selector: 'app-calendario-page',
-  imports: [RouterLink, LucideIconComponent],
-  template: `
-    <main class="myt-screen" data-node-id="1:1036">
-      <header class="myt-page-header" data-node-id="10:110">
-        <div>
-          <h1>Mi calendario</h1>
-          <p>Consulta tus sesiones programadas, pendientes y pasadas.</p>
-        </div>
-        @if (esEstudiante()) {
-          <a routerLink="/tutores" class="myt-btn myt-btn--primary">
-            <app-lucide-icon name="search" [size]="16" />
-            <span>Buscar tutor</span>
-          </a>
-        }
-      </header>
-
-      <section class="myt-kpi-row" aria-label="Resumen de sesiones" data-node-id="10:122">
-        <article class="myt-kpi-card">
-          <strong>{{ totalProximas() }}</strong>
-          <span>Próximas</span>
-        </article>
-        <article class="myt-kpi-card">
-          <strong>{{ totalPendientes() }}</strong>
-          <span>Pendiente</span>
-        </article>
-        <article class="myt-kpi-card">
-          <strong>{{ totalCompletadas() }}</strong>
-          <span>Completadas</span>
-        </article>
-      </section>
-
-      <div class="myt-calendar-layout" data-node-id="10:132">
-        <section class="myt-paper-card myt-calendar-board" aria-label="Calendario mensual">
-          <div class="myt-calendar-board__top">
-            <h2>{{ mesActual() }}</h2>
-            <div class="myt-calendar-board__controls">
-              <button type="button" class="myt-link-btn" aria-label="Mes anterior" (click)="cambiarMes(-1)">
-                <app-lucide-icon name="chevron-left" [size]="16" />
-              </button>
-              <button type="button" class="myt-link-btn" (click)="irAHoy()">Hoy</button>
-              <button type="button" class="myt-link-btn" aria-label="Mes siguiente" (click)="cambiarMes(1)">
-                <app-lucide-icon name="chevron-right" [size]="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="myt-calendar-weekdays" aria-hidden="true">
-            <span>LUN</span>
-            <span>MAR</span>
-            <span>MIÉ</span>
-            <span>JUE</span>
-            <span>VIE</span>
-            <span>SÁB</span>
-            <span>DOM</span>
-          </div>
-
-          <div class="myt-calendar-grid">
-            @for (celda of celdas(); track $index) {
-              <div
-                class="myt-calendar-cell"
-                [class.myt-calendar-cell--muted]="celda.fueraDeMes"
-              >
-                <span class="myt-calendar-cell__day">{{ celda.numero }}</span>
-                @if (celda.evento; as ev) {
-                  <a
-                    [routerLink]="['/reservas', ev.id]"
-                    class="myt-calendar-event myt-calendar-event--{{ ev.tono }}"
-                  >
-                    <strong>{{ ev.etiqueta }}</strong>
-                    <small>{{ ev.hora }}</small>
-                  </a>
+  imports: [CommonModule, RouterLink],
+  template: ` <main class="myt-page-shell">
+    <header class="myt-page-header">
+      <h1>Mi calendario</h1>
+      <div class="myt-toolbar-actions">
+        <button (click)="cambiarMes(-1)" aria-label="Mes anterior">←</button
+        ><strong>{{ mesTexto() }}</strong
+        ><button (click)="cambiarMes(1)" aria-label="Mes siguiente">→</button>
+      </div>
+    </header>
+    @if (cargando()) {
+      <p role="status">Cargando calendario…</p>
+    }
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+      <button (click)="cargar()">Reintentar</button>
+    }
+    @if (!cargando() && !error()) {
+      <section class="myt-surface-card">
+        <h2>Reservas de {{ mesTexto() }}</h2>
+        <div class="calendar-scroll">
+          <div class="calendar-grid" role="grid" aria-label="Calendario mensual">
+            @for (d of ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']; track d) {
+              <strong role="columnheader">{{ d }}</strong>
+            }
+            @for (d of diasMes(); track $index) {
+              <div role="gridcell" class="calendar-day" [class.calendar-day--empty]="!d">
+                @if (d) {
+                  <strong>{{ d.numero }}</strong>
+                  @for (r of d.reservas; track r.id) {
+                    <a [routerLink]="['/reservas', r.id]" class="calendar-event"
+                      >{{ r.horaInicio.slice(0, 5) }} · {{ r.materia
+                      }}<small>{{ r.estado }}</small></a
+                    >
+                  }
+                  @for (b of d.bloqueos; track $index) {
+                    <span class="calendar-block"
+                      >Bloqueado {{ b.horaInicio.slice(0, 5) }}–{{ b.horaFin.slice(0, 5) }}</span
+                    >
+                  }
                 }
               </div>
             }
           </div>
-        </section>
-
-        <aside class="myt-paper-card myt-upcoming-panel" data-node-id="10:229">
-          <h2>Próximas tutorías</h2>
-          <div class="myt-upcoming-list">
-            @for (ev of state.eventosCalendario(); track ev.id; let idx = $index) {
-              @if (ev.estado !== 'CANCELADA') {
-                <a [routerLink]="['/reservas', ev.id]" class="myt-upcoming-item">
-                  <span
-                    class="myt-upcoming-item__date"
-                    [class.myt-upcoming-item__date--green]="idx === 1"
-                    [class.myt-upcoming-item__date--amber]="ev.estado === 'PENDIENTE'"
-                  >
-                    {{ ev.fechaCorta }}
-                  </span>
-                  <div class="myt-upcoming-item__body">
-                    <strong>{{ ev.titulo }}</strong>
-                    <small>
-                      {{ ev.horaInicio }} ·
-                      {{ ev.modalidad === 'En línea' ? 'Online' : 'Presencial' }}
-                    </small>
-                  </div>
-                </a>
-              }
-            }
-          </div>
-
-          <div class="myt-calendar-legend">
-            <h3>Estados</h3>
+        </div>
+        @for (r of eventos(); track r.id) {
+          <article class="calendar-entry">
+            <a [routerLink]="['/reservas', r.id]"
+              ><strong>{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.materia }}</strong></a
+            >
             <p>
-              <span class="myt-dot myt-dot--teal">●</span> Confirmada
-              <span class="myt-dot myt-dot--amber">●</span> Pendiente
-              <span class="myt-dot myt-dot--green">●</span> Finalizada
+              {{ r.tema }} · {{ auth.sesion()?.rol === 'TUTOR' ? r.estudiante : r.tutor }} ·
+              {{ r.estado }}
             </p>
-          </div>
-        </aside>
-      </div>
-    </main>
-  `,
+          </article>
+        } @empty {
+          <p>No hay reservas en este mes.</p>
+        }
+      </section>
+      @if (auth.sesion()?.rol === 'TUTOR') {
+        <section class="myt-surface-card">
+          <h2>Disponibilidad semanal</h2>
+          @for (h of agenda().horarios; track $index) {
+            <p>{{ h.diaSemana }} · {{ h.horaInicio.slice(0, 5) }} – {{ h.horaFin.slice(0, 5) }}</p>
+          } @empty {
+            <p>Configura tu disponibilidad desde Mi perfil.</p>
+          }
+          <h3>Bloqueos de este mes</h3>
+          @for (b of bloqueosMes(); track $index) {
+            <p>
+              {{ b.fecha }} · {{ b.horaInicio.slice(0, 5) }} – {{ b.horaFin.slice(0, 5) }} ·
+              {{ b.motivo }}
+            </p>
+          } @empty {
+            <p>No hay bloqueos en este mes.</p>
+          }
+        </section>
+      }
+      <section class="myt-surface-card">
+        <h2>Próximas tutorías</h2>
+        @for (r of proximas(); track r.id) {
+          <p>
+            <a [routerLink]="['/reservas', r.id]"
+              >{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.tema }} · {{ r.estado }}</a
+            >
+          </p>
+        } @empty {
+          <p>No tienes próximas tutorías.</p>
+        }
+      </section>
+    }
+  </main>`,
   styles: [
     `
-      .myt-screen {
-        display: flex;
-        flex-direction: column;
-        gap: 1.35rem;
-        max-width: 1160px;
-        margin: 0 auto;
+      .calendar-entry {
+        padding: 1rem 0;
+        border-bottom: 1px solid #ddd;
       }
-      .myt-page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
+      .calendar-scroll {
+        overflow-x: auto;
+        margin: 1rem 0;
       }
-      .myt-page-header h1 {
-        font-size: 1.85rem;
-        color: #46494c;
-        margin: 0;
-      }
-      .myt-page-header p {
-        margin: 0.25rem 0 0;
-        color: #4c5c68;
-      }
-      .myt-kpi-row {
+      .calendar-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+        grid-template-columns: repeat(7, minmax(100px, 1fr));
+        gap: 1px;
+        background: #ddd;
+        border: 1px solid #ddd;
       }
-      @media (max-width: 680px) {
-        .myt-kpi-row {
-          grid-template-columns: 1fr;
-        }
-      }
-      .myt-kpi-card {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 16px;
-        padding: 1.15rem 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-      }
-      .myt-kpi-card strong {
-        font-size: 1.65rem;
-        color: #1985a1;
-      }
-      .myt-kpi-card span {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #4c5c68;
-      }
-      .myt-calendar-layout {
-        display: grid;
-        grid-template-columns: 1.85fr 1fr;
-        gap: 1.35rem;
-        align-items: start;
-      }
-      @media (max-width: 980px) {
-        .myt-calendar-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-      .myt-paper-card {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 18px;
-        padding: 1.5rem;
-      }
-      .myt-calendar-board__top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-      }
-      .myt-calendar-board__controls {
-        display: flex;
-        gap: 0.4rem;
-      }
-      .myt-link-btn {
-        background: #ffffff;
-        border: 1px solid #c5c3c6;
-        border-radius: 8px;
-        padding: 0.3rem 0.65rem;
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #46494c;
-        cursor: pointer;
-      }
-      .myt-calendar-weekdays {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 0.45rem;
+      .calendar-grid > strong {
+        padding: 0.5rem;
         text-align: center;
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: #6f7479;
-        padding-bottom: 0.5rem;
+        background: #e9eef0;
       }
-      .myt-calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        grid-auto-rows: 96px;
-        gap: 0.45rem;
-      }
-      .myt-calendar-cell {
-        height: 96px;
-        min-height: 96px;
-        max-height: 96px;
-        min-width: 0;
-        box-sizing: border-box;
-        overflow: hidden;
-        background: #ffffff;
-        border: 1px solid #e4e4e5;
-        border-radius: 12px;
-        padding: 0.45rem;
+      .calendar-day {
+        min-height: 100px;
+        padding: 0.5rem;
+        background: #fff;
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
       }
-      .myt-calendar-cell--muted {
-        background: #e9e9ea;
-        opacity: 0.6;
+      .calendar-day--empty {
+        background: #f2f2f2;
       }
-      .myt-calendar-cell__day {
+      .calendar-event,
+      .calendar-block {
         font-size: 0.75rem;
-        font-weight: 700;
-        color: #4c5c68;
+        background: #ddecef;
+        padding: 0.25rem;
+        border-radius: 5px;
       }
-      .myt-calendar-event {
-        display: flex;
-        flex-direction: column;
-        padding: 0.3rem 0.45rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.7rem;
-        line-height: 1.2;
-        overflow: hidden;
-      }
-      .myt-calendar-event strong,
-      .myt-calendar-event small {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .calendar-event small {
         display: block;
       }
-      .myt-calendar-event--teal,
-      .myt-calendar-event--teal:hover {
-        background: #126e87;
-        color: #ffffff;
-        text-decoration: none;
-      }
-      .myt-calendar-event--green,
-      .myt-calendar-event--green:hover {
-        background: #0d695b;
-        color: #ffffff;
-        text-decoration: none;
-      }
-      .myt-calendar-event--pending,
-      .myt-calendar-event--pending:hover {
-        background: #fef0c7;
-        color: #694100;
-        border: 1px solid #f0a726;
-        text-decoration: none;
-      }
-      .myt-upcoming-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-      .myt-upcoming-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-      }
-      .myt-upcoming-item {
-        background: #ffffff;
-        border: 1px solid #dcdcdd;
-        border-radius: 12px;
-        padding: 0.75rem 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        text-decoration: none;
-        color: #46494c;
-      }
-      .myt-upcoming-item:hover {
-        border-color: #1985a1;
-        text-decoration: none;
-      }
-      .myt-upcoming-item__date {
-        padding: 0.35rem 0.55rem;
-        border-radius: 8px;
-        background: #ddecef;
-        color: #1985a1;
-        font-size: 0.7rem;
-        font-weight: 800;
-        white-space: nowrap;
-      }
-      .myt-upcoming-item__date--amber {
-        background: rgba(240, 167, 38, 0.2);
-        color: #a96d00;
-      }
-      .myt-upcoming-item__date--green {
-        background: rgba(17, 129, 111, 0.16);
-        color: #11816f;
-      }
-      .myt-upcoming-item__body {
-        display: flex;
-        flex-direction: column;
-      }
-      .myt-upcoming-item__body strong {
-        font-size: 0.88rem;
-      }
-      .myt-upcoming-item__body small {
-        font-size: 0.76rem;
-        color: #6f7479;
-      }
-      .myt-calendar-legend {
-        padding-top: 0.75rem;
-        border-top: 1px solid #dcdcdd;
-      }
-      .myt-calendar-legend h3 {
-        font-size: 0.82rem;
-        margin-bottom: 0.35rem;
-      }
-      .myt-calendar-legend p {
-        display: flex;
-        gap: 0.85rem;
-        flex-wrap: wrap;
-        font-size: 0.78rem;
-      }
-      .myt-dot--teal {
-        color: #1985a1;
-      }
-      .myt-dot--amber {
-        color: #f0a726;
-      }
-      .myt-dot--green {
-        color: #11816f;
+      .calendar-block {
+        background: #fbe7df;
       }
     `,
   ],
 })
 export class CalendarioPageComponent implements OnInit {
-  private readonly api = inject(ApiService);
-  private readonly destroyRef = inject(DestroyRef);
+  readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
-  readonly state = inject(MytStateService);
-
-  readonly esEstudiante = computed(() => !this.auth.sesion() || this.auth.sesion()?.rol === 'ESTUDIANTE');
-
-  readonly reservasApi = signal<ReservaApi[]>([]);
-  readonly reservasCargadas = signal(false);
-  private readonly meses = ['Agosto 2026', 'Septiembre 2026', 'Octubre 2026'];
-  readonly indiceMes = signal(1);
-
-  readonly mesActual = computed(() => this.meses[this.indiceMes()] ?? 'Septiembre 2026');
-
-  readonly totalProximas = computed(() => {
-    if (this.reservasCargadas()) {
-      return this.reservasApi().filter((r) => r.estado === 'CONFIRMADA').length;
-    }
-    return this.state.eventosCalendario().filter((e) => e.estado !== 'CANCELADA').length;
-  });
-
-  readonly totalPendientes = computed(() => {
-    if (this.reservasCargadas()) {
-      return this.reservasApi().filter((r) => r.estado === 'PENDIENTE').length;
-    }
-    return 1;
-  });
-
-  readonly totalCompletadas = computed(() => {
-    if (this.reservasCargadas()) {
-      return this.reservasApi().filter((r) => r.estado === 'COMPLETADA').length;
-    }
-    return 8;
-  });
-
-  readonly celdas = computed<CeldaCalendario[]>(() => {
-    const apiRes = this.reservasApi();
-    const eventos = this.state.eventosCalendario();
-    const resultado: CeldaCalendario[] = [{ numero: 31, fueraDeMes: true }];
-    for (let d = 1; d <= 30; d++) {
-      const ev = eventos.find((e) => e.diaMes === d && e.estado !== 'CANCELADA');
-      const rMatch = apiRes.find((r) => {
-        if (!r.fecha) return false;
-        const partes = r.fecha.split('-');
-        return partes.length === 3 && parseInt(partes[2], 10) === d && r.estado !== 'CANCELADA';
-      });
-      let eventoData = ev
-        ? {
-            id: ev.id,
-            etiqueta: ev.estado === 'PENDIENTE' && d === 3 ? 'Pendiente' : ev.materia,
-            hora: ev.horaInicio,
-            tono: ev.estado === 'PENDIENTE' ? ('pending' as const) : d === 15 ? ('green' as const) : ('teal' as const),
-          }
-        : undefined;
-      if (rMatch) {
-        eventoData = {
-          id: rMatch.id,
-          etiqueta: rMatch.materia,
-          hora: rMatch.horaInicio,
-          tono: rMatch.estado === 'PENDIENTE' ? ('pending' as const) : ('teal' as const),
-        };
-      }
-      resultado.push({
-        numero: d,
-        fueraDeMes: false,
-        evento: eventoData,
+  readonly destroyRef = inject(DestroyRef);
+  private readonly refrescar = new Subject<void>();
+  readonly mes = signal(
+    new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) + 'T12:00:00'),
+  );
+  readonly reservas = signal<ReservaApi[]>([]);
+  readonly agenda = signal<AgendaApi>({ horarios: [], bloqueos: [] });
+  readonly cargando = signal(true);
+  readonly error = signal('');
+  readonly mesTexto = computed(() =>
+    this.mes().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }),
+  );
+  readonly prefijo = computed(
+    () => this.mes().getFullYear() + '-' + String(this.mes().getMonth() + 1).padStart(2, '0'),
+  );
+  readonly diasMes = computed(() => {
+    const d = this.mes();
+    const inicio = new Date(d.getFullYear(), d.getMonth(), 1);
+    const offset = (inicio.getDay() + 6) % 7;
+    const total = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const dias: ({
+      numero: number;
+      reservas: ReservaApi[];
+      bloqueos: AgendaApi['bloqueos'];
+    } | null)[] = Array.from({ length: offset }, () => null);
+    for (let n = 1; n <= total; n++) {
+      const fecha = this.prefijo() + '-' + String(n).padStart(2, '0');
+      dias.push({
+        numero: n,
+        reservas: this.eventos().filter((r) => r.fecha === fecha),
+        bloqueos: this.bloqueosMes().filter((b) => b.fecha === fecha),
       });
     }
-    for (let next = 1; next <= 4; next++) {
-      resultado.push({ numero: next, fueraDeMes: true });
-    }
-    return resultado;
+    return dias;
   });
-
-  ngOnInit(): void {
-    this.api
-      .reservas()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r) => {
-          this.reservasApi.set(r);
-          this.reservasCargadas.set(true);
-        },
-        error: () => undefined,
+  readonly eventos = computed(() =>
+    this.reservas()
+      .filter((r) => r.fecha.startsWith(this.prefijo()))
+      .sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio)),
+  );
+  readonly bloqueosMes = computed(() =>
+    this.agenda().bloqueos.filter((b) => b.fecha.startsWith(this.prefijo())),
+  );
+  readonly proximas = computed(() => {
+    const ahora = new Date()
+      .toLocaleString('sv-SE', { timeZone: 'America/Bogota' })
+      .replace(' ', 'T');
+    return this.reservas()
+      .filter(
+        (r) =>
+          ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado) &&
+          r.fecha + 'T' + r.horaInicio >= ahora,
+      )
+      .sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio))
+      .slice(0, 5);
+  });
+  ngOnInit() {
+    merge(timer(0, 30000), this.refrescar, this.api.cambios)
+      .pipe(
+        switchMap(() => {
+          this.cargando.set(true);
+          this.error.set('');
+          const s = this.auth.sesion();
+          return forkJoin({
+            r: this.api.reservas(),
+            a:
+              s?.rol === 'TUTOR' ? this.api.agenda(s.perfilId) : of({ horarios: [], bloqueos: [] }),
+          }).pipe(
+            catchError((e) => {
+              this.reservas.set([]);
+              this.error.set(mensajeHttp(e));
+              return EMPTY;
+            }),
+            finalize(() => this.cargando.set(false)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ r, a }) => {
+        this.reservas.set(r);
+        this.agenda.set(a);
       });
   }
-
-  cambiarMes(delta: number): void {
-    const nuevo = Math.max(0, Math.min(this.meses.length - 1, this.indiceMes() + delta));
-    this.indiceMes.set(nuevo);
+  cargar() {
+    this.refrescar.next();
   }
-
-  irAHoy(): void {
-    this.indiceMes.set(1);
+  cambiarMes(delta: number) {
+    const d = this.mes();
+    this.mes.set(new Date(d.getFullYear(), d.getMonth() + delta, 1));
+    this.cargar();
   }
 }

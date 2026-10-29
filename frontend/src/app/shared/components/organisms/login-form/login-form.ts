@@ -50,6 +50,5 @@ export class LoginFormComponent {
   enviarLogin(form: NgForm): void {
     if (!this.habilitado() || form.invalid || !this.correo.trim()) return;
     this.loginEnviado.emit({ correo: this.correo.trim(), contrasena: this.contrasena });
-    this.contrasena = '';
   }
 }

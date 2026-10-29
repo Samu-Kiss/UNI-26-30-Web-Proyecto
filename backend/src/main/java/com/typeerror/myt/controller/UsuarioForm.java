@@ -40,6 +40,8 @@ public class UsuarioForm {
     private String contrasena;
 
     @Size(max = 30)
+    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+            message = "Ingresa 10 dígitos, opcionalmente precedidos por +57")
     private String telefono;
 
     private Set<RolUsuario> roles = new HashSet<>();

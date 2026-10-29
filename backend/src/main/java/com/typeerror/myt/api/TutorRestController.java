@@ -48,11 +48,35 @@ public class TutorRestController {
     @GetMapping
     public ResponseEntity<Page<ApiDtos.TutorDto>> listar(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size, @RequestParam(required = false) Integer materiaId,
-            @RequestParam(required = false) BigDecimal tarifaMax) {
+            @RequestParam(required = false) BigDecimal tarifaMax,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "calificacion") String orden) {
         if (page < 0 || size < 1 || size > 50 || (tarifaMax != null && tarifaMax.signum() < 0)) {
             return ResponseEntity.badRequest().build();
         }
-        var pagina = tutores.buscar(materiaId, tarifaMax, PageRequest.of(page, size, Sort.by("id")));
+        String busqueda = java.text.Normalizer.normalize(q, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT).trim();
+        var filtrados = tutores.findAll().stream()
+                .filter(t -> Boolean.TRUE.equals(t.getUsuario().getActivo()) && Boolean.TRUE.equals(t.getDisponible()))
+                .filter(t -> materiaId == null || t.getMaterias().stream().anyMatch(m -> m.getId().equals(materiaId)))
+                .filter(t -> tarifaMax == null || t.getTarifaPorHora().compareTo(tarifaMax) <= 0)
+                .filter(t -> normalizar(t.getUsuario().getNombre() + " " + t.getUsuario().getApellido()
+                        + " " + t.getBiografia() + " " + t.getMaterias().stream()
+                        .map(m -> m.getNombre()).collect(Collectors.joining(" "))).contains(busqueda))
+                .toList();
+        var todosIds = filtrados.stream().map(Tutor::getId).toList();
+        Map<Integer, Double> notas = todosIds.isEmpty() ? Map.of()
+                : tutores.findCalificacionesPromedioByTutorIds(todosIds).stream().collect(Collectors.toMap(
+                        TutorRepository.CalificacionTutor::getTutorId,
+                        TutorRepository.CalificacionTutor::getPromedio));
+        java.util.Comparator<Tutor> comparador = "precio".equals(orden)
+                ? java.util.Comparator.comparing(Tutor::getTarifaPorHora)
+                : java.util.Comparator.<Tutor>comparingDouble(t -> notas.getOrDefault(t.getId(), 0.0)).reversed();
+        var ordenados = filtrados.stream().sorted(comparador.thenComparing(Tutor::getId)).toList();
+        int inicio = (int) Math.min((long) page * size, ordenados.size());
+        Page<Tutor> pagina = new org.springframework.data.domain.PageImpl<>(
+                ordenados.subList(inicio, Math.min(inicio + size, ordenados.size())),
+                PageRequest.of(page, size), ordenados.size());
         var ids = pagina.getContent().stream().map(Tutor::getId).toList();
         Map<Integer, Double> promedios = ids.isEmpty() ? Map.of()
                 : tutores.findCalificacionesPromedioByTutorIds(ids).stream()
@@ -122,6 +146,11 @@ public class TutorRestController {
         tutor.get().setDisponible(false);
         tutores.save(tutor.get());
         return ResponseEntity.noContent().build();
+    }
+
+    private String normalizar(String valor) {
+        return java.text.Normalizer.normalize(valor, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT);
     }
 
     private ApiDtos.TutorDto dto(Tutor tutor) {

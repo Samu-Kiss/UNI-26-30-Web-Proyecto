@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Credenciales } from '../../core/models/usuario.model';
 import { AuthService, EstadoSesion } from '../../core/services/auth.service';
-import { mensajeHttp } from '../../core/services/api.service';
+import { ApiService, mensajeHttp } from '../../core/services/api.service';
 import { LoginFormComponent } from '../../shared/components/organisms/login-form/login-form';
 import { BrandMarkComponent } from '../../shared/components/atoms/brand-mark/brand-mark';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
@@ -61,7 +61,8 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
             <div class="myt-login-footer">
               <p>
                 ¿No tienes una cuenta aún?
-                <a routerLink="/registro"><strong>Regístrate gratis</strong></a>.
+                <a routerLink="/registro"><strong>Regístrate gratis</strong></a
+                >.
               </p>
               <p>
                 ¿Quieres conocer primero la plataforma?
@@ -163,6 +164,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 })
 export class LoginPageComponent implements OnInit {
   readonly auth = inject(AuthService);
+  private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   readonly error = signal('');
   readonly cargando = signal(false);
@@ -200,7 +202,17 @@ export class LoginPageComponent implements OnInit {
       if (estado.actual.rol === 'ADMINISTRADOR') {
         void this.router.navigateByUrl('/usuarios');
       } else {
-        void this.router.navigateByUrl('/tutores');
+        if (estado.actual.rol === 'TUTOR') {
+          this.api.agenda(estado.actual.perfilId).subscribe({
+            next: (a) =>
+              void this.router.navigateByUrl(
+                a.horarios.length ? '/reservas' : '/mi-perfil?setup=1',
+              ),
+            error: () => void this.router.navigateByUrl('/reservas'),
+          });
+        } else {
+          void this.router.navigateByUrl('/tutores');
+        }
       }
     }
   }

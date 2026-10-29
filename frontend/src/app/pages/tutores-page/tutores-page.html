@@ -15,6 +15,7 @@
         type="search"
         name="busquedaTexto"
         [(ngModel)]="busquedaTexto"
+        (ngModelChange)="filtrar()"
         placeholder="Buscar por nombre o tema…"
       />
     </label>
@@ -172,7 +173,10 @@
 
     <button type="button" class="myt-sort-btn" (click)="alternarOrden()">
       <app-lucide-icon name="arrow-up-down" [size]="14" />
-      <span>Ordenar: {{ ordenActivo() === 'calificacion' ? 'Mejor calificados' : 'Menor tarifa' }}</span>
+      <span
+        >Ordenar:
+        {{ ordenActivo() === 'calificacion' ? 'Mejor calificados' : 'Menor tarifa' }}</span
+      >
     </button>
   </div>
 
@@ -204,17 +208,18 @@
             </div>
           </div>
 
-          <span class="myt-rating-pill">
-            <app-lucide-icon name="star" [size]="13" [filled]="true" />
-            {{ t.calificacion ?? '4.9' }}
-          </span>
+          @if (t.calificacion !== null) {
+            <span class="myt-rating-pill">
+              <app-lucide-icon name="star" [size]="13" [filled]="true" />
+              {{ t.calificacion }}
+            </span>
+          } @else {
+            <span>Sin reseñas</span>
+          }
         </div>
 
         <p class="myt-tutor-card__bio">
-          {{
-            t.biografia ||
-              'Sesiones prácticas enfocadas en resolución de ejercicios y preparación de exámenes.'
-          }}
+          {{ t.biografia || 'Biografía no registrada.' }}
         </p>
 
         <div class="myt-tutor-card__footer">

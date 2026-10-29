@@ -1,3 +1,4 @@
+import { toObservable } from '@angular/core/rxjs-interop';
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -6,18 +7,12 @@ import {
   catchError,
   finalize,
   combineLatest,
-  concatMap,
   debounceTime,
-  defer,
   distinctUntilChanged,
   exhaustMap,
-  forkJoin,
-  from,
   map,
-  mergeMap,
-  Observable,
+  merge,
   of,
-  range,
   shareReplay,
   startWith,
   Subject,
@@ -49,15 +44,7 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   readonly guardando = signal(false);
   readonly cargando = signal(false);
   readonly guardado = signal('');
-  readonly mensajeRevision = signal('');
   readonly mostrarFormNuevo = signal(false);
-
-  readonly diagnosticoRxjs = signal<{
-    totalOf: number;
-    muestrasFrom: { id: number; nombre: string; roles: string[] }[];
-    primerosRange: string[];
-    avisosManual: string[];
-  } | null>(null);
 
   readonly totalUsuarios = computed(() => this.usuarios().length);
   readonly totalActivos = computed(() => this.usuarios().filter((u) => u.activo).length);
@@ -76,12 +63,12 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   readonly usuarioAgregandoPerfil = signal<Usuario | null>(null);
   nuevoPerfilRol: 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR' = 'ESTUDIANTE';
   nuevoPerfilCodigo = '';
-  nuevoPerfilUniversidad = 'Pontificia Universidad Javeriana';
-  nuevoPerfilPrograma = 'Ingeniería de Sistemas';
-  nuevoPerfilSemestre = 5;
-  nuevoPerfilBiografia = 'Docente y tutor universitario con experiencia.';
-  nuevoPerfilMaterias = 'Cálculo diferencial';
-  nuevoPerfilTarifa = 45000;
+  nuevoPerfilUniversidad = '';
+  nuevoPerfilPrograma = '';
+  nuevoPerfilSemestre = 1;
+  nuevoPerfilBiografia = '';
+  nuevoPerfilMaterias = '';
+  nuevoPerfilTarifa = 1;
 
   get sesion() {
     return this.auth.sesion()?.rol === 'ADMINISTRADOR';
@@ -93,9 +80,6 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
 
   private readonly seleccionId$ = new Subject<number>();
   usuarioActual = signal<Usuario | null>(null);
-
-  resultadosRevision = signal<Usuario[]>([]);
-  private revisionActual?: Subscription;
 
   private readonly actualizar$ = new Subject<void>();
   listado$ = this.actualizar$.pipe(
@@ -125,7 +109,7 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   filtro = new FormControl('', { nonNullable: true });
 
   usuariosFiltrados$ = combineLatest([
-    this.listado$,
+    merge(this.listado$, toObservable(this.usuarios)),
     this.filtro.valueChanges.pipe(startWith(''), debounceTime(300), distinctUntilChanged()),
   ]).pipe(
     map(([usuarios, texto]) => {
@@ -133,11 +117,6 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
       return usuarios.filter((usuario) => usuario.nombre.toLowerCase().includes(buscado));
     }),
   );
-
-  comparacion = signal<{
-    primero: Usuario | null;
-    segundo: Usuario | null;
-  } | null>(null);
 
   ngOnInit(): void {
     this.suscripciones.add(
@@ -161,7 +140,6 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.suscripciones.unsubscribe();
-    this.revisionActual?.unsubscribe();
   }
 
   cargarUsuarios(): void {
@@ -172,110 +150,9 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
     this.actualizar$.next();
   }
 
-  examinarUsuarios(): void {
-    const datos = this.usuarios();
-    of(datos).subscribe((lista) => console.log('OF: total', lista.length));
-    const muestras: { id: number; nombre: string; roles: string[] }[] = [];
-    from(datos).subscribe((usuario) => {
-      console.log('FROM:', usuario.id, usuario.nombre);
-      if (muestras.length < 6) {
-        muestras.push({
-          id: usuario.id,
-          nombre: `${usuario.nombre} ${usuario.apellido}`,
-          roles: usuario.roles,
-        });
-      }
-    });
-    const primerosRange: string[] = [];
-    range(0, Math.min(5, datos.length)).subscribe((indice) => {
-      console.log('RANGE:', indice, datos[indice].nombre);
-      primerosRange.push(`#${datos[indice].id} ${datos[indice].nombre}`);
-    });
-    const avisosManual: string[] = [];
-    const aviso$ = new Observable<string>((observador) => {
-      observador.next(`Se recibieron ${datos.length} usuarios`);
-      observador.next('Exploración de usuarios finalizada');
-      observador.complete();
-    });
-    aviso$.subscribe((mensaje) => {
-      console.log('MANUAL:', mensaje);
-      avisosManual.push(mensaje);
-    });
-    this.diagnosticoRxjs.set({
-      totalOf: datos.length,
-      muestrasFrom: muestras,
-      primerosRange,
-      avisosManual,
-    });
-    this.mensajeRevision.set(
-      `Diagnóstico reactivo completado: se examinaron ${datos.length} usuarios utilizando operadores RxJS (of, from, range, new Observable).`,
-    );
-  }
-
   seleccionarUsuario(id: number): void {
     this.usuarioActual.set(null);
     this.seleccionId$.next(id);
-  }
-
-  private consultarConRegistro(id: number): Observable<Usuario | null> {
-    return defer(() => {
-      console.log('INICIA CONSULTA:', id);
-      return this.usuarioService.consultarPorId(id).pipe(
-        tap(() => console.log('TERMINA CONSULTA:', id)),
-        catchError((error) => {
-          console.error('ERROR:', id, error);
-          return of(null);
-        }),
-      );
-    });
-  }
-
-  revisarEnOrden(): void {
-    const ids = this.usuarios()
-      .slice(0, 3)
-      .map((u) => u.id);
-    this.revisionActual?.unsubscribe();
-    this.resultadosRevision.set([]);
-    this.revisionActual = from(ids)
-      .pipe(concatMap((id) => this.consultarConRegistro(id)))
-      .subscribe((usuario) => {
-        if (usuario !== null) {
-          this.resultadosRevision.update((actual) => [...actual, usuario]);
-        }
-      });
-  }
-
-  revisarSimultaneamente(): void {
-    const ids = this.usuarios()
-      .slice(0, 3)
-      .map((u) => u.id);
-    this.revisionActual?.unsubscribe();
-    this.resultadosRevision.set([]);
-    this.revisionActual = from(ids)
-      .pipe(mergeMap((id) => this.consultarConRegistro(id), 2))
-      .subscribe((usuario) => {
-        if (usuario !== null) {
-          this.resultadosRevision.update((actual) => [...actual, usuario]);
-        }
-      });
-  }
-
-  compararUsuarios(): void {
-    const seleccionados = this.usuarios().slice(0, 2);
-    if (seleccionados.length < 2) return;
-    this.suscripciones.add(
-      forkJoin({
-        primero: this.usuarioService.consultarPorId(seleccionados[0].id),
-        segundo: this.usuarioService.consultarPorId(seleccionados[1].id),
-      })
-        .pipe(
-          catchError((error) => {
-            console.error(error);
-            return of(null);
-          }),
-        )
-        .subscribe((resultado) => this.comparacion.set(resultado)),
-    );
   }
 
   guardarUsuario(usuario: RegistroUsuario): void {
@@ -305,6 +182,10 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   guardarEdicionLocal(): void {
     const editado = this.usuarioEditando();
     if (!editado) return;
+    if (editado.telefono && !/^(\+57)?[0-9]{10}$/.test(editado.telefono)) {
+      this.mensajeError.set('Teléfono inválido: usa 10 dígitos, opcionalmente precedidos por +57.');
+      return;
+    }
     this.usuarios.update((lista) => lista.map((u) => (u.id === editado.id ? { ...editado } : u)));
     this.guardado.set(`Datos de ${editado.nombre} actualizados.`);
     if (this.sesion) {
@@ -315,7 +196,13 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
           correo: editado.correo,
           telefono: editado.telefono,
         })
-        .subscribe({ error: (e) => this.mensajeError.set(mensajeHttp(e)) });
+        .subscribe({
+          next: () => this.solicitarActualizacion(),
+          error: (e) => {
+            this.mensajeError.set(mensajeHttp(e));
+            this.solicitarActualizacion();
+          },
+        });
     }
     this.usuarioEditando.set(null);
   }
@@ -347,7 +234,13 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
           materias: this.nuevoPerfilMaterias,
           tarifaPorHora: this.nuevoPerfilTarifa,
         })
-        .subscribe({ error: (e) => this.mensajeError.set(mensajeHttp(e)) });
+        .subscribe({
+          next: () => this.solicitarActualizacion(),
+          error: (e) => {
+            this.mensajeError.set(mensajeHttp(e));
+            this.solicitarActualizacion();
+          },
+        });
     }
     this.usuarioAgregandoPerfil.set(null);
   }
@@ -362,13 +255,21 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
     );
     if (this.sesion) {
       this.usuarioService.alternarEstado(usuario.id, nuevoEstado).subscribe({
-        error: (e) => this.mensajeError.set(mensajeHttp(e)),
+        next: () => this.solicitarActualizacion(),
+        error: (e) => {
+          this.mensajeError.set(mensajeHttp(e));
+          this.solicitarActualizacion();
+        },
       });
     }
   }
 
   eliminarUsuario(usuario: Usuario): void {
-    if (!confirm(`¿Estás seguro de eliminar al usuario #${usuario.id} (${usuario.nombre} ${usuario.apellido})?`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de eliminar al usuario #${usuario.id} (${usuario.nombre} ${usuario.apellido})?`,
+      )
+    ) {
       return;
     }
     this.usuarios.update((lista) => lista.filter((u) => u.id !== usuario.id));

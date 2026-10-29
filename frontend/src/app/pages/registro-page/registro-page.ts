@@ -117,8 +117,15 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                     type="tel"
                     name="telefono"
                     [(ngModel)]="datos.telefono"
+                    pattern="([+]57)?[0-9]{10}"
+                    #tel="ngModel"
                     placeholder="300 123 4567"
                   />
+                  @if (tel.invalid && (tel.dirty || tel.touched)) {
+                    <small role="alert"
+                      >Ingresa 10 dígitos, opcionalmente precedidos por +57.</small
+                    >
+                  }
                 </label>
               </div>
 
@@ -449,6 +456,10 @@ export class RegistroPageComponent implements OnInit {
       return;
     }
 
+    if (this.datos.telefono && !/^(\+57)?[0-9]{10}$/.test(this.datos.telefono)) {
+      this.error.set('Ingresa un teléfono de 10 dígitos, opcionalmente precedido por +57.');
+      return;
+    }
     this.guardando.set(true);
     this.usuarioService
       .guardar(this.datos)

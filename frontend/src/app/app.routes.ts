@@ -3,6 +3,12 @@ import { sessionGuard } from './core/services/auth.service';
 
 export const routes: Routes = [
   {
+    path: 'mi-perfil',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./pages/perfil-page/perfil-page').then((m) => m.PerfilPageComponent),
+  },
+  {
     path: '',
     pathMatch: 'full',
     loadComponent: () =>
@@ -17,9 +23,7 @@ export const routes: Routes = [
   {
     path: 'tutores/:id',
     loadComponent: () =>
-      import('./pages/tutor-perfil-page/tutor-perfil-page').then(
-        (m) => m.TutorPerfilPageComponent,
-      ),
+      import('./pages/tutor-perfil-page/tutor-perfil-page').then((m) => m.TutorPerfilPageComponent),
   },
   {
     path: 'reservas',

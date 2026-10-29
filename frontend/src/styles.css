@@ -175,7 +175,8 @@ textarea:user-valid {
 }
 
 fieldset.laboratorio-form,
-.laboratorio-form fieldset {
+.laboratorio-form fieldset,
+.myt-page-shell form fieldset {
   display: grid;
   gap: 1rem;
   margin: 0;
@@ -460,7 +461,10 @@ tbody tr:last-child td {
 }
 
 .text-input,
-.select-input {
+.select-input,
+.form-field > input,
+.form-field > select,
+.form-field > textarea {
   min-height: 2.55rem;
   padding: 0.55rem 0.9rem;
   border: 1px solid var(--color-border-strong);
@@ -473,7 +477,10 @@ tbody tr:last-child td {
 }
 
 .text-input:focus,
-.select-input:focus {
+.select-input:focus,
+.form-field > input:focus,
+.form-field > select:focus,
+.form-field > textarea:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
@@ -630,7 +637,10 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .myt-tutor-card:hover {
@@ -1117,7 +1127,6 @@ output {
   padding: 0.5rem 0;
 }
 
-
 /* ==========================================================================
    Figma 00 · Landing MyT (node 23:137)
    ========================================================================== */
@@ -1211,7 +1220,9 @@ output {
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
-  transition: transform 140ms ease, background-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
   white-space: nowrap;
 }
 
@@ -1414,7 +1425,9 @@ output {
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  transition: border-color 140ms ease, transform 140ms ease;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
 }
 
 .myt-landing__tutor-mini:hover {
@@ -1625,6 +1638,27 @@ output {
   font-weight: 600;
   color: #46494c;
   margin: 0 0 20px;
+}
+
+.myt-upcoming-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.myt-upcoming-list__item {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  color: #ffffff;
+  background-color: #1985a1;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.myt-upcoming-list__item span {
+  font-size: 0.85rem;
 }
 
 .myt-week-board__cols {
@@ -1917,4 +1951,29 @@ output {
 .myt-landing__copyright {
   font-size: 11px;
   color: #c5c3c6;
+}
+
+/* Administrative totals remain readable as the viewport narrows. */
+.myt-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 1rem;
+}
+.myt-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.2rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid #dcdcdd;
+  border-radius: 14px;
+}
+.myt-kpi-card strong {
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  color: #1985a1;
+}
+.myt-kpi-card span {
+  font-size: 0.85rem;
+  color: #4c5c68;
 }

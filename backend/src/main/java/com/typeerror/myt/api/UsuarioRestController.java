@@ -116,7 +116,8 @@ public class UsuarioRestController {
             @NotBlank @Size(max = 100) String nombre,
             @NotBlank @Size(max = 100) String apellido,
             @NotBlank @Email @Size(max = 150) String correo,
-            @Size(max = 30) String telefono) { }
+            @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+                    message = "Ingresa 10 dígitos, opcionalmente precedidos por +57") String telefono) { }
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar datos de usuario")

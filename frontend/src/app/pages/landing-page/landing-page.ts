@@ -1,4 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ApiService, ReservaApi, TutorApi, mensajeHttp } from '../../core/services/api.service';
+import { catchError, EMPTY, finalize, merge, switchMap, timer } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -6,7 +9,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 
 @Component({
   selector: 'app-landing-page',
-  imports: [RouterLink, FormsModule, LucideIconComponent],
+  imports: [CommonModule, RouterLink, FormsModule, LucideIconComponent],
   template: `
     <div class="myt-landing" data-node-id="23:137">
       <!-- 1. Top Navigation (27:137) -->
@@ -22,7 +25,16 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 
           <div class="myt-landing__actions">
             @if (auth.sesion(); as s) {
-              <a routerLink="/tutores" class="myt-landing__btn myt-landing__btn--outline">
+              <a
+                [routerLink]="
+                  s.rol === 'ADMINISTRADOR'
+                    ? '/usuarios'
+                    : s.rol === 'TUTOR'
+                      ? '/reservas'
+                      : '/tutores'
+                "
+                class="myt-landing__btn myt-landing__btn--outline"
+              >
                 Ir al panel ({{ s.nombreUsuario || s.rol }})
               </a>
             } @else {
@@ -82,60 +94,59 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                 <button type="submit" class="myt-landing__search-submit">Buscar</button>
               </form>
 
-              <h2>Tutores recomendados</h2>
-
+              <h2>Tutores disponibles</h2>
+              @if (cargando()) {
+                <p role="status">Cargando tutores…</p>
+              }
+              @if (error()) {
+                <p role="alert">{{ error() }}</p>
+                <button (click)="cargar()">Reintentar</button>
+              }
               <div class="myt-landing__preview-list">
-                <a routerLink="/tutores/1" class="myt-landing__tutor-mini">
-                  <span class="myt-landing__mini-avatar">L</span>
-                  <div class="myt-landing__mini-info">
-                    <strong>Laura Mendoza</strong>
-                    <small>Cálculo y Física · ★ 4,9 · $45.000/h</small>
-                  </div>
-                </a>
-
-                <a routerLink="/tutores/2" class="myt-landing__tutor-mini">
-                  <span class="myt-landing__mini-avatar">A</span>
-                  <div class="myt-landing__mini-info">
-                    <strong>Andrés Torres</strong>
-                    <small>Programación · ★ 4,8 · $50.000/h</small>
-                  </div>
-                </a>
-
-                <a routerLink="/tutores/3" class="myt-landing__tutor-mini">
-                  <span class="myt-landing__mini-avatar">C</span>
-                  <div class="myt-landing__mini-info">
-                    <strong>Camila Rojas</strong>
-                    <small>Inglés académico · ★ 4,9 · $42.000/h</small>
-                  </div>
-                </a>
+                @for (t of destacados(); track t.id) {
+                  <a [routerLink]="['/tutores', t.id]" class="myt-landing__tutor-mini"
+                    ><span class="myt-landing__mini-avatar">{{ t.nombre.charAt(0) }}</span>
+                    <div class="myt-landing__mini-info">
+                      <strong>{{ t.nombre }}</strong
+                      ><small
+                        >{{ t.tarifaPorHora | currency: 'COP' : 'symbol' : '1.0-0' }} / hora
+                        @if (t.calificacion !== null) {
+                          · ★ {{ t.calificacion | number: '1.1-1' }}
+                        }
+                      </small>
+                    </div></a
+                  >
+                } @empty {
+                  @if (!cargando() && !error()) {
+                    <p>
+                      {{
+                        auth.sesion()
+                          ? 'No hay tutores disponibles.'
+                          : 'Inicia sesión para consultar los perfiles y sus horarios.'
+                      }}
+                    </p>
+                  }
+                }
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 3. Trust Metrics Strip (27:188) -->
-      <section class="myt-landing__trust" aria-label="Indicadores de confianza" data-node-id="27:188">
+      <section class="myt-landing__trust" aria-label="Ventajas de MyT">
         <div class="myt-landing__trust-inner">
           <div class="myt-landing__metric">
-            <strong>+250</strong>
-            <span>Tutores verificados</span>
+            <strong>Horarios reales</strong><span>Disponibilidad según la agenda del tutor</span>
           </div>
           <div class="myt-landing__metric">
-            <strong>4,9/5</strong>
-            <span>Calificación promedio</span>
+            <strong>Reseñas verificadas</strong><span>Solo después de completar una tutoría</span>
           </div>
           <div class="myt-landing__metric">
-            <strong>12 min</strong>
-            <span>Para encontrar y reservar</span>
-          </div>
-          <div class="myt-landing__metric">
-            <strong>100%</strong>
-            <span>Agenda centralizada</span>
+            <strong>Agenda centralizada</strong
+            ><span>Tus reservas y conversaciones en un lugar</span>
           </div>
         </div>
       </section>
-
       <!-- 4. Cómo funciona (27:201) -->
       <section id="como-funciona" class="myt-landing__steps" data-node-id="27:201">
         <div class="myt-landing__container">
@@ -174,32 +185,30 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         <div class="myt-landing__management-inner">
           <div class="myt-week-board">
             <div class="myt-week-board__tape" aria-hidden="true"></div>
-            <h3>Tu semana en MyT</h3>
-            <div class="myt-week-board__cols">
-              <div class="myt-week-col">
-                <span class="myt-week-col__day">LUN 7</span>
+            <h3>Próximas tutorías</h3>
+            @if (!auth.sesion()) {
+              <p>Inicia sesión para consultar tus próximas tutorías.</p>
+              <a routerLink="/login" class="myt-landing__btn myt-landing__btn--outline"
+                >Iniciar sesión</a
+              >
+            } @else if (cargandoReservas()) {
+              <p role="status">Cargando próximas tutorías…</p>
+            } @else if (errorReservas()) {
+              <p role="alert">{{ errorReservas() }}</p>
+              <button type="button" (click)="cargar()">Reintentar próximas tutorías</button>
+            } @else {
+              <div class="myt-upcoming-list">
+                @for (r of proximas(); track r.id) {
+                  <a [routerLink]="['/reservas', r.id]" class="myt-upcoming-list__item">
+                    <strong>{{ r.materia }}</strong>
+                    <span>{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.estado }}</span>
+                  </a>
+                } @empty {
+                  <p>No tienes próximas tutorías.</p>
+                }
               </div>
-              <div class="myt-week-col">
-                <span class="myt-week-col__day">MAR 8</span>
-                <a routerLink="/reservas/1" class="myt-week-pill myt-week-pill--teal">
-                  <strong>Cálculo</strong>
-                  <small>4:00 p. m.</small>
-                </a>
-              </div>
-              <div class="myt-week-col">
-                <span class="myt-week-col__day">MIÉ 9</span>
-              </div>
-              <div class="myt-week-col">
-                <span class="myt-week-col__day">JUE 10</span>
-                <a routerLink="/reservas/3" class="myt-week-pill myt-week-pill--slate">
-                  <strong>Inglés</strong>
-                  <small>6:00 p. m.</small>
-                </a>
-              </div>
-              <div class="myt-week-col">
-                <span class="myt-week-col__day">VIE 11</span>
-              </div>
-            </div>
+              <a routerLink="/reservas">Ver reservas</a>
+            }
           </div>
 
           <div class="myt-landing__management-copy">
@@ -210,21 +219,39 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
             </p>
             <ul class="myt-feature-list">
               <li>
-                <img src="/assets/bullet-dot.svg" width="10" height="10" alt="" aria-hidden="true" />
+                <img
+                  src="/assets/bullet-dot.svg"
+                  width="10"
+                  height="10"
+                  alt=""
+                  aria-hidden="true"
+                />
                 <div>
                   <strong>Agenda compartida</strong>
                   <span>La sesión aparece en el calendario de ambas partes.</span>
                 </div>
               </li>
               <li>
-                <img src="/assets/bullet-dot.svg" width="10" height="10" alt="" aria-hidden="true" />
+                <img
+                  src="/assets/bullet-dot.svg"
+                  width="10"
+                  height="10"
+                  alt=""
+                  aria-hidden="true"
+                />
                 <div>
                   <strong>Recordatorios oportunos</strong>
                   <span>Recibe avisos antes de cada clase y cuando exista un cambio.</span>
                 </div>
               </li>
               <li>
-                <img src="/assets/bullet-dot.svg" width="10" height="10" alt="" aria-hidden="true" />
+                <img
+                  src="/assets/bullet-dot.svg"
+                  width="10"
+                  height="10"
+                  alt=""
+                  aria-hidden="true"
+                />
                 <div>
                   <strong>Historial y reputación</strong>
                   <span>Consulta sesiones anteriores y publica reseñas verificadas.</span>
@@ -244,38 +271,23 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
           </div>
 
           <div class="myt-landing__tutors-grid">
-            <article class="myt-featured-tutor">
-              <span class="myt-featured-tutor__avatar">L</span>
-              <h3>Laura Mendoza</h3>
-              <p class="myt-featured-tutor__subject">Cálculo y Física</p>
-              <p class="myt-featured-tutor__rating">★ 4,9 · 80+ reseñas</p>
-              <div class="myt-featured-tutor__footer">
-                <strong>$45.000 COP/h</strong>
-                <a routerLink="/tutores/1">Ver perfil →</a>
-              </div>
-            </article>
-
-            <article class="myt-featured-tutor">
-              <span class="myt-featured-tutor__avatar">A</span>
-              <h3>Andrés Torres</h3>
-              <p class="myt-featured-tutor__subject">Programación y datos</p>
-              <p class="myt-featured-tutor__rating">★ 4,8 · 80+ reseñas</p>
-              <div class="myt-featured-tutor__footer">
-                <strong>$50.000 COP/h</strong>
-                <a routerLink="/tutores/2">Ver perfil →</a>
-              </div>
-            </article>
-
-            <article class="myt-featured-tutor">
-              <span class="myt-featured-tutor__avatar">C</span>
-              <h3>Camila Rojas</h3>
-              <p class="myt-featured-tutor__subject">Inglés académico</p>
-              <p class="myt-featured-tutor__rating">★ 4,9 · 80+ reseñas</p>
-              <div class="myt-featured-tutor__footer">
-                <strong>$42.000 COP/h</strong>
-                <a routerLink="/tutores/3">Ver perfil →</a>
-              </div>
-            </article>
+            @for (t of destacados(); track t.id) {
+              <article class="myt-featured-tutor">
+                <span class="myt-featured-tutor__avatar">{{ t.nombre.charAt(0) }}</span>
+                <h3>{{ t.nombre }}</h3>
+                <p>{{ t.biografia }}</p>
+                @if (t.calificacion !== null) {
+                  <p>★ {{ t.calificacion | number: '1.1-1' }}</p>
+                }
+                <div class="myt-featured-tutor__footer">
+                  <strong
+                    >{{ t.tarifaPorHora | currency: 'COP' : 'symbol' : '1.0-0' }} / hora</strong
+                  ><a [routerLink]="['/tutores', t.id]">Ver perfil →</a>
+                </div>
+              </article>
+            } @empty {
+              <p>Consulta el catálogo para encontrar un tutor según tus objetivos.</p>
+            }
           </div>
         </div>
       </section>
@@ -316,6 +328,80 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 export class LandingPageComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
+  readonly destacados = signal<TutorApi[]>([]);
+  readonly cargando = signal(false);
+  readonly error = signal('');
+  readonly revision = signal(0);
+  readonly proximas = signal<ReservaApi[]>([]);
+  readonly cargandoReservas = signal(false);
+  readonly errorReservas = signal('');
+  constructor() {
+    effect((onCleanup) => {
+      this.revision();
+      const sesion = this.auth.sesion();
+      this.proximas.set([]);
+      this.errorReservas.set('');
+      this.cargandoReservas.set(!!sesion);
+      if (!sesion) return;
+      const consulta = merge(timer(0, 30000), this.api.cambios)
+        .pipe(
+          switchMap(() => {
+            this.cargandoReservas.set(true);
+            this.errorReservas.set('');
+            this.proximas.set([]);
+            return this.api.reservas().pipe(
+              catchError((e) => {
+                this.errorReservas.set(mensajeHttp(e));
+                return EMPTY;
+              }),
+              finalize(() => this.cargandoReservas.set(false)),
+            );
+          }),
+        )
+        .subscribe((reservas) => {
+          const ahora = new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' });
+          this.proximas.set(
+            reservas
+              .filter(
+                (r) =>
+                  ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado) &&
+                  `${r.fecha} ${r.horaInicio}` >= ahora,
+              )
+              .sort((a, b) =>
+                `${a.fecha} ${a.horaInicio}`.localeCompare(`${b.fecha} ${b.horaInicio}`),
+              )
+              .slice(0, 3),
+          );
+        });
+      onCleanup(() => consulta.unsubscribe());
+    });
+    effect((onCleanup) => {
+      this.revision();
+      if (!this.auth.sesion()) {
+        this.destacados.set([]);
+        this.cargando.set(false);
+        return;
+      }
+      this.cargando.set(true);
+      this.error.set('');
+      const consulta = this.api.tutores().subscribe({
+        next: (p) => {
+          this.destacados.set(p.content.slice(0, 3));
+          this.cargando.set(false);
+        },
+        error: (e) => {
+          this.destacados.set([]);
+          this.error.set(mensajeHttp(e));
+          this.cargando.set(false);
+        },
+      });
+      onCleanup(() => consulta.unsubscribe());
+    });
+  }
+  cargar() {
+    this.revision.update((n) => n + 1);
+  }
   readonly busquedaHero = signal('');
 
   buscarRapido(): void {

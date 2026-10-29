@@ -1,9 +1,31 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  Injector,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { EMPTY, Subject, catchError, finalize, startWith, switchMap } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  catchError,
+  distinctUntilChanged,
+  EMPTY,
+  finalize,
+  map,
+  merge,
+  of,
+  Subject,
+  switchMap,
+  timer,
+} from 'rxjs';
 import {
   ApiService,
   EstadoReserva,
@@ -13,43 +35,45 @@ import {
   mensajeHttp,
 } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { MytStateService } from '../../core/services/myt-state.service';
-import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
-import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-reservas-page',
-  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './reservas-page.html',
 })
 export class ReservasPageComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  readonly api = inject(ApiService);
   readonly auth = inject(AuthService);
-  readonly state = inject(MytStateService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly campoMotivo = viewChild<ElementRef<HTMLTextAreaElement>>('campoMotivo');
   private readonly refrescar = new Subject<void>();
-
-  readonly esEstudiante = computed(() => !this.auth.sesion() || this.auth.sesion()?.rol === 'ESTUDIANTE');
-
+  private readonly consultarHoras = new Subject<void>();
+  readonly esEstudiante = computed(() => this.auth.sesion()?.rol === 'ESTUDIANTE');
   readonly reservas = signal<ReservaApi[]>([]);
   readonly tutor = signal<TutorApi | null>(null);
-  readonly error = signal('');
-  readonly cargando = signal(false);
+  readonly horas = signal<string[]>([]);
+  readonly cargandoHoras = signal(false);
+  readonly cargando = signal(true);
   readonly guardando = signal(false);
+  readonly error = signal('');
+  readonly errorHoras = signal('');
   readonly mensaje = signal('');
-  readonly mostrarConfirmacionMockup = signal(false);
-
+  readonly cancelando = signal<ReservaApi | null>(null);
+  readonly hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
   estado = '';
   motivo = '';
   objetivoSesion = 'Preparar examen';
+  objetivoOtro = '';
   readonly objetivosOpciones = [
     'Preparar examen',
     'Resolver ejercicios',
     'Entender un tema',
     'Revisar proyecto',
+    'Otro',
   ];
-
   datos: ReservaAlta = {
     tutorId: 0,
     materiaId: 0,
@@ -59,54 +83,76 @@ export class ReservasPageComponent implements OnInit {
     tema: '',
     modalidad: 'VIRTUAL',
   };
-
   ngOnInit() {
-    const id = Number(this.route.snapshot.queryParamMap.get('tutor'));
-    const fechaParam = this.route.snapshot.queryParamMap.get('fecha');
-    const horaParam = this.route.snapshot.queryParamMap.get('hora');
-    if (fechaParam) {
-      this.datos.fecha = fechaParam;
-    }
-    if (horaParam) {
-      let horaNorm = horaParam;
-      if (horaParam.includes('p. m.')) {
-        const partes = horaParam.replace('p. m.', '').trim().split(':');
-        const h = (parseInt(partes[0], 10) % 12) + 12;
-        horaNorm = `${h.toString().padStart(2, '0')}:${partes[1] || '00'}`;
-      } else if (horaParam.includes('a. m.')) {
-        const partes = horaParam.replace('a. m.', '').trim().split(':');
-        const h = parseInt(partes[0], 10) % 12;
-        horaNorm = `${h.toString().padStart(2, '0')}:${partes[1] || '00'}`;
-      }
-      this.datos.horaInicio = horaNorm;
-    }
-    if (id > 0) {
-      const enCache = this.api.tutorEnCache(id);
-      if (enCache) {
-        this.tutor.set(enCache);
-        this.datos.tutorId = enCache.id;
-        this.datos.materiaId = enCache.materias[0]?.id ?? 0;
-      }
-      this.api
-        .tutor(id)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (t) => {
-            this.tutor.set(t);
-            this.datos.tutorId = t.id;
-            this.datos.materiaId = t.materias[0]?.id ?? 0;
-          },
-          error: (e) => this.error.set(mensajeHttp(e)),
-        });
-    }
-    this.refrescar
+    merge(this.consultarHoras, timer(30000, 30000), this.api.cambios)
       .pipe(
-        startWith(undefined),
+        switchMap(() => {
+          this.horas.set([]);
+          this.errorHoras.set('');
+          if (!this.datos.fecha || !this.datos.tutorId) return EMPTY;
+          this.cargandoHoras.set(true);
+          return this.api
+            .horas(this.datos.tutorId, this.datos.fecha, this.datos.duracionMinutos)
+            .pipe(
+              catchError((e) => {
+                this.errorHoras.set(mensajeHttp(e));
+                return EMPTY;
+              }),
+              finalize(() => this.cargandoHoras.set(false)),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((h) => {
+        this.horas.set(h);
+        if (!h.includes(this.datos.horaInicio)) this.datos.horaInicio = '';
+      });
+    this.route.queryParamMap
+      .pipe(
+        map((params) => Number(params.get('tutor'))),
+        distinctUntilChanged(),
+        switchMap((id) => {
+          this.tutor.set(null);
+          this.cancelando.set(null);
+          this.motivo = '';
+          this.error.set('');
+          this.mensaje.set('');
+          this.datos = {
+            tutorId: 0,
+            materiaId: 0,
+            fecha: '',
+            horaInicio: '',
+            duracionMinutos: 60,
+            tema: '',
+            modalidad: 'VIRTUAL',
+          };
+          this.objetivoSesion = 'Preparar examen';
+          this.objetivoOtro = '';
+          this.consultarHoras.next();
+          if (!Number.isInteger(id) || id <= 0 || !this.esEstudiante()) return of(null);
+          return this.api.tutor(id).pipe(
+            catchError((e) => {
+              this.error.set(mensajeHttp(e));
+              return of(null);
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((t) => {
+        this.tutor.set(t);
+        this.datos.tutorId = t?.id ?? 0;
+        this.datos.materiaId = t?.materias[0]?.id ?? 0;
+        if (!t) this.cargar();
+      });
+    merge(timer(0, 30000), this.refrescar, this.api.cambios)
+      .pipe(
         switchMap(() => {
           this.cargando.set(true);
           this.error.set('');
           return this.api.reservas(this.estado).pipe(
             catchError((e) => {
+              this.reservas.set([]);
               this.error.set(mensajeHttp(e));
               return EMPTY;
             }),
@@ -117,109 +163,81 @@ export class ReservasPageComponent implements OnInit {
       )
       .subscribe((r) => this.reservas.set(r));
   }
-
-  nombreMateriaSeleccionada(): string {
-    const t = this.tutor();
-    if (!t) return 'Cálculo diferencial · Integrales';
-    const m = t.materias.find((item) => item.id === Number(this.datos.materiaId));
-    return m?.nombre ?? t.materias[0]?.nombre ?? 'Cálculo diferencial';
-  }
-
-  costoEstimado(): number {
-    const tarifa = this.tutor()?.tarifaPorHora ?? 45000;
-    const horas = Math.max(0.25, (this.datos.duracionMinutos || 60) / 60);
-    return Math.round(tarifa * horas);
-  }
-
   cargar() {
     this.refrescar.next();
   }
-
+  cargarHoras() {
+    this.datos.horaInicio = '';
+    this.consultarHoras.next();
+  }
+  costoEstimado() {
+    return ((this.tutor()?.tarifaPorHora ?? 0) * this.datos.duracionMinutos) / 60;
+  }
   crear() {
-    if (this.guardando()) return;
-    const temaGuardado = this.datos.tema;
+    if (this.guardando() || !this.horas().includes(this.datos.horaInicio)) return;
+    const objetivo =
+      this.objetivoSesion === 'Otro' ? this.objetivoOtro.trim() : this.objetivoSesion;
+    if (!objetivo) {
+      this.error.set('Especifica el objetivo de la sesión.');
+      return;
+    }
     this.guardando.set(true);
     this.error.set('');
-    this.mensaje.set('');
     this.api
-      .crearReserva(this.datos)
+      .crearReserva({ ...this.datos, objetivo })
       .pipe(
         finalize(() => this.guardando.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (creada) => {
-          this.mensaje.set('Reserva creada.');
-          this.mostrarConfirmacionMockup.set(true);
-          this.state.registrarReservaConfirmada({
-            id: creada?.id ?? 1,
-            tutorId: this.tutor()?.id ?? 1,
-            tutorNombre: this.tutor()?.nombre ?? 'Laura Mendoza',
-            tutorEspecialidad: `${this.nombreMateriaSeleccionada()} · Tutoría personalizada`,
-            tema: temaGuardado || this.nombreMateriaSeleccionada(),
-            fechaTexto: this.datos.fecha || 'Jueves 10 sep 2026',
-            horarioTexto: this.datos.horaInicio
-              ? `${this.datos.horaInicio} (${this.datos.duracionMinutos} min)`
-              : '4:00 – 5:00 p. m.',
-            modalidad:
-              this.datos.modalidad === 'PRESENCIAL'
-                ? 'Presencial (Campus universitario)'
-                : 'Virtual (videollamada)',
-            duracionMinutos: this.datos.duracionMinutos || 60,
-            valorTotal: creada?.costoTotal ?? this.costoEstimado(),
-            estado: 'PENDIENTE',
-            notasEstudiante: temaGuardado,
-          });
-          this.datos.tema = '';
-          this.cargar();
+        next: (r) =>
+          void this.router.navigate(['/reservas', r.id], { queryParams: { creada: '1' } }),
+        error: (e) => {
+          this.error.set(mensajeHttp(e));
+          this.cargarHoras();
         },
-        error: (e) => this.error.set(mensajeHttp(e)),
       });
   }
-
-  cambiar(reserva: ReservaApi, estado: EstadoReserva) {
+  cambiar(r: ReservaApi, estado: EstadoReserva) {
     if (this.guardando()) return;
-    if (
-      estado === 'CANCELADA' &&
-      (!this.motivo.trim() || !window.confirm('¿Cancelar esta reserva?'))
-    )
-      return;
+    let motivo = '';
+    if (estado === 'CANCELADA') {
+      if (this.cancelando()?.id !== r.id) return;
+      motivo = this.motivo.trim();
+      if (!motivo || motivo.length > 500) {
+        this.error.set('Indica un motivo de entre 1 y 500 caracteres.');
+        return;
+      }
+    }
     this.guardando.set(true);
     this.error.set('');
-    this.mensaje.set('');
     this.api
-      .estadoReserva(reserva.id, estado, this.motivo)
+      .estadoReserva(r.id, estado, motivo)
       .pipe(
         finalize(() => this.guardando.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: () => {
-          this.mensaje.set('Estado actualizado.');
+          this.cancelando.set(null);
+          this.motivo = '';
+          this.mensaje.set('Reserva actualizada.');
           this.cargar();
         },
         error: (e) => this.error.set(mensajeHttp(e)),
       });
   }
-
-  cancelar(reserva: ReservaApi) {
-    if (this.guardando() || !window.confirm('¿Cancelar esta reserva conservando su historial?'))
-      return;
-    this.guardando.set(true);
+  cancelar(r: ReservaApi) {
+    if (this.guardando()) return;
+    this.cancelando.set(r);
+    this.motivo = '';
     this.error.set('');
     this.mensaje.set('');
-    this.api
-      .cancelarReserva(reserva.id)
-      .pipe(
-        finalize(() => this.guardando.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.mensaje.set('Reserva cancelada.');
-          this.cargar();
-        },
-        error: (e) => this.error.set(mensajeHttp(e)),
-      });
+    afterNextRender(() => this.campoMotivo()?.nativeElement.focus(), { injector: this.injector });
+  }
+  volverSinCancelar() {
+    if (this.guardando()) return;
+    this.cancelando.set(null);
+    this.motivo = '';
   }
 }

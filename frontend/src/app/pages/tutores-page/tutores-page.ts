@@ -75,7 +75,14 @@ export class TutoresPageComponent implements OnInit {
     this._busquedaTexto.set(val);
   }
 
-  readonly categoriaChips = ['Todas', 'Matemáticas', 'Programación', 'Idiomas', 'Ciencias', 'Diseño'];
+  readonly categoriaChips = [
+    'Todas',
+    'Matemáticas',
+    'Programación',
+    'Idiomas',
+    'Ciencias',
+    'Diseño',
+  ];
   readonly categoriaActiva = signal('Todas');
   readonly ordenActivo = signal<'calificacion' | 'precio'>('calificacion');
 
@@ -94,7 +101,7 @@ export class TutoresPageComponent implements OnInit {
     if (this.ordenActivo() === 'precio') {
       return [...filtrados].sort((a, b) => a.tarifaPorHora - b.tarifaPorHora);
     }
-    return [...filtrados].sort((a, b) => (b.calificacion ?? 4.8) - (a.calificacion ?? 4.8));
+    return [...filtrados].sort((a, b) => (b.calificacion ?? 0) - (a.calificacion ?? 0));
   });
 
   readonly paginasDisponibles = computed<(number | string)[]>(() => {
@@ -154,15 +161,23 @@ export class TutoresPageComponent implements OnInit {
         switchMap(() => {
           this.cargando.set(true);
           this.error.set('');
-          return this.api.tutores(this.page, this.materiaId, this.tarifaMax).pipe(
-            catchError((e) => {
-              if (this.auth.sesion() || (e?.status && e.status !== 401)) {
-                this.error.set(mensajeHttp(e));
-              }
-              return EMPTY;
-            }),
-            finalize(() => this.cargando.set(false)),
-          );
+          return this.api
+            .tutores(
+              this.page,
+              this.materiaId,
+              this.tarifaMax,
+              this.busquedaTexto,
+              this.ordenActivo(),
+            )
+            .pipe(
+              catchError((e) => {
+                if (this.auth.sesion() || (e?.status && e.status !== 401)) {
+                  this.error.set(mensajeHttp(e));
+                }
+                return EMPTY;
+              }),
+              finalize(() => this.cargando.set(false)),
+            );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -194,6 +209,7 @@ export class TutoresPageComponent implements OnInit {
 
   alternarOrden() {
     this.ordenActivo.set(this.ordenActivo() === 'calificacion' ? 'precio' : 'calificacion');
+    this.filtrar();
   }
 
   inicialTutor(nombre: string): string {
@@ -201,13 +217,13 @@ export class TutoresPageComponent implements OnInit {
   }
 
   modalidadTutor(id: number): string {
-    const opciones = ['Virtual · Presencial', 'Virtual', 'Presencial · Virtual'];
-    return opciones[id % opciones.length];
+    void id;
+    return 'Modalidad a convenir';
   }
 
   resenasCountTutor(id: number): number {
-    const conteos = [38, 24, 19, 31, 42];
-    return conteos[id % conteos.length];
+    void id;
+    return 0;
   }
 
   cargar() {

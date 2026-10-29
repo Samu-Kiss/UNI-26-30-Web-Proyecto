@@ -110,7 +110,6 @@ public class ReservaServiceImpl implements ReservaService {
         if (!TRANSICIONES.getOrDefault(reserva.getEstado(), Set.of()).contains(nuevoEstado)) {
             throw new IllegalStateException("Transicion de estado no permitida");
         }
-        reserva.setEstado(nuevoEstado);
         if (nuevoEstado == EstadoReserva.CANCELADA || nuevoEstado == EstadoReserva.RECHAZADA) {
 
             if (motivo == null || motivo.isBlank()) {
@@ -124,7 +123,8 @@ public class ReservaServiceImpl implements ReservaService {
             reserva.setMotivoCancelacion(motivo);
             reserva.setFechaCancelacion(LocalDateTime.now(ZoneOffset.UTC));
         }
-            return reservaRepository.save(reserva);
+        reserva.setEstado(nuevoEstado);
+        return reservaRepository.save(reserva);
     }
 
     @Override
@@ -147,14 +147,15 @@ public class ReservaServiceImpl implements ReservaService {
         Materia materia = materiaRepository.findById(materiaId)
                 .orElseThrow(() -> new MateriaNotFoundException(materiaId));
 
-        if (fecha == null || horaInicio == null || duracionMinutos == null || duracionMinutos <= 0
-                || duracionMinutos > 480 || !horaInicio.plusMinutes(duracionMinutos).isAfter(horaInicio)
+        if (fecha == null || horaInicio == null || duracionMinutos == null
+                || !Set.of(60, 90, 120).contains(duracionMinutos)
+                || horaInicio.getMinute() % 30 != 0 || horaInicio.getSecond() != 0
+                || !fecha.atTime(horaInicio).isAfter(LocalDateTime.now(java.time.ZoneId.of("America/Bogota")))
+                || !horaInicio.plusMinutes(duracionMinutos).isAfter(horaInicio)
                 || tutor.getMaterias().stream().noneMatch(m -> m.getId().equals(materiaId))) {
             throw new InformacionNoValidaException();
         }
-        String ubicacionOEnlace = modalidad == ModalidadReserva.VIRTUAL
-                ? "https://meet.google.com/myt-tutoria"
-                : "Campus Universitario / Aula del Tutor";
+        String ubicacionOEnlace = "Por acordar con el tutor";
 
         BigDecimal costoTotal = tutor.getTarifaPorHora()
                 .multiply(BigDecimal.valueOf(duracionMinutos))
@@ -183,7 +184,12 @@ public class ReservaServiceImpl implements ReservaService {
             throw new InformacionIncompletaException();
         }
         if (reserva.getFecha() == null || reserva.getHoraInicio() == null
-                || reserva.getDuracionMinutos() == null || reserva.getDuracionMinutos() <= 0) {
+                || reserva.getDuracionMinutos() == null
+                || !Set.of(60, 90, 120).contains(reserva.getDuracionMinutos())
+                || reserva.getHoraInicio().getMinute() % 30 != 0 || reserva.getHoraInicio().getSecond() != 0
+                || !reserva.calcularHoraFin().isAfter(reserva.getHoraInicio())
+                || !reserva.getFecha().atTime(reserva.getHoraInicio())
+                    .isAfter(LocalDateTime.now(java.time.ZoneId.of("America/Bogota")))) {
             throw new InformacionNoValidaException();
         }
         if (reserva.getEstudiante().getUsuario().getId()
@@ -219,7 +225,7 @@ public class ReservaServiceImpl implements ReservaService {
         DiaSemana dia = convertirDia(reserva.getFecha().getDayOfWeek().getValue());
         var intervalos = disponibilidadRepository.findByTutorIdAndDiaSemana(
                 reserva.getTutor().getId(), dia);
-        boolean dentroDeAgenda = intervalos.isEmpty() || intervalos.stream()
+        boolean dentroDeAgenda = intervalos.stream()
                 .anyMatch(intervalo -> !reserva.getHoraInicio().isBefore(intervalo.getHoraInicio())
                         && !fin.isAfter(intervalo.getHoraFin()));
         if (!dentroDeAgenda) {

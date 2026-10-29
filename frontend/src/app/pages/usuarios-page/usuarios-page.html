@@ -2,35 +2,35 @@
   <header class="myt-explore-header">
     <div>
       <h2>Usuarios registrados</h2>
-      <p class="myt-subtitle">
-        Gestión de cuentas, perfiles y herramientas de consulta para administradores.
-      </p>
+      <p class="myt-subtitle">Gestión de cuentas y perfiles de usuarios.</p>
     </div>
   </header>
 
   <!-- Resumen de métricas de usuarios para administración -->
-  <section class="myt-kpi-row" aria-label="Resumen de usuarios" style="margin-bottom: 1.25rem;">
-    <article class="myt-kpi-card">
-      <strong>{{ totalUsuarios() }}</strong>
-      <span>Total registrados</span>
-    </article>
-    <article class="myt-kpi-card">
-      <strong>{{ totalActivos() }}</strong>
-      <span>Usuarios activos</span>
-    </article>
-    <article class="myt-kpi-card">
-      <strong>{{ totalEstudiantes() }}</strong>
-      <span>Estudiantes</span>
-    </article>
-    <article class="myt-kpi-card">
-      <strong>{{ totalTutores() }}</strong>
-      <span>Tutores</span>
-    </article>
-    <article class="myt-kpi-card">
-      <strong>{{ totalAdministradores() }}</strong>
-      <span>Administradores</span>
-    </article>
-  </section>
+  @if (!cargando() && !mensajeError()) {
+    <section class="myt-kpi-row" aria-label="Resumen de usuarios" style="margin-bottom: 1.25rem">
+      <article class="myt-kpi-card">
+        <strong>{{ totalUsuarios() }}</strong>
+        <span>Total registrados</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalActivos() }}</strong>
+        <span>Usuarios activos</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalEstudiantes() }}</strong>
+        <span>Estudiantes</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalTutores() }}</strong>
+        <span>Tutores</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalAdministradores() }}</strong>
+        <span>Administradores</span>
+      </article>
+    </section>
+  }
 
   @if (cargando()) {
     <output class="myt-status-output">Cargando usuarios…</output>
@@ -45,62 +45,9 @@
     <p role="alert" class="form-error myt-alert myt-alert--error">{{ mensajeError() }}</p>
   }
 
-  @if (mensajeRevision()) {
-    <output class="myt-alert myt-alert--info" style="display: flex; justify-content: space-between; align-items: center;">
-      <span>{{ mensajeRevision() }}</span>
-      <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="mensajeRevision.set('')">
-        Ocultar
-      </button>
-    </output>
-  }
-
-  @if (diagnosticoRxjs(); as diag) {
-    <section class="myt-surface-card" style="margin-bottom: 1.25rem; border-left: 4px solid #11816f; background: #ffffff;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="myt-subject-tag" style="background: #ddecef; color: #126e87; font-weight: 700;">Diagnóstico RxJS</span>
-          <h3 style="margin: 0; font-size: 1.15rem; color: #46494c;">Examen reactivo completado en memoria</h3>
-        </div>
-        <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="diagnosticoRxjs.set(null)">
-          Cerrar diagnóstico
-        </button>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
-        <div style="background: #f5f5f3; padding: 0.75rem; border-radius: 10px; border: 1px solid #dcdcdd;">
-          <span style="font-size: 0.75rem; font-weight: 700; color: #1985a1;">OPERADOR of(...)</span>
-          <p style="margin: 0.25rem 0 0; font-size: 0.95rem; font-weight: 600;">{{ diag.totalOf }} usuarios evaluados</p>
-          <small style="color: #6f7479;">Colección emitida como un solo valor reactivo</small>
-        </div>
-        <div style="background: #f5f5f3; padding: 0.75rem; border-radius: 10px; border: 1px solid #dcdcdd;">
-          <span style="font-size: 0.75rem; font-weight: 700; color: #11816f;">OPERADOR from(...)</span>
-          <p style="margin: 0.25rem 0 0; font-size: 0.95rem; font-weight: 600;">Flujo secuencial iterado</p>
-          <small style="color: #6f7479;">Emisión elemento por elemento uno a uno</small>
-        </div>
-        <div style="background: #f5f5f3; padding: 0.75rem; border-radius: 10px; border: 1px solid #dcdcdd;">
-          <span style="font-size: 0.75rem; font-weight: 700; color: #8a508f;">OPERADOR range(0, 5)</span>
-          <p style="margin: 0.25rem 0 0; font-size: 0.95rem; font-weight: 600;">{{ diag.primerosRange.length }} índices muestreados</p>
-          <small style="color: #6f7479;">Secuencia numérica de índices en colección</small>
-        </div>
-        <div style="background: #f5f5f3; padding: 0.75rem; border-radius: 10px; border: 1px solid #dcdcdd;">
-          <span style="font-size: 0.75rem; font-weight: 700; color: #f0a726;">NEW OBSERVABLE</span>
-          <p style="margin: 0.25rem 0 0; font-size: 0.95rem; font-weight: 600;">Ciclo de vida completado</p>
-          <small style="color: #6f7479;">Suscripción síncrona con observador.complete()</small>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; padding-top: 0.5rem; border-top: 1px solid #e4e4e5;">
-        <strong style="font-size: 0.8rem; color: #4c5c68;">Muestras emitidas:</strong>
-        @for (m of diag.muestrasFrom; track m.id) {
-          <span class="myt-subject-tag">#{{ m.id }} {{ m.nombre }}</span>
-        }
-      </div>
-    </section>
-  }
-
   <!-- Barra de búsqueda y acciones en una sola fila intuitiva -->
   <div class="myt-results-meta">
-    <div class="form-field" style="flex: 1 1 280px; max-width: 420px;">
+    <div class="form-field" style="flex: 1 1 280px; max-width: 420px">
       <label class="form-label" for="filtro-usuarios">Filtrar usuarios</label>
       <input
         id="filtro-usuarios"
@@ -117,13 +64,6 @@
         (click)="solicitarActualizacion()"
       >
         Actualizar listado
-      </button>
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        (click)="examinarUsuarios()"
-      >
-        Examinar usuarios con RxJS
       </button>
     </div>
   </div>
@@ -155,11 +95,25 @@
         </label>
         <label class="form-field"
           >Teléfono
-          <input class="text-input" [(ngModel)]="edit.telefono" name="editTelefono" />
+          <input
+            class="text-input"
+            type="tel"
+            pattern="([+]57)?[0-9]{10}"
+            #editTel="ngModel"
+            [(ngModel)]="edit.telefono"
+            name="editTelefono"
+          />
+          @if (editTel.invalid) {
+            <small role="alert">Ingresa 10 dígitos, opcionalmente precedidos por +57.</small>
+          }
         </label>
       </div>
       <div class="myt-toolbar-actions">
-        <button type="button" class="myt-btn myt-btn--primary myt-btn--sm" (click)="guardarEdicionLocal()">
+        <button
+          type="button"
+          class="myt-btn myt-btn--primary myt-btn--sm"
+          (click)="guardarEdicionLocal()"
+        >
           Guardar cambios
         </button>
         <button
@@ -191,10 +145,48 @@
             <input class="text-input" [(ngModel)]="nuevoPerfilCodigo" placeholder="Ej. 20261580" />
           </label>
         }
+        @if (nuevoPerfilRol === 'ESTUDIANTE') {
+          <label class="form-field"
+            >Universidad<input
+              class="text-input"
+              [(ngModel)]="nuevoPerfilUniversidad"
+              name="perfilUniversidad"
+              required
+          /></label>
+          <label class="form-field"
+            >Programa académico<input
+              class="text-input"
+              [(ngModel)]="nuevoPerfilPrograma"
+              name="perfilPrograma"
+              required
+          /></label>
+          <label class="form-field"
+            >Semestre<input
+              class="text-input"
+              type="number"
+              min="1"
+              max="20"
+              [(ngModel)]="nuevoPerfilSemestre"
+              name="perfilSemestre"
+              required
+          /></label>
+        }
         @if (nuevoPerfilRol === 'TUTOR') {
           <label class="form-field"
+            >Biografía<textarea
+              class="text-input"
+              [(ngModel)]="nuevoPerfilBiografia"
+              name="perfilBiografia"
+              maxlength="2000"
+            ></textarea>
+          </label>
+          <label class="form-field"
             >Materias (separadas por coma)
-            <input class="text-input" [(ngModel)]="nuevoPerfilMaterias" placeholder="Ej. Cálculo diferencial, Física" />
+            <input
+              class="text-input"
+              [(ngModel)]="nuevoPerfilMaterias"
+              placeholder="Ej. Cálculo diferencial, Física"
+            />
           </label>
           <label class="form-field"
             >Tarifa por hora (COP)
@@ -222,16 +214,29 @@
   }
 
   @if (usuarioActual(); as usuario) {
-    <section class="myt-surface-card" style="margin-bottom: 1.25rem; border-left: 4px solid #1985a1;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <section
+      class="myt-surface-card"
+      style="margin-bottom: 1.25rem; border-left: 4px solid #1985a1"
+    >
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 1rem;
+          flex-wrap: wrap;
+        "
+      >
         <div>
           <span class="myt-subject-tag">Ficha de usuario</span>
-          <h3 style="margin: 0.35rem 0 0.2rem 0; font-size: 1.25rem;">
+          <h3 style="margin: 0.35rem 0 0.2rem 0; font-size: 1.25rem">
             #{{ usuario.id }} · {{ usuario.nombre }} {{ usuario.apellido }}
           </h3>
-          <p class="myt-subtle-text" style="margin: 0;">{{ usuario.correo }} · Tel: {{ usuario.telefono || 'Sin registrar' }}</p>
+          <p class="myt-subtle-text" style="margin: 0">
+            {{ usuario.correo }} · Tel: {{ usuario.telefono || 'Sin registrar' }}
+          </p>
         </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center">
           <span
             class="myt-status-pill"
             [class.myt-status-pill--active]="usuario.activo"
@@ -239,19 +244,31 @@
           >
             {{ usuario.activo ? 'Activo' : 'Inactivo' }}
           </span>
-          <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="usuarioActual.set(null)">
+          <button
+            type="button"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+            (click)="usuarioActual.set(null)"
+          >
             Cerrar ficha
           </button>
         </div>
       </div>
-      <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-        <strong style="font-size: 0.85rem; color: #4c5c68;">Perfiles:</strong>
+      <div
+        style="
+          margin-top: 0.75rem;
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          align-items: center;
+        "
+      >
+        <strong style="font-size: 0.85rem; color: #4c5c68">Perfiles:</strong>
         @for (rol of usuario.roles; track rol) {
           <span class="myt-subject-tag">{{ rol }}</span>
         }
       </div>
       @if (usuarioSeleccionado$ | async; as compartido) {
-        <p class="myt-subtle-text" style="margin-top: 0.5rem; font-style: italic;">
+        <p class="myt-subtle-text" style="margin-top: 0.5rem; font-style: italic">
           Selección activa en servicio compartido: {{ compartido.nombre }} {{ compartido.apellido }}
         </p>
       }
@@ -259,7 +276,12 @@
   }
 
   <!-- Tabla administrativa -->
-  <div class="myt-table-scroll" role="region" aria-label="Tabla de clientes y usuarios" tabindex="0">
+  <div
+    class="myt-table-scroll"
+    role="region"
+    aria-label="Tabla de clientes y usuarios"
+    tabindex="0"
+  >
     <table class="myt-table">
       <thead>
         <tr>
@@ -339,54 +361,6 @@
       </tbody>
     </table>
   </div>
-
-  <!-- Herramientas de revisión RxJS -->
-  <section class="myt-subpanel" style="margin-top: 1.5rem;" aria-label="Herramientas de consulta reactiva">
-    <h3>Herramientas de consulta reactiva (RxJS)</h3>
-    <p class="myt-subtle-text">Pruebas operativas reactivas para administradores (concatMap, mergeMap y forkJoin).</p>
-    <div class="myt-toolbar-actions" style="margin-top: 0.6rem;">
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        (click)="revisarEnOrden()"
-      >
-        Revisar en orden
-      </button>
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        (click)="revisarSimultaneamente()"
-      >
-        Revisar simultáneamente
-      </button>
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        (click)="compararUsuarios()"
-      >
-        Consultar dos usuarios
-      </button>
-    </div>
-
-    @if (resultadosRevision().length > 0) {
-      <div style="margin-top: 0.85rem;">
-        <h4 style="margin: 0 0 0.35rem 0; font-size: 0.95rem;">Resultados</h4>
-        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-          @for (usuario of resultadosRevision(); track usuario.id) {
-            <span class="myt-subject-tag">#{{ usuario.id }} {{ usuario.nombre }} {{ usuario.apellido }}</span>
-          }
-        </div>
-      </div>
-    }
-
-    @if (comparacion(); as datos) {
-      <div style="margin-top: 0.85rem;">
-        <h4 style="margin: 0 0 0.35rem 0; font-size: 0.95rem;">Comparación</h4>
-        <p style="margin: 0.2rem 0;">Primero: {{ datos.primero?.nombre }} ({{ datos.primero?.correo }})</p>
-        <p style="margin: 0.2rem 0;">Segundo: {{ datos.segundo?.nombre }} ({{ datos.segundo?.correo }})</p>
-      </div>
-    }
-  </section>
 
   <section class="myt-surface-card">
     <h1>Nuevo usuario</h1>

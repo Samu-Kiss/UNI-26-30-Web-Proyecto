@@ -140,7 +140,7 @@ describe('Catálogo y editor conectados', () => {
     const otro = { ...tutor, id: 9, nombre: 'Luis', tarifaPorHora: 20000, calificacion: null };
     c.busquedaTexto = 'calculo';
     c.pagina.set({ content: [tutor, otro], number: 0, totalElements: 2, totalPages: 1 });
-    expect(c.tutoresMostrados().map((t) => t.id)).toEqual([9, 7]);
+    expect(c.tutoresMostrados().map((t) => t.id)).toEqual([7, 9]);
     c.alternarOrden();
     expect(c.tutoresMostrados().map((t) => t.id)).toEqual([9, 7]);
     expect(c.pagina()?.content.map((t) => t.id)).toEqual([7, 9]);

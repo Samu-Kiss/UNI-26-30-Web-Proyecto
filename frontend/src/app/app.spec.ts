@@ -1,6 +1,6 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from './core/services/auth.service';
 import { ApiService } from './core/services/api.service';
@@ -24,6 +24,7 @@ describe('App', () => {
           useValue: {
             sesion: signal({ rol: 'ADMINISTRADOR' }),
             opciones: signal<string[]>([]),
+            cargando: signal(false),
             restaurar: () => of({ actual: { rol: 'ADMINISTRADOR' }, opciones: [] }),
             cerrar: vi.fn(() => of(undefined)),
           },
@@ -31,6 +32,8 @@ describe('App', () => {
         {
           provide: ApiService,
           useValue: {
+            cambios: new Subject<void>(),
+            reservas: () => of([]),
             materias: () => of([]),
             tutores: () => of({ content: [], totalPages: 0, totalElements: 0, number: 0 }),
           },

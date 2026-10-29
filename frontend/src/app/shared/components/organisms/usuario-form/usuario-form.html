@@ -65,9 +65,14 @@
           type="tel"
           name="telefono"
           [(ngModel)]="telefono"
+          pattern="([+]57)?[0-9]{10}"
+          #tel="ngModel"
           maxlength="30"
           autocomplete="tel"
         />
+        @if (tel.invalid && (tel.dirty || tel.touched)) {
+          <small role="alert">Ingresa 10 dígitos, opcionalmente precedidos por +57.</small>
+        }
       </label>
       <label class="form-field"
         >Perfil *
@@ -166,7 +171,9 @@
       <p class="form-error" role="alert">Revisa los campos obligatorios y sus valores.</p>
     }
     <div>
-      <button class="btn btn--primary btn--lg" type="submit">Guardar usuario</button>
+      <button class="btn btn--primary btn--lg" type="submit" [disabled]="form.invalid">
+        Guardar usuario
+      </button>
     </div>
   </fieldset>
 </form>

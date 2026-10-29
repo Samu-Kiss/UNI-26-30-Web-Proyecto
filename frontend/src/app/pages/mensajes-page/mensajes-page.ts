@@ -1,410 +1,150 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MytStateService } from '../../core/services/myt-state.service';
-import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
-import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
-
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, EMPTY, finalize, Subject, switchMap, timer } from 'rxjs';
+import { ApiService, MensajeApi, ReservaApi, mensajeHttp } from '../../core/services/api.service';
 @Component({
   selector: 'app-mensajes-page',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
-  template: `
-    <main class="myt-chat-layout" aria-label="Chat de coordinación">
-      <!-- Conversation List -->
-      <aside class="myt-chat-sidebar" aria-label="Conversaciones">
-        <header class="myt-chat-sidebar__header">
-          <h1>Mensajes</h1>
-          <label class="myt-search-box" aria-label="Buscar conversación">
-            <app-lucide-icon name="search" [size]="16" class="myt-search-box__icon" />
-            <input
-              type="search"
-              [ngModel]="busqueda()"
-              (ngModelChange)="busqueda.set($event)"
-              placeholder="Buscar conversación"
-            />
-          </label>
-        </header>
-
-        <ul class="myt-chat-list" role="listbox" aria-label="Lista de conversaciones">
-          @for (conv of conversacionesFiltradas(); track conv.id) {
-            <li>
-              <button
-                type="button"
-                class="myt-chat-item"
-                [class.myt-chat-item--active]="conv.id === conversacionActiva().id"
-                (click)="seleccionarConversacion(conv.id)"
-              >
-                <app-avatar
-                  [name]="conv.nombre"
-                  [initials]="conv.inicial"
-                  size="md"
-                />
-                <div class="myt-chat-item__body">
-                  <div class="myt-chat-item__top">
-                    <strong>{{ conv.nombre }}</strong>
-                    <span class="myt-chat-item__time">{{ conv.ultimaHora }}</span>
-                  </div>
-                  <p class="myt-chat-item__preview">{{ conv.ultimoMensaje }}</p>
-                </div>
-              </button>
-            </li>
+  imports: [CommonModule, FormsModule, RouterLink],
+  template: ` <main class="myt-page-shell">
+    <h1>Mensajes</h1>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+      <button (click)="cargar()">Reintentar</button>
+    }
+    @if (cargando()) {
+      <p role="status">Cargando conversaciones…</p>
+    }
+    <label class="form-field"
+      >Tutoría<select [ngModel]="seleccionada()" (ngModelChange)="seleccionar($event)">
+        <option [ngValue]="0">Selecciona una reserva</option>
+        @for (r of reservas(); track r.id) {
+          <option [ngValue]="r.id">
+            #{{ r.id }} · {{ r.tema }} · {{ r.tutor }} / {{ r.estudiante }}
+          </option>
+        }
+      </select></label
+    >
+    @if (!cargando() && !reservas().length && !error()) {
+      <p>No tienes reservas con conversaciones disponibles.</p>
+    }
+    @if (seleccionada()) {
+      <a [routerLink]="['/reservas', seleccionada()]">Ver detalle de la reserva</a>
+      <section class="myt-surface-card" aria-live="polite">
+        @if (cargandoMensajes()) {
+          <p role="status">Cargando mensajes…</p>
+        } @else {
+          @for (m of mensajes(); track m.id) {
+            <article>
+              <strong>{{ m.autor }}</strong>
+              <p>{{ m.contenido }}</p>
+              <small>{{ m.fecha | date: 'short' }}</small>
+            </article>
           } @empty {
-            <li class="myt-empty-inline">No se encontraron conversaciones.</li>
+            <p>No hay mensajes en esta conversación.</p>
           }
-        </ul>
-      </aside>
-
-      <!-- Active Chat Panel -->
-      <section class="myt-chat-main" aria-label="Conversación activa">
-        @if (conversacionActiva(); as activa) {
-          <header class="myt-chat-header">
-            <div class="myt-chat-header__tutor">
-              <app-avatar
-                [name]="activa.nombre"
-                [initials]="activa.inicial"
-                size="md"
-              />
-              <div>
-                <h2>{{ activa.nombre }} · {{ activa.materias }}</h2>
-                <p class="myt-online-status">
-                  ● {{ activa.enLinea ? 'En línea' : 'Disponible' }} · {{ activa.tiempoRespuesta }}
-                </p>
-              </div>
-            </div>
-            <div class="myt-chat-header__actions">
-              <a [routerLink]="['/tutores', activa.tutorId]" class="myt-btn myt-btn--secondary myt-btn--sm">
-                Ver perfil
-              </a>
-            </div>
-          </header>
-
-          <!-- Session Context Banner -->
-          <div class="myt-chat-context" role="region" aria-label="Contexto de la tutoría">
-            <p>
-              <strong>{{ activa.contextoEstado }}:</strong> {{ activa.contextoDetalle }}
-            </p>
-            <a [routerLink]="['/reservas', activa.reservaId]" class="myt-link-teal">Cambiar horario</a>
-          </div>
-
-          <!-- Messages Stream -->
-          <div class="myt-chat-messages" role="log" aria-live="polite">
-            @for (msg of activa.mensajes; track msg.id) {
-              <article
-                class="myt-bubble"
-                [class.myt-bubble--incoming]="msg.autor === 'TUTOR'"
-                [class.myt-bubble--outgoing]="msg.autor === 'ESTUDIANTE'"
-              >
-                <p class="myt-bubble__text">{{ msg.texto }}</p>
-                <span class="myt-bubble__meta">{{ msg.hora }}</span>
-              </article>
-            }
-          </div>
-
-          <!-- Composer -->
-          <form class="myt-chat-composer" (ngSubmit)="enviarMensaje()">
-            <input
-              type="text"
-              name="nuevoMensaje"
-              [(ngModel)]="nuevoMensaje"
-              placeholder="Escribe un mensaje…"
-              aria-label="Escribe un mensaje"
-              required
-            />
-            <button type="submit" class="myt-btn myt-btn--primary" [disabled]="!nuevoMensaje.trim()">
-              <app-lucide-icon name="send" [size]="15" />
-              <span>Enviar</span>
-            </button>
-          </form>
         }
       </section>
-    </main>
-  `,
-  styles: [
-    `
-      .myt-chat-layout {
-        display: grid;
-        grid-template-columns: 360px 1fr;
-        min-height: calc(100vh - 110px);
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 18px;
-        overflow: hidden;
-      }
-      @media (max-width: 960px) {
-        .myt-chat-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-      .myt-chat-sidebar {
-        background: #e9e9ea;
-        border-right: 1px solid #dcdcdd;
-        padding: 1.5rem 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-      }
-      .myt-chat-sidebar__header h1 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #46494c;
-        margin: 0 0 0.85rem;
-      }
-      .myt-search-box {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #f5f5f3;
-        border: 1px solid #c5c3c6;
-        border-radius: 12px;
-        padding: 0.55rem 0.85rem;
-      }
-      .myt-search-box__icon {
-        color: #6f7479;
-        font-size: 0.95rem;
-      }
-      .myt-search-box input {
-        border: 0;
-        background: transparent;
-        width: 100%;
-        color: #46494c;
-        font-size: 0.9rem;
-        outline: none;
-      }
-      .myt-chat-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-      }
-      .myt-chat-item {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.85rem;
-        border-radius: 14px;
-        border: 1px solid transparent;
-        background: #f5f5f3;
-        text-align: left;
-        cursor: pointer;
-        transition: border-color 150ms ease, background 150ms ease;
-      }
-      .myt-chat-item:hover {
-        border-color: #c5c3c6;
-      }
-      .myt-chat-item--active {
-        background: #ffffff;
-        border-color: #1985a1;
-        box-shadow: 0 4px 12px rgba(25, 133, 161, 0.08);
-      }
-      .myt-chat-item__body {
-        flex: 1;
-        min-width: 0;
-      }
-      .myt-chat-item__top {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 0.5rem;
-      }
-      .myt-chat-item__top strong {
-        font-size: 0.92rem;
-        color: #46494c;
-      }
-      .myt-chat-item__time {
-        font-size: 0.72rem;
-        color: #6f7479;
-      }
-      .myt-chat-item__preview {
-        margin: 0.25rem 0 0;
-        font-size: 0.8rem;
-        color: #4c5c68;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .myt-chat-main {
-        display: flex;
-        flex-direction: column;
-        background: #f5f5f3;
-      }
-      .myt-chat-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.15rem 1.75rem;
-        border-bottom: 1px solid #dcdcdd;
-      }
-      .myt-chat-header__tutor {
-        display: flex;
-        align-items: center;
-        gap: 0.85rem;
-      }
-      .myt-chat-header__tutor h2 {
-        margin: 0;
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #46494c;
-      }
-      .myt-online-status {
-        margin: 0.15rem 0 0;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #11816f;
-      }
-      .myt-chat-context {
-        margin: 1rem 1.75rem 0;
-        padding: 0.75rem 1.1rem;
-        border-radius: 12px;
-        background: #e9e9ea;
-        border: 1px solid #c5c3c6;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .myt-chat-context p {
-        margin: 0;
-        font-size: 0.82rem;
-        color: #46494c;
-      }
-      .myt-link-teal {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: #1985a1;
-        text-decoration: none;
-      }
-      .myt-link-teal:hover {
-        text-decoration: underline;
-      }
-      .myt-chat-messages {
-        flex: 1;
-        padding: 1.5rem 1.75rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        overflow-y: auto;
-      }
-      .myt-bubble {
-        max-width: 560px;
-        padding: 0.9rem 1.1rem;
-        border-radius: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-      }
-      .myt-bubble--incoming {
-        align-self: flex-start;
-        background: #ffffff;
-        border: 1px solid #c5c3c6;
-        color: #24272a;
-      }
-      .myt-bubble--outgoing {
-        align-self: flex-end;
-        background: #126e87;
-        color: #ffffff;
-      }
-      .myt-bubble__text {
-        margin: 0;
-        font-size: 0.92rem;
-        line-height: 1.48;
-        color: inherit;
-      }
-      .myt-bubble--incoming .myt-bubble__text {
-        color: #24272a;
-      }
-      .myt-bubble--outgoing .myt-bubble__text {
-        color: #ffffff;
-        font-weight: 500;
-      }
-      .myt-bubble__meta {
-        font-size: 0.74rem;
-        font-weight: 600;
-      }
-      .myt-bubble--incoming .myt-bubble__meta {
-        color: #4e555b;
-      }
-      .myt-bubble--outgoing .myt-bubble__meta {
-        color: #e6f6fa;
-        align-self: flex-end;
-      }
-      .myt-chat-composer {
-        padding: 1rem 1.75rem;
-        border-top: 1px solid #dcdcdd;
-        display: flex;
-        gap: 0.75rem;
-        align-items: center;
-      }
-      .myt-chat-composer input {
-        flex: 1;
-        background: #ffffff;
-        border: 1px solid #c5c3c6;
-        border-radius: 12px;
-        padding: 0.7rem 1rem;
-        font-size: 0.9rem;
-        color: #46494c;
-      }
-    `,
-  ],
+      <form #form="ngForm" (ngSubmit)="form.valid && enviar()">
+        <label class="form-field"
+          >Mensaje<textarea
+            name="texto"
+            [(ngModel)]="texto"
+            required
+            maxlength="4000"
+            [disabled]="enviando()"
+          ></textarea></label
+        ><button
+          class="myt-btn myt-btn--primary"
+          [disabled]="form.invalid || !texto.trim() || enviando()"
+        >
+          Enviar mensaje
+        </button>
+      </form>
+    }
+  </main>`,
 })
 export class MensajesPageComponent implements OnInit {
-  readonly state = inject(MytStateService);
-  private readonly route = inject(ActivatedRoute);
-
-  readonly busqueda = signal('');
-  readonly conversacionActivaId = signal(1);
-  nuevoMensaje = '';
-
-  ngOnInit(): void {
-    const tutorParam = this.route.snapshot.queryParamMap.get('tutor');
-    const reservaParam = this.route.snapshot.queryParamMap.get('reserva');
-    if (tutorParam || reservaParam) {
-      const tid = Number(tutorParam);
-      const rid = Number(reservaParam);
-      const coincidencia = this.state
-        .conversaciones()
-        .find((c) => (tid > 0 && c.tutorId === tid) || (rid > 0 && c.reservaId === rid));
-      if (coincidencia) {
-        this.conversacionActivaId.set(coincidencia.id);
-      }
-    }
+  readonly api = inject(ApiService);
+  readonly route = inject(ActivatedRoute);
+  readonly destroyRef = inject(DestroyRef);
+  readonly reservas = signal<ReservaApi[]>([]);
+  readonly mensajes = signal<MensajeApi[]>([]);
+  readonly seleccionada = signal(0);
+  readonly error = signal('');
+  readonly cargando = signal(true);
+  readonly cargandoMensajes = signal(false);
+  readonly enviando = signal(false);
+  private readonly refrescar = new Subject<number>();
+  texto = '';
+  ngOnInit() {
+    this.refrescar
+      .pipe(
+        switchMap((id) => {
+          this.mensajes.set([]);
+          if (!id) return EMPTY;
+          this.cargandoMensajes.set(true);
+          return timer(0, 10000).pipe(
+            switchMap(() =>
+              this.api.mensajes(id).pipe(
+                catchError((e) => {
+                  this.error.set(mensajeHttp(e));
+                  this.cargandoMensajes.set(false);
+                  return EMPTY;
+                }),
+              ),
+            ),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((m) => {
+        this.mensajes.set(m);
+        this.cargandoMensajes.set(false);
+      });
+    this.cargar();
   }
-
-  readonly conversacionesFiltradas = computed(() => {
-    const q = this.busqueda().trim().toLowerCase();
-    const lista = this.state.conversaciones();
-    if (!q) {
-      return lista;
-    }
-    return lista.filter(
-      (c) =>
-        c.nombre.toLowerCase().includes(q) ||
-        c.ultimoMensaje.toLowerCase().includes(q) ||
-        c.contextoDetalle.toLowerCase().includes(q),
-    );
-  });
-
-  readonly conversacionActiva = computed(() => {
-    const id = this.conversacionActivaId();
-    const lista = this.state.conversaciones();
-    return lista.find((c) => c.id === id) ?? lista[0];
-  });
-
-  seleccionarConversacion(id: number): void {
-    this.conversacionActivaId.set(id);
+  cargar() {
+    this.cargando.set(true);
+    this.error.set('');
+    this.api
+      .reservas()
+      .pipe(
+        finalize(() => this.cargando.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (r) => {
+          this.reservas.set(r);
+          const id =
+            Number(this.route.snapshot.queryParamMap.get('reserva')) || this.seleccionada();
+          if (r.some((x) => x.id === id)) this.seleccionar(id);
+        },
+        error: (e) => this.error.set(mensajeHttp(e)),
+      });
   }
-
-  enviarMensaje(): void {
-    const activa = this.conversacionActiva();
-    if (!activa || !this.nuevoMensaje.trim()) {
-      return;
-    }
-    this.state.enviarMensaje(activa.id, this.nuevoMensaje);
-    this.nuevoMensaje = '';
+  seleccionar(id: number) {
+    this.seleccionada.set(id);
+    this.error.set('');
+    this.refrescar.next(id);
+  }
+  enviar() {
+    if (this.enviando() || !this.texto.trim()) return;
+    this.enviando.set(true);
+    this.api
+      .enviarMensaje(this.seleccionada(), this.texto.trim())
+      .pipe(
+        finalize(() => this.enviando.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (m) => {
+          this.mensajes.update((lista) => [...lista, m]);
+          this.texto = '';
+        },
+        error: (e) => this.error.set(mensajeHttp(e)),
+      });
   }
 }

@@ -1,7 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Usuario } from '../../core/models/usuario.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, EMPTY, finalize, switchMap, timer } from 'rxjs';
+import { mensajeHttp } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 
@@ -27,42 +30,57 @@ import { UsuarioService } from '../../core/services/usuario.service';
         </div>
       </header>
 
-      <div class="myt-table-scroll" role="region" aria-label="Tabla de administradores" tabindex="0">
-        <table class="myt-table">
-          <thead>
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Nombre</th>
-              <th scope="col">Correo</th>
-              <th scope="col">Teléfono</th>
-              <th scope="col">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (admin of administradoresFiltrados(); track admin.id) {
+      @if (cargando()) {
+        <p role="status">Cargando administradores…</p>
+      }
+      @if (error()) {
+        <p role="alert">{{ error() }}</p>
+      }
+      @if (!cargando() && !error()) {
+        <div
+          class="myt-table-scroll"
+          role="region"
+          aria-label="Tabla de administradores"
+          tabindex="0"
+        >
+          <table class="myt-table">
+            <thead>
               <tr>
-                <td>{{ admin.id }}</td>
-                <td><strong>{{ admin.nombre }} {{ admin.apellido }}</strong></td>
-                <td>{{ admin.correo }}</td>
-                <td>{{ admin.telefono || '—' }}</td>
-                <td>
-                  <span
-                    class="myt-status-pill"
-                    [class.myt-status-pill--active]="admin.activo"
-                    [class.myt-status-pill--inactive]="!admin.activo"
-                  >
-                    {{ admin.activo ? 'Activo' : 'Inactivo' }}
-                  </span>
-                </td>
+                <th scope="col">ID</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Correo</th>
+                <th scope="col">Teléfono</th>
+                <th scope="col">Estado</th>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">No hay administradores registrados.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              @for (admin of administradoresFiltrados(); track admin.id) {
+                <tr>
+                  <td>{{ admin.id }}</td>
+                  <td>
+                    <strong>{{ admin.nombre }} {{ admin.apellido }}</strong>
+                  </td>
+                  <td>{{ admin.correo }}</td>
+                  <td>{{ admin.telefono || '—' }}</td>
+                  <td>
+                    <span
+                      class="myt-status-pill"
+                      [class.myt-status-pill--active]="admin.activo"
+                      [class.myt-status-pill--inactive]="!admin.activo"
+                    >
+                      {{ admin.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5">No hay administradores registrados.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </main>
   `,
   styles: [
@@ -105,26 +123,9 @@ export class AdministradoresPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
 
   readonly filtro = signal('');
-  readonly administradores = signal<Usuario[]>([
-    {
-      id: 1,
-      nombre: 'Elena',
-      apellido: 'Martínez',
-      correo: 'admin.elena@myt.edu.co',
-      telefono: '310 450 8821',
-      activo: true,
-      roles: ['ADMINISTRADOR'],
-    },
-    {
-      id: 2,
-      nombre: 'Ricardo',
-      apellido: 'Gómez',
-      correo: 'ricardo.gomez@myt.edu.co',
-      telefono: '315 892 1104',
-      activo: true,
-      roles: ['ADMINISTRADOR'],
-    },
-  ]);
+  readonly administradores = signal<Usuario[]>([]);
+  readonly cargando = signal(true);
+  readonly error = signal('');
 
   readonly administradoresFiltrados = computed(() => {
     const q = this.filtro().trim().toLowerCase();
@@ -134,23 +135,30 @@ export class AdministradoresPageComponent implements OnInit {
     }
     return lista.filter(
       (a) =>
-        `${a.nombre} ${a.apellido}`.toLowerCase().includes(q) ||
-        a.correo.toLowerCase().includes(q),
+        `${a.nombre} ${a.apellido}`.toLowerCase().includes(q) || a.correo.toLowerCase().includes(q),
     );
   });
 
+  private readonly destroyRef = inject(DestroyRef);
   ngOnInit(): void {
-    if (this.auth.sesion()?.rol !== 'ADMINISTRADOR') {
-      return;
-    }
-    this.usuarioService.obtenerUsuarios().subscribe({
-      next: (usuarios) => {
-        const admins = usuarios.filter((u) => u.roles.includes('ADMINISTRADOR'));
-        this.administradores.set(admins);
-      },
-      error: () => {
-        // Conserva estado actual ante desconexión
-      },
-    });
+    timer(0, 15000)
+      .pipe(
+        switchMap(() => {
+          this.cargando.set(true);
+          this.error.set('');
+          return this.usuarioService.obtenerUsuarios().pipe(
+            catchError((e) => {
+              this.administradores.set([]);
+              this.error.set(mensajeHttp(e));
+              return EMPTY;
+            }),
+            finalize(() => this.cargando.set(false)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((u) =>
+        this.administradores.set(u.filter((x) => x.roles.includes('ADMINISTRADOR'))),
+      );
   }
 }

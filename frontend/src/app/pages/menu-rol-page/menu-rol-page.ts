@@ -104,7 +104,7 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
               <span class="myt-menu-card__cta">Gestionar reservas →</span>
             </a>
 
-            <a routerLink="/tutores/1" class="myt-menu-card">
+            <a [routerLink]="['/tutores', auth.sesion()?.perfilId]" class="myt-menu-card">
               <span class="myt-menu-card__tag">Perfil público</span>
               <h2>Mi perfil de tutor</h2>
               <p>Consulta cómo ven los estudiantes tu biografía, experiencia, tarifas y reseñas.</p>
@@ -114,7 +114,7 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
             <a routerLink="/calendario" class="myt-menu-card">
               <span class="myt-menu-card__tag">Disponibilidad</span>
               <h2>Calendario de sesiones</h2>
-              <p>Administra tus bloques de disponibilidad semanal y sesiones agendadas.</p>
+              <p>Consulta tu disponibilidad semanal y las sesiones agendadas.</p>
               <span class="myt-menu-card__cta">Ir al calendario →</span>
             </a>
 
@@ -132,21 +132,27 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
             <a routerLink="/usuarios" class="myt-menu-card">
               <span class="myt-menu-card__tag">Gestión central</span>
               <h2>Clientes y Usuarios</h2>
-              <p>Crea, edita, activa o desactiva usuarios, asigna perfiles y prueba el laboratorio RxJS.</p>
+              <p>Crea, edita, activa o desactiva usuarios, asigna perfiles.</p>
               <span class="myt-menu-card__cta">Administrar usuarios →</span>
             </a>
 
             <a routerLink="/estudiantes" class="myt-menu-card">
               <span class="myt-menu-card__tag">Académico</span>
               <h2>Estudiantes</h2>
-              <p>Consulta los datos académicos de los estudiantes registrados (universidad, programa y semestre).</p>
+              <p>
+                Consulta los datos académicos de los estudiantes registrados (universidad, programa
+                y semestre).
+              </p>
               <span class="myt-menu-card__cta">Ver directorio de estudiantes →</span>
             </a>
 
             <a routerLink="/administradores" class="myt-menu-card">
               <span class="myt-menu-card__tag">Seguridad</span>
               <h2>Administradores</h2>
-              <p>Revisa las cuentas con acceso administrativo, su correo institucional y estado actual.</p>
+              <p>
+                Revisa las cuentas con acceso administrativo, su correo institucional y estado
+                actual.
+              </p>
               <span class="myt-menu-card__cta">Ver administradores →</span>
             </a>
           </section>
@@ -228,7 +234,10 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
         display: flex;
         flex-direction: column;
         gap: 0.55rem;
-        transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+        transition:
+          transform 150ms ease,
+          border-color 150ms ease,
+          box-shadow 150ms ease;
       }
       .myt-menu-card:hover {
         transform: translateY(-2px);
@@ -267,7 +276,7 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
   ],
 })
 export class MenuRolPageComponent {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
 
   readonly rolVista = signal<RolMenu>('ESTUDIANTE');

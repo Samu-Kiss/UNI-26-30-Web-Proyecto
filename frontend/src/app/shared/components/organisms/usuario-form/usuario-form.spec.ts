@@ -21,7 +21,7 @@ describe('Registro de usuarios', () => {
       completar('apellido', '  Díaz  ');
       completar('correo', 'eva@example.com');
       completar('contrasena', 'Clave123!');
-      completar('telefono', ' 3001234567 ');
+      completar('telefono', '3001234567');
       if (rol === 'ESTUDIANTE') {
         completar('codigoEstudiantil', ' 123 ');
         completar('semestre', '3');

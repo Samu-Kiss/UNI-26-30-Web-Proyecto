@@ -76,6 +76,10 @@ public class ReservaRestController {
         }
         var reserva = reservas.crearReserva(datos.tutorId(), sesion.perfilId(), datos.materiaId(),
                 datos.fecha(), datos.horaInicio(), datos.duracionMinutos(), datos.tema(), datos.modalidad());
+        if (datos.objetivo() == null || datos.objetivo().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Especifica el objetivo de la sesión");
+        }
+        reserva.setObjetivo(datos.objetivo().trim());
         return ResponseEntity.created(URI.create("/api/reservas/" + reserva.getId())).body(ApiDtos.reserva(reserva));
     }
 
@@ -95,11 +99,15 @@ public class ReservaRestController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<Void> cancelar(@PathVariable Integer id,
-            @RequestAttribute("apiSesion") ContextoSesion sesion) {
+            @RequestAttribute("apiSesion") ContextoSesion sesion,
+            @RequestParam String motivo) {
         var reserva = obtener(id);
         autorizar(sesion, reserva);
+        if (motivo.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indica el motivo de cancelación");
+        }
         if (reserva.getEstado() != EstadoReserva.CANCELADA) {
-            reservas.cambiarEstado(id, EstadoReserva.CANCELADA, "Cancelada desde la gestión de reservas");
+            reservas.cambiarEstado(id, EstadoReserva.CANCELADA, motivo);
         }
         return ResponseEntity.noContent().build();
     }

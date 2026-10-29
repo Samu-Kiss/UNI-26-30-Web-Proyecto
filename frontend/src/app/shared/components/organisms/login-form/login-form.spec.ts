@@ -19,11 +19,15 @@ describe('LoginFormComponent', () => {
     fixture.detectChanges();
   });
 
-  it('emite credenciales cuando el formulario es valido y limpia la contrasena', async () => {
+  it('emite credenciales cuando el formulario es valido sin activar validaciones antes de la redirección', async () => {
     const emitSpy = vi.spyOn(component.loginEnviado, 'emit');
 
-    const emailInput = fixture.nativeElement.querySelector('input[type="email"]') as HTMLInputElement;
-    const passInput = fixture.nativeElement.querySelector('input[type="password"]') as HTMLInputElement;
+    const emailInput = fixture.nativeElement.querySelector(
+      'input[type="email"]',
+    ) as HTMLInputElement;
+    const passInput = fixture.nativeElement.querySelector(
+      'input[type="password"]',
+    ) as HTMLInputElement;
 
     emailInput.value = 'usuario@correo.com';
     emailInput.dispatchEvent(new Event('input'));
@@ -40,7 +44,7 @@ describe('LoginFormComponent', () => {
       correo: 'usuario@correo.com',
       contrasena: 'Secreta123!',
     });
-    expect(component.contrasena).toBe('');
+    expect(component.contrasena).toBe('Secreta123!');
   });
 
   it('no emite si esta deshabilitado o si el correo esta vacio', async () => {
