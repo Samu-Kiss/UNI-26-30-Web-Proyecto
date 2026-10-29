@@ -319,6 +319,11 @@ export class LandingPageComponent {
   readonly busquedaHero = signal('');
 
   buscarRapido(): void {
-    void this.router.navigate(['/tutores']);
+    const q = this.busquedaHero().trim();
+    if (q) {
+      void this.router.navigate(['/tutores'], { queryParams: { q } });
+    } else {
+      void this.router.navigate(['/tutores']);
+    }
   }
 }

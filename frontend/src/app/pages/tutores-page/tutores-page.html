@@ -44,6 +44,19 @@
     <button class="myt-btn myt-btn--primary" [disabled]="cargando()">Filtrar</button>
   </form>
 
+  <div class="myt-category-pills" role="tablist" aria-label="Categorías de materias">
+    @for (chip of categoriaChips; track chip) {
+      <button
+        type="button"
+        class="myt-pill-chip"
+        [class.myt-pill-chip--active]="categoriaActiva() === chip"
+        (click)="seleccionarCategoriaChip(chip)"
+      >
+        {{ chip }}
+      </button>
+    }
+  </div>
+
   @if (error()) {
     <div class="myt-alert myt-alert--error">
       <p role="alert">{{ error() }}</p>
@@ -149,6 +162,9 @@
             @if (p.totalPages > 1) {
               <span> · Página {{ p.number + 1 }} de {{ p.totalPages }}</span>
             }
+            @if (busquedaTexto.trim()) {
+              <span> · {{ tutoresMostrados().length }} en esta página</span>
+            }
           </p>
         }
       }
@@ -248,31 +264,75 @@
       </article>
     } @empty {
       @if (!cargando() && !error()) {
-        <p class="myt-empty-inline">No hay tutores para estos filtros.</p>
+        <div class="myt-empty-state">
+          <p class="myt-empty-inline">
+            @if (busquedaTexto.trim()) {
+              No hay tutores que coincidan con "{{ busquedaTexto.trim() }}" en esta página.
+            } @else {
+              No hay tutores para estos filtros.
+            }
+          </p>
+          @if (busquedaTexto.trim()) {
+            <button
+              type="button"
+              class="myt-btn myt-btn--secondary myt-btn--sm"
+              (click)="limpiarBusqueda()"
+            >
+              Limpiar búsqueda
+            </button>
+          }
+        </div>
       }
     }
   </div>
 
   @if ((pagina()?.totalPages ?? 0) > 1) {
-    <div class="myt-pagination-bar">
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        [disabled]="page === 0 || cargando()"
-        (click)="navegar(-1)"
-      >
-        <app-lucide-icon name="chevron-left" [size]="16" />
-        <span>Anterior</span>
-      </button>
-      <button
-        type="button"
-        class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
-        [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
-        (click)="navegar(1)"
-      >
-        <span>Siguiente</span>
-        <app-lucide-icon name="chevron-right" [size]="16" />
-      </button>
-    </div>
+    <nav class="myt-pagination-bar" aria-label="Navegación de páginas">
+      <div class="myt-pagination-pages">
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          [disabled]="page === 0 || cargando()"
+          (click)="navegar(-1)"
+          aria-label="Página anterior"
+        >
+          <app-lucide-icon name="chevron-left" [size]="16" />
+          <span>Anterior</span>
+        </button>
+
+        @for (item of paginasDisponibles(); track $index) {
+          @if (esNumero(item)) {
+            <button
+              type="button"
+              class="myt-page-number-btn"
+              [class.myt-page-number-btn--active]="page === item"
+              [disabled]="cargando()"
+              (click)="irAPagina(item)"
+              [attr.aria-label]="'Ir a la página ' + (item + 1)"
+              [attr.aria-current]="page === item ? 'page' : null"
+            >
+              {{ item + 1 }}
+            </button>
+          } @else {
+            <span class="myt-page-ellipsis" aria-hidden="true">…</span>
+          }
+        }
+
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
+          (click)="navegar(1)"
+          aria-label="Página siguiente"
+        >
+          <span>Siguiente</span>
+          <app-lucide-icon name="chevron-right" [size]="16" />
+        </button>
+      </div>
+
+      <span class="myt-pagination-info">
+        Página {{ (pagina()?.number ?? page) + 1 }} de {{ pagina()?.totalPages }}
+      </span>
+    </nav>
   }
 </main>

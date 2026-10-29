@@ -757,8 +757,77 @@ tbody tr:last-child td {
 }
 
 .myt-pagination-bar {
-  margin-top: 1rem;
-  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  justify-content: space-between;
+}
+
+.myt-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.myt-page-number-btn {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-main, #1e293b);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.myt-page-number-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover, #f1f5f9);
+  border-color: var(--color-primary, #0e7490);
+}
+
+.myt-page-number-btn--active {
+  background: var(--color-primary, #0e7490) !important;
+  color: #ffffff !important;
+  border-color: var(--color-primary, #0e7490) !important;
+}
+
+.myt-pagination-info {
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 500;
+}
+
+.myt-page-ellipsis {
+  min-width: 2rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 700;
+  user-select: none;
+}
+
+.myt-empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  gap: 0.75rem;
+  background: var(--color-surface, #ffffff);
+  border: 1px dashed var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  color: var(--color-text-muted, #64748b);
 }
 
 /* Figma 03 & 04 · Reservar y Confirmación Styles */
