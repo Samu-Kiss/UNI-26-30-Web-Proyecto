@@ -258,7 +258,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
     `
       .myt-login-viewport {
         min-height: 100vh;
-        background: #e9e9ea;
+        background: var(--color-bg-body);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -282,21 +282,21 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         gap: 0.4rem;
         font-size: 0.85rem;
         font-weight: 700;
-        color: #4c5c68;
+        color: var(--color-text-subtle);
         text-decoration: none;
       }
       .myt-login-back:hover {
-        color: #1985a1;
+        color: var(--color-primary);
       }
       .myt-login-card {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 22px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-xl);
         padding: 2.25rem;
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
-        box-shadow: 0 22px 48px -28px rgba(70, 73, 76, 0.25);
+        box-shadow: var(--shadow-card);
       }
       .myt-login-brand {
         display: flex;
@@ -306,7 +306,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       .myt-login-brand h1 {
         margin: 0.25rem 0 0.15rem;
         font-size: 1.7rem;
-        color: #46494c;
+        color: var(--color-text-main);
       }
       .myt-register-form {
         display: flex;
@@ -323,21 +323,21 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         align-items: center;
         gap: 0.75rem;
         padding: 0.85rem 1rem;
-        border: 2px solid #dcdcdd;
-        border-radius: 14px;
-        background: #ffffff;
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-pure);
         cursor: pointer;
         text-align: left;
-        color: #46494c;
-        transition: all 0.2s ease;
+        color: var(--color-text-main);
+        transition: var(--transition-base);
       }
       .myt-role-btn:hover {
-        border-color: #1985a1;
+        border-color: var(--color-primary);
       }
       .myt-role-btn--active {
-        border-color: #1985a1;
-        background: #eef7f9;
-        color: #1985a1;
+        border-color: var(--color-primary);
+        background: var(--color-primary-light);
+        color: var(--color-primary);
       }
       .myt-role-btn strong {
         display: block;
@@ -346,10 +346,10 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       .myt-role-btn span {
         display: block;
         font-size: 0.75rem;
-        color: #6f7479;
+        color: var(--color-text-muted);
       }
       .myt-role-btn--active span {
-        color: #1985a1;
+        color: var(--color-primary);
       }
       .myt-form-grid-2 {
         display: grid;
@@ -361,9 +361,9 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         flex-direction: column;
         gap: 0.85rem;
         padding: 1rem;
-        border-radius: 12px;
-        background: #e9e9ea;
-        border: 1px solid #dcdcdd;
+        border-radius: var(--radius-md);
+        background: var(--color-bg-muted);
+        border: 1px solid var(--color-border);
       }
       .form-field {
         display: flex;
@@ -373,28 +373,29 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       .form-label {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #46494c;
+        color: var(--color-text-main);
       }
       .text-input {
         padding: 0.65rem 0.85rem;
-        border-radius: 10px;
-        border: 1px solid #c5c3c6;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border-strong);
         font-size: 0.9rem;
-        background: #ffffff;
-        color: #46494c;
+        background: var(--color-surface-pure);
+        color: var(--color-text-main);
       }
       .text-input:focus {
         outline: none;
-        border-color: #1985a1;
+        border-color: var(--color-primary);
+        box-shadow: var(--focus-ring);
       }
       .myt-login-footer {
         padding-top: 0.75rem;
-        border-top: 1px solid #dcdcdd;
+        border-top: 1px solid var(--color-border);
         font-size: 0.85rem;
-        color: #4c5c68;
+        color: var(--color-text-subtle);
       }
       .myt-login-footer a {
-        color: #1985a1;
+        color: var(--color-primary);
         font-weight: 700;
         text-decoration: none;
       }

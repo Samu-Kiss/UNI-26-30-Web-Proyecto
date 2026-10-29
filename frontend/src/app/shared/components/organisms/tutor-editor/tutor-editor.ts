@@ -12,8 +12,8 @@ import { TutorApi, TutorEdicion } from '../../../../core/services/api.service';
           >Tarifa por hora
           <input class="text-input" type="number" formControlName="tarifaPorHora" />
         </label>
-        <label class="form-field" style="justify-content: flex-end; padding-bottom: 0.45rem;">
-          <span style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+        <label class="form-field form-field--checkbox">
+          <span class="form-field__checkbox-label">
             <input type="checkbox" formControlName="disponible" />
             Disponible para reservas
           </span>

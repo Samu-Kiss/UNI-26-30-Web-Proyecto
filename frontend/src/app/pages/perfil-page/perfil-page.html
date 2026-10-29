@@ -1,0 +1,131 @@
+<main class="myt-page-shell profile-settings">
+  <header class="myt-page-header">
+    <div>
+      <span class="myt-eyebrow">Configuración</span>
+      <h1>Mi perfil</h1>
+      <p class="myt-subtitle">Administra tus datos personales y credenciales de acceso.</p>
+    </div>
+  </header>
+
+  @if (cargando()) {
+    <p role="status" class="profile-settings__status">Cargando perfil…</p>
+  }
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+  @if (mensaje()) {
+    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+  }
+  @if (esSetup()) {
+    <div class="myt-alert myt-alert--info profile-settings__setup-alert" role="status">
+      <app-lucide-icon name="clock" [size]="20" />
+      <div>
+        <strong>¡Te damos la bienvenida a MyT!</strong>
+        <p>Para comenzar a recibir solicitudes de estudiantes, configura tu disponibilidad semanal en la sección inferior.</p>
+      </div>
+    </div>
+  }
+
+  @if (usuario(); as u) {
+    <div class="profile-settings__layout">
+      <!-- Datos personales -->
+      <section class="myt-surface-card profile-settings__card">
+        <div class="profile-settings__card-header">
+          <div class="profile-settings__user-summary">
+            <app-avatar [name]="u.nombre + ' ' + u.apellido" [initials]="u.nombre ? u.nombre.charAt(0) : 'U'" size="lg" />
+            <div>
+              <h2>Datos personales</h2>
+              <span class="profile-settings__role-badge">{{ auth.sesion()?.rol || 'USUARIO' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <form #form="ngForm" (ngSubmit)="form.valid && guardar()" class="profile-settings__form">
+          <fieldset [disabled]="guardando()" class="profile-settings__fieldset">
+            <div class="profile-settings__grid">
+              <label class="form-field">
+                <span>Nombre</span>
+                <input
+                  name="nombre"
+                  [(ngModel)]="u.nombre"
+                  required
+                  maxlength="100"
+                  class="text-input"
+                  placeholder="Tu nombre"
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Apellido</span>
+                <input
+                  name="apellido"
+                  [(ngModel)]="u.apellido"
+                  required
+                  maxlength="100"
+                  class="text-input"
+                  placeholder="Tu apellido"
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Correo institucional</span>
+                <input
+                  name="correo"
+                  type="email"
+                  email
+                  [(ngModel)]="u.correo"
+                  required
+                  maxlength="120"
+                  class="text-input"
+                  placeholder="nombre@universidad.edu.co"
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Teléfono celular <small class="form-hint">(opcional)</small></span>
+                <input
+                  name="telefono"
+                  type="tel"
+                  [(ngModel)]="u.telefono"
+                  pattern="([+]57)?[0-9]{10}"
+                  #tel="ngModel"
+                  class="text-input"
+                  placeholder="Ej. 3001234567 o +573001234567"
+                />
+                @if (tel.invalid) {
+                  <p role="alert" class="form-error">Ingresa 10 dígitos, opcionalmente precedidos por +57.</p>
+                }
+              </label>
+            </div>
+
+            <div class="myt-toolbar-actions">
+              <button
+                type="submit"
+                class="myt-btn myt-btn--primary"
+                [disabled]="form.invalid || guardando()"
+              >
+                {{ guardando() ? 'Guardando…' : 'Guardar perfil' }}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      </section>
+
+      <!-- Panel de disponibilidad si el usuario es Tutor -->
+      @if (auth.sesion()?.rol === 'TUTOR') {
+        <div class="profile-settings__tutor-agenda">
+          <div class="profile-settings__tutor-intro">
+            <div class="profile-settings__info-box">
+              <app-lucide-icon name="calendar" [size]="20" />
+              <p>Completa tu disponibilidad para que los estudiantes puedan reservar contigo.</p>
+            </div>
+          </div>
+          <app-agenda-editor [tutorId]="auth.sesion()!.perfilId" />
+        </div>
+      }
+    </div>
+  }
+</main>

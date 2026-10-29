@@ -122,7 +122,7 @@ export class ApiService {
   }
 
   tutores(page = 0, materiaId = '', tarifaMax = '', q = '', orden = 'calificacion') {
-    let params = new HttpParams().set('page', page).set('size', 5);
+    let params = new HttpParams().set('page', page).set('size', 6);
     if (q) params = params.set('q', q);
     if (orden === 'precio') params = params.set('orden', orden);
     if (materiaId) params = params.set('materiaId', materiaId);

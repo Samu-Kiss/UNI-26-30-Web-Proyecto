@@ -3,7 +3,11 @@
 } @else {
   <div class="myt-app-shell">
     <!-- Left Sidebar -->
-    <aside class="myt-sidebar" aria-label="Menú lateral MyT">
+    <aside
+      class="myt-sidebar"
+      [class.myt-sidebar--open]="menuAbierto()"
+      aria-label="Menú lateral MyT"
+    >
       <div class="myt-sidebar__brand">
         <a
           [routerLink]="
@@ -17,14 +21,28 @@
           >MyT</a
         >
         <p class="myt-sidebar__tagline">Encuentra. Aprende. Avanza.</p>
+        <button
+          class="myt-sidebar__toggle"
+          type="button"
+          [attr.aria-expanded]="menuAbierto()"
+          aria-controls="myt-navigation"
+          (click)="menuAbierto.set(!menuAbierto())"
+        >
+          {{ menuAbierto() ? 'Cerrar menú' : 'Menú' }}
+        </button>
       </div>
 
-      <nav class="myt-sidebar__nav laboratorio-nav" aria-label="Navegación principal">
+      <nav
+        id="myt-navigation"
+        class="myt-sidebar__nav laboratorio-nav"
+        aria-label="Navegación principal"
+      >
         @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
           <span class="myt-sidebar__section-label">Administración</span>
-          <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item"
-            >Todas las reservas</a
-          >
+          <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="book-open" [size]="18" />
+            <span>Todas las reservas</span>
+          </a>
           <a routerLink="/usuarios" routerLinkActive="active" class="myt-nav-item">
             <app-lucide-icon name="users" [size]="18" />
             <span>Usuarios</span>
@@ -87,7 +105,10 @@
         }
       </nav>
 
-      <a routerLink="/mi-perfil" class="myt-nav-item">Mi perfil</a>
+      <a routerLink="/mi-perfil" routerLinkActive="active" class="myt-nav-item">
+        <app-lucide-icon name="user" [size]="18" />
+        <span>Mi perfil</span>
+      </a>
       <div class="myt-sidebar__footer">
         @if (auth.sesion(); as sesion) {
           <div class="myt-sidebar__user">
@@ -118,6 +139,14 @@
 
     <!-- Main Workspace Area -->
     <div class="myt-workspace">
+      <header class="myt-workspace__header">
+        <a routerLink="/" class="myt-workspace__home"
+          >MyT <span>· Tu espacio de aprendizaje</span></a
+        >
+        @if (auth.sesion(); as sesion) {
+          <span class="myt-workspace__greeting">Hola, {{ sesion.nombreUsuario || 'Usuario' }}</span>
+        }
+      </header>
       @if (errorSesion()) {
         <p class="myt-alert myt-alert--error" role="alert">{{ errorSesion() }}</p>
       }

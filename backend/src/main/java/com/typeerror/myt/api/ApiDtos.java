@@ -60,11 +60,12 @@ public final class ApiDtos {
             Boolean activo, Set<RolUsuario> roles) { }
 
     public static TutorDto tutor(Tutor t, Double calificacion) {
+        Double calRedondeada = calificacion != null ? Math.round(calificacion * 10.0) / 10.0 : null;
         return new TutorDto(t.getId(), t.getUsuario().getId(),
                 t.getUsuario().getNombre() + " " + t.getUsuario().getApellido(), t.getBiografia(),
                 t.getTarifaPorHora(), t.getDisponible(), t.getMaterias().stream()
                     .map(m -> new MateriaDto(m.getId(), m.getNombre()))
-                    .sorted(java.util.Comparator.comparing(MateriaDto::id)).toList(), calificacion);
+                    .sorted(java.util.Comparator.comparing(MateriaDto::id)).toList(), calRedondeada);
     }
 
     public static UsuarioDto usuario(Usuario u) {

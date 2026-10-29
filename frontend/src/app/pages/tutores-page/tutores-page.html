@@ -2,7 +2,8 @@
   <!-- Header directo sobre el lienzo sin contenedor envolvente -->
   <header class="myt-explore-header">
     <div>
-      <h1>Tutores · Encuentra al tutor ideal</h1>
+      <span class="myt-eyebrow">Explora y aprende</span>
+      <h1>Encuentra al tutor ideal</h1>
       <p class="myt-subtitle">Compara experiencia, horarios y tarifas antes de reservar.</p>
     </div>
   </header>
@@ -22,7 +23,7 @@
 
     <label class="myt-filter-inline">
       <span>Materia</span>
-      <select class="text-input" name="materia" [(ngModel)]="materiaId" (ngModelChange)="filtrar()">
+      <select class="text-input" name="materia" [(ngModel)]="materiaId" (ngModelChange)="onMateriaChange()">
         <option value="">Todas</option>
         @for (m of materias(); track m.id) {
           <option [value]="m.id">{{ m.nombre }}</option>
@@ -86,10 +87,10 @@
   <!-- Formulario rápido de administración arriba del listado -->
   @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
     <details class="myt-surface-card">
-      <summary style="cursor: pointer; font-weight: 700; color: var(--color-text-main)">
+      <summary>
         + Asignar perfil tutor a una cuenta existente
       </summary>
-      <p style="margin-top: 0.5rem">
+      <p>
         Consulta el ID de la cuenta en <a routerLink="/usuarios">Usuarios</a>.
       </p>
       <form
@@ -164,7 +165,12 @@
               <span> · Página {{ p.number + 1 }} de {{ p.totalPages }}</span>
             }
             @if (busquedaTexto.trim()) {
-              <span> · {{ tutoresMostrados().length }} en esta página</span>
+              <span> · para "{{ busquedaTexto.trim() }}"</span>
+            }
+            @if (cambios() > 0) {
+              <span class="myt-cambios-badge">
+                ⚡ Acciones exitosas: {{ cambios() }}
+              </span>
             }
           </p>
         }
@@ -211,10 +217,10 @@
           @if (t.calificacion !== null) {
             <span class="myt-rating-pill">
               <app-lucide-icon name="star" [size]="13" [filled]="true" />
-              {{ t.calificacion }}
+              {{ t.calificacion | number: '1.0-1' }}
             </span>
           } @else {
-            <span>Sin reseñas</span>
+            <span class="myt-no-reviews-pill">Sin reseñas</span>
           }
         </div>
 
@@ -272,7 +278,7 @@
         <div class="myt-empty-state">
           <p class="myt-empty-inline">
             @if (busquedaTexto.trim()) {
-              No hay tutores que coincidan con "{{ busquedaTexto.trim() }}" en esta página.
+              No hay tutores que coincidan con "{{ busquedaTexto.trim() }}".
             } @else {
               No hay tutores para estos filtros.
             }

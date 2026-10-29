@@ -34,12 +34,23 @@ import {
   TutorApi,
   mensajeHttp,
 } from '../../core/services/api.service';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
+import { CalendarioDisponibilidadComponent } from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
 
 @Component({
   selector: 'app-reservas-page',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    AvatarComponent,
+    LucideIconComponent,
+    CalendarioDisponibilidadComponent,
+  ],
   templateUrl: './reservas-page.html',
+  styleUrl: './reservas-page.css',
 })
 export class ReservasPageComponent implements OnInit {
   readonly api = inject(ApiService);
@@ -52,8 +63,16 @@ export class ReservasPageComponent implements OnInit {
   private readonly refrescar = new Subject<void>();
   private readonly consultarHoras = new Subject<void>();
   readonly esEstudiante = computed(() => this.auth.sesion()?.rol === 'ESTUDIANTE');
+  readonly esTutor = computed(() => this.auth.sesion()?.rol === 'TUTOR');
   readonly reservas = signal<ReservaApi[]>([]);
   readonly tutor = signal<TutorApi | null>(null);
+  private horaPreferida = '';
+  materiaSeleccionada() {
+    return (
+      this.tutor()?.materias.find((m) => m.id === Number(this.datos.materiaId))?.nombre ||
+      'Tutoría académica'
+    );
+  }
   readonly horas = signal<string[]>([]);
   readonly cargandoHoras = signal(false);
   readonly cargando = signal(true);
@@ -105,6 +124,9 @@ export class ReservasPageComponent implements OnInit {
       )
       .subscribe((h) => {
         this.horas.set(h);
+        if (this.horaPreferida && h.includes(this.horaPreferida))
+          this.datos.horaInicio = this.horaPreferida;
+        this.horaPreferida = '';
         if (!h.includes(this.datos.horaInicio)) this.datos.horaInicio = '';
       });
     this.route.queryParamMap
@@ -144,6 +166,15 @@ export class ReservasPageComponent implements OnInit {
         this.datos.tutorId = t?.id ?? 0;
         this.datos.materiaId = t?.materias[0]?.id ?? 0;
         if (!t) this.cargar();
+        else {
+          const params = this.route.snapshot?.queryParamMap;
+          const fecha = params?.get('fecha') || '';
+          if (/^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha >= this.hoy) {
+            this.datos.fecha = fecha;
+            this.horaPreferida = params?.get('hora') || '';
+            this.cargarHoras();
+          }
+        }
       });
     merge(timer(0, 30000), this.refrescar, this.api.cambios)
       .pipe(
@@ -169,6 +200,10 @@ export class ReservasPageComponent implements OnInit {
   cargarHoras() {
     this.datos.horaInicio = '';
     this.consultarHoras.next();
+  }
+  onFechaSeleccionada(fecha: string) {
+    this.datos.fecha = fecha;
+    this.cargarHoras();
   }
   costoEstimado() {
     return ((this.tutor()?.tarifaPorHora ?? 0) * this.datos.duracionMinutos) / 60;

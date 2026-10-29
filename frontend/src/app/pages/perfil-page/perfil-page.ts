@@ -1,75 +1,28 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { mensajeHttp } from '../../core/services/api.service';
 import { Usuario } from '../../core/models/usuario.model';
 import { AgendaEditorComponent } from '../../shared/components/organisms/agenda-editor/agenda-editor';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+
 @Component({
   selector: 'app-perfil-page',
-  imports: [FormsModule, AgendaEditorComponent],
-  template: ` <main class="myt-page-shell">
-    <h1>Mi perfil</h1>
-    @if (cargando()) {
-      <p role="status">Cargando perfil…</p>
-    }
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar</button>
-    }
-    @if (mensaje()) {
-      <p role="status">{{ mensaje() }}</p>
-    }
-    @if (usuario(); as u) {
-      <section class="myt-surface-card">
-        <h2>Datos personales</h2>
-        <form #form="ngForm" (ngSubmit)="form.valid && guardar()">
-          <fieldset [disabled]="guardando()">
-            <label class="form-field"
-              >Nombre<input name="nombre" [(ngModel)]="u.nombre" required maxlength="100"
-            /></label>
-            <label class="form-field"
-              >Apellido<input name="apellido" [(ngModel)]="u.apellido" required maxlength="100"
-            /></label>
-            <label class="form-field"
-              >Correo<input
-                name="correo"
-                type="email"
-                email
-                [(ngModel)]="u.correo"
-                required
-                maxlength="120"
-            /></label>
-            <label class="form-field"
-              >Teléfono<input
-                name="telefono"
-                type="tel"
-                [(ngModel)]="u.telefono"
-                pattern="([+]57)?[0-9]{10}"
-                #tel="ngModel"
-            /></label>
-            @if (tel.invalid) {
-              <p role="alert">Ingresa 10 dígitos, opcionalmente precedidos por +57.</p>
-            }
-            <button class="myt-btn myt-btn--primary" [disabled]="form.invalid || guardando()">
-              Guardar perfil
-            </button>
-          </fieldset>
-        </form>
-      </section>
-    }
-    @if (auth.sesion()?.rol === 'TUTOR') {
-      <p>Completa tu disponibilidad para que los estudiantes puedan reservar contigo.</p>
-      <app-agenda-editor [tutorId]="auth.sesion()!.perfilId" />
-    }
-  </main>`,
+  imports: [FormsModule, AgendaEditorComponent, LucideIconComponent, AvatarComponent],
+  templateUrl: './perfil-page.html',
+  styleUrl: './perfil-page.css',
 })
 export class PerfilPageComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
+  readonly route = inject(ActivatedRoute);
   readonly destroyRef = inject(DestroyRef);
+  readonly esSetup = computed(() => this.route.snapshot.queryParamMap.get('setup') === '1');
   readonly usuario = signal<Usuario | null>(null);
   readonly cargando = signal(true);
   readonly guardando = signal(false);

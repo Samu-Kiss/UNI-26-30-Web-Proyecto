@@ -19,6 +19,7 @@ export class App {
   private readonly destroyRef = inject(DestroyRef);
   readonly errorSesion = signal('');
   readonly esLanding = signal(false);
+  readonly menuAbierto = signal(false);
 
   constructor() {
     this.actualizarEsLanding(this.router.url);
@@ -29,6 +30,7 @@ export class App {
       )
       .subscribe((ev) => {
         this.errorSesion.set('');
+        this.menuAbierto.set(false);
         this.actualizarEsLanding(ev.urlAfterRedirects);
       });
   }
@@ -36,7 +38,11 @@ export class App {
   private actualizarEsLanding(url: string): void {
     const clean = url.split('?')[0].split('#')[0];
     this.esLanding.set(
-      clean === '' || clean === '/' || clean === '/landing' || clean === '/login' || clean === '/registro',
+      clean === '' ||
+        clean === '/' ||
+        clean === '/landing' ||
+        clean === '/login' ||
+        clean === '/registro',
     );
   }
 

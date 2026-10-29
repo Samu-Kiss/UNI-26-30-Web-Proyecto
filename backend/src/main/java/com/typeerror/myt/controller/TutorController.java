@@ -59,7 +59,7 @@ public class TutorController {
                 tutorService.findCalificacionPromedio(tutor.getId());
 
             if (promedio.isPresent()) {
-                calificaciones.put(tutor.getId(), promedio.get() + " / 5");
+                calificaciones.put(tutor.getId(), String.format(java.util.Locale.US, "%.1f / 5", promedio.get()));
             } else {
                 calificaciones.put(tutor.getId(), "Sin calificaciones");
             }

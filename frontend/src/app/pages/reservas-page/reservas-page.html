@@ -1,16 +1,33 @@
-<main class="myt-page-shell">
+<main class="myt-page-shell bookings-page">
+  @if (tutor(); as t) {
+    <a [routerLink]="['/tutores', t.id]" class="booking-back"
+      ><app-lucide-icon name="arrow-left" [size]="16" />Volver al perfil</a
+    >
+  }
   <header class="myt-page-header">
-    <h1>{{ tutor() ? 'Crear reserva' : 'Mis reservas' }}</h1>
+    <div>
+      <h1>{{ tutor() ? 'Crear reserva' : 'Mis reservas' }}</h1>
+      <p class="myt-subtitle">
+        {{
+          tutor()
+            ? 'Completa los datos para enviar tu solicitud de tutoría.'
+            : 'Todas tus sesiones, desde la primera solicitud hasta la última clase.'
+        }}
+      </p>
+    </div>
     @if (esEstudiante() && !tutor()) {
-      <a routerLink="/tutores" class="myt-btn myt-btn--primary">Nueva tutoría</a>
+      <a routerLink="/tutores" class="myt-btn myt-btn--primary"
+        ><app-lucide-icon name="plus" [size]="16" />Nueva tutoría</a
+      >
     }
   </header>
   @if (error()) {
-    <p class="myt-alert myt-alert--error" role="alert">{{ error() }}</p>
-    <button (click)="cargar()">Reintentar</button>
+    <div class="myt-alert myt-alert--error" role="alert">
+      {{ error() }}<button class="myt-btn myt-btn--secondary" (click)="cargar()">Reintentar</button>
+    </div>
   }
   @if (mensaje()) {
-    <p role="status">{{ mensaje() }}</p>
+    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
   }
   @if (cancelando(); as reserva) {
     <section class="myt-surface-card" aria-labelledby="cancelacion-titulo">
@@ -54,21 +71,67 @@
     </section>
   }
   @if (tutor(); as t) {
-    <section class="myt-surface-card">
-      <h2>Reservar con {{ t.nombre }}</h2>
-      <p>
-        ${{ t.tarifaPorHora | number }} COP / hora
-        @if (t.calificacion !== null) {
-          · ★ {{ t.calificacion | number: '1.1-1' }}
-        }
-      </p>
-      <form #form="ngForm" (ngSubmit)="form.valid && crear()" class="laboratorio-form">
-        <fieldset [disabled]="guardando()">
+    <form #form="ngForm" (ngSubmit)="form.valid && crear()" class="booking-form">
+      <fieldset [disabled]="guardando()" class="booking-grid">
+        <section class="booking-fields">
+          <h2>Información de la sesión</h2>
+          <label class="form-field"
+            >Tema de la tutoría<span class="form-hint"
+              >Sé específico para que el tutor pueda prepararse.</span
+            ><input
+              name="tema"
+              [(ngModel)]="datos.tema"
+              required
+              maxlength="300"
+              placeholder="¿Qué te gustaría aprender o repasar?"
+          /></label>
+          <label class="form-field"
+            >Materia<select name="materia" [(ngModel)]="datos.materiaId" required>
+              @for (m of t.materias; track m.id) {
+                <option [ngValue]="m.id">{{ m.nombre }}</option>
+              }
+            </select></label
+          >
+          <div class="booking-modality">
+            <span>Modalidad</span>
+            <div>
+              <label [class.is-selected]="datos.modalidad === 'VIRTUAL'"
+                ><input
+                  type="radio"
+                  name="modalidad"
+                  value="VIRTUAL"
+                  [(ngModel)]="datos.modalidad"
+                /><app-lucide-icon name="video" [size]="16" />En línea</label
+              >
+              <label [class.is-selected]="datos.modalidad === 'PRESENCIAL'"
+                ><input
+                  type="radio"
+                  name="modalidad"
+                  value="PRESENCIAL"
+                  [(ngModel)]="datos.modalidad"
+                /><app-lucide-icon name="users" [size]="16" />Presencial</label
+              >
+            </div>
+          </div>
+          <div class="booking-calendar-field">
+            <span class="booking-calendar-title">Fecha de la tutoría</span>
+            <app-calendario-disponibilidad
+              [tutorId]="datos.tutorId"
+              [fecha]="datos.fecha"
+              (fechaChange)="onFechaSeleccionada($event)"
+            />
+          </div>
           <div class="myt-form-row-2">
             <label class="form-field"
-              >Materia<select name="materia" [(ngModel)]="datos.materiaId" required>
-                @for (m of t.materias; track m.id) {
-                  <option [ngValue]="m.id">{{ m.nombre }}</option>
+              >Hora<select
+                name="hora"
+                [(ngModel)]="datos.horaInicio"
+                [disabled]="!datos.fecha || cargandoHoras() || !horas().length"
+                required
+              >
+                <option value="">Selecciona una hora</option>
+                @for (h of horas(); track h) {
+                  <option [value]="h">{{ h.slice(0, 5) }}</option>
                 }
               </select></label
             >
@@ -84,42 +147,19 @@
                 }
               </select></label
             >
-            <label class="form-field"
-              >Fecha<input
-                name="fecha"
-                type="date"
-                [min]="hoy"
-                [(ngModel)]="datos.fecha"
-                (ngModelChange)="cargarHoras()"
-                required
-            /></label>
-            <label class="form-field"
-              >Hora<select
-                name="hora"
-                [(ngModel)]="datos.horaInicio"
-                [disabled]="!datos.fecha || cargandoHoras() || !horas().length"
-                required
-              >
-                <option value="">Selecciona una hora</option>
-                @for (h of horas(); track h) {
-                  <option [value]="h">{{ h.slice(0, 5) }}</option>
-                }
-              </select></label
-            >
           </div>
           @if (cargandoHoras()) {
             <p role="status">Consultando disponibilidad…</p>
           }
           @if (errorHoras()) {
             <p role="alert">{{ errorHoras() }}</p>
-            <button type="button" (click)="cargarHoras()">Reintentar horarios</button>
+            <button type="button" class="myt-btn myt-btn--secondary" (click)="cargarHoras()">
+              Reintentar horarios
+            </button>
           }
           @if (datos.fecha && !cargandoHoras() && !horas().length && !errorHoras()) {
-            <p>No hay horarios disponibles para esta fecha y duración.</p>
+            <p class="booking-note">No hay horarios disponibles para esta fecha y duración.</p>
           }
-          <label class="form-field"
-            >Tema<input name="tema" [(ngModel)]="datos.tema" required maxlength="300"
-          /></label>
           <label class="form-field"
             >Objetivo de la sesión<select name="objetivo" [(ngModel)]="objetivoSesion">
               @for (o of objetivosOpciones; track o) {
@@ -134,17 +174,58 @@
                 [(ngModel)]="objetivoOtro"
                 required
                 maxlength="300"
+                placeholder="Cuéntale al tutor qué esperas de la sesión."
               ></textarea>
             </label>
           }
-          <label class="form-field"
-            >Modalidad<select name="modalidad" [(ngModel)]="datos.modalidad">
-              <option value="VIRTUAL">Virtual</option>
-              <option value="PRESENCIAL">Presencial</option>
-            </select></label
-          >
-          <p>Total estimado: ${{ costoEstimado() | number }} COP</p>
+        </section>
+        <aside class="booking-summary">
+          <h2>Resumen</h2>
+          <div class="booking-tutor">
+            <app-avatar [name]="t.nombre" [initials]="t.nombre.charAt(0)" />
+            <div>
+              <strong>{{ t.nombre }}</strong
+              ><span
+                >{{ materiaSeleccionada() }}
+                @if (t.calificacion !== null) {
+                  · ★ {{ t.calificacion | number: '1.1-1' }}
+                }
+              </span>
+            </div>
+          </div>
+          <dl>
+            <div>
+              <dt>Tema</dt>
+              <dd>{{ datos.tema || 'Por definir' }}</dd>
+            </div>
+            <div>
+              <dt>Fecha</dt>
+              <dd>
+                {{
+                  datos.fecha
+                    ? (datos.fecha + 'T12:00:00' | date: 'EEEE, d MMMM')
+                    : 'Selecciona una fecha'
+                }}
+              </dd>
+            </div>
+            <div>
+              <dt>Horario</dt>
+              <dd>
+                {{ datos.horaInicio ? datos.horaInicio.slice(0, 5) : 'Por seleccionar' }} ·
+                {{ datos.duracionMinutos }} min
+              </dd>
+            </div>
+            <div>
+              <dt>Modalidad</dt>
+              <dd>{{ datos.modalidad === 'VIRTUAL' ? 'En línea' : 'Presencial' }}</dd>
+            </div>
+            <div class="booking-total">
+              <dt>Valor total estimado</dt>
+              <dd>{{ costoEstimado() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} COP</dd>
+            </div>
+          </dl>
           <button
+            type="submit"
             class="myt-btn myt-btn--primary"
             [disabled]="
               form.invalid ||
@@ -155,77 +236,141 @@
           >
             {{ guardando() ? 'Enviando…' : 'Solicitar reserva' }}
           </button>
-        </fieldset>
-      </form>
-    </section>
+          <p class="booking-note">
+            <app-lucide-icon name="shield-check" [size]="16" />La reserva quedará pendiente hasta
+            que el tutor la confirme.
+          </p>
+        </aside>
+      </fieldset>
+    </form>
   } @else {
-    <label class="form-field"
-      >Estado<select [(ngModel)]="estado" (ngModelChange)="cargar()">
-        <option value="">Todos</option>
-        @for (
-          e of ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'RECHAZADA'];
-          track e
-        ) {
-          <option>{{ e }}</option>
-        }
-      </select></label
-    >
+    <div class="booking-list-toolbar">
+      <div>
+        <strong>{{ reservas().length }} tutorías</strong
+        ><span>{{
+          esTutor()
+            ? 'Gestiona tus sesiones y coordina con tus estudiantes.'
+            : 'Consulta los detalles y coordina tu próxima sesión.'
+        }}</span>
+      </div>
+      <label class="booking-filter"
+        >Estado<select [(ngModel)]="estado" (ngModelChange)="cargar()">
+          <option value="">Todos</option>
+          @for (
+            e of ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'RECHAZADA'];
+            track e
+          ) {
+            <option [value]="e">{{ e.replace('_', ' ') | titlecase }}</option>
+          }
+        </select></label
+      >
+    </div>
     @if (cargando()) {
       <p role="status">Cargando reservas…</p>
     } @else {
-      @for (r of reservas(); track r.id) {
-        <article class="myt-surface-card">
-          <h2>{{ r.materia }} · {{ r.tema }}</h2>
-          <p>
-            {{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.duracionMinutos }} min ·
-            {{ r.estado }}
-          </p>
-          <p>Tutor: {{ r.tutor }} · Estudiante: {{ r.estudiante }}</p>
-          <div class="myt-toolbar-actions">
-            <a [routerLink]="['/reservas', r.id]" class="myt-btn myt-btn--secondary">Ver detalle</a>
-            @if (auth.sesion()?.rol !== 'ADMINISTRADOR') {
-              <a
-                routerLink="/mensajes"
-                [queryParams]="{ reserva: r.id }"
-                class="myt-btn myt-btn--secondary"
-                >Chat</a
-              >
-            }
-            @if (['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado)) {
-              @if (!esEstudiante()) {
-                @if (r.estado === 'PENDIENTE') {
-                  <button
-                    (click)="cambiar(r, 'CONFIRMADA')"
-                    [disabled]="guardando()"
-                    class="myt-btn myt-btn--primary"
+      <div class="booking-list">
+        @for (r of reservas(); track r.id) {
+          <article class="booking-session">
+            <div class="booking-date">
+              <strong>{{ r.fecha + 'T12:00:00' | date: 'dd' }}</strong
+              ><span>{{ r.fecha + 'T12:00:00' | date: 'MMM' }}</span
+              ><small>{{ r.horaInicio.slice(0, 5) }}</small>
+            </div>
+            <div class="booking-session-main">
+              <div class="booking-session-title">
+                <span class="session-state" [attr.data-state]="r.estado">{{
+                  r.estado.replace('_', ' ') | titlecase
+                }}</span
+                ><span class="booking-reference">#{{ r.id }}</span>
+              </div>
+              <h2>{{ r.materia }}</h2>
+              <p>{{ r.tema }}</p>
+              <div class="booking-session-person">
+                <app-avatar
+                  [name]="esEstudiante() ? r.tutor : r.estudiante"
+                  [initials]="(esEstudiante() ? r.tutor : r.estudiante).charAt(0)"
+                  size="sm"
+                /><span
+                  >{{ esEstudiante() ? r.tutor : r.estudiante }} · {{ r.duracionMinutos }} min ·
+                  {{ r.modalidad === 'PRESENCIAL' ? 'Presencial' : 'En línea' }}</span
+                >
+              </div>
+            </div>
+            <div class="booking-session-actions">
+              <strong>{{ r.costoTotal | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} COP</strong>
+              <div class="myt-toolbar-actions">
+                <a [routerLink]="['/reservas', r.id]" class="myt-btn myt-btn--secondary myt-btn--sm"
+                  >Ver detalle</a
+                >
+                @if (auth.sesion()?.rol !== 'ADMINISTRADOR') {
+                  <a
+                    routerLink="/mensajes"
+                    [queryParams]="{ reserva: r.id }"
+                    class="myt-btn myt-btn--secondary myt-btn--sm"
+                    ><app-lucide-icon name="message-square" [size]="15" />Chat</a
                   >
-                    Confirmar
+                }
+              </div>
+              @if (['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado)) {
+                <div class="myt-toolbar-actions">
+                  @if (!esEstudiante()) {
+                    @if (r.estado === 'PENDIENTE') {
+                      <button
+                        (click)="cambiar(r, 'CONFIRMADA')"
+                        [disabled]="guardando()"
+                        class="myt-btn myt-btn--primary myt-btn--sm"
+                      >
+                        Confirmar
+                      </button>
+                    }
+                    @if (r.estado === 'CONFIRMADA') {
+                      <button
+                        class="myt-btn myt-btn--primary myt-btn--sm"
+                        (click)="cambiar(r, 'EN_CURSO')"
+                        [disabled]="guardando()"
+                      >
+                        Iniciar
+                      </button>
+                    }
+                    @if (r.estado === 'EN_CURSO') {
+                      <button
+                        class="myt-btn myt-btn--primary myt-btn--sm"
+                        (click)="cambiar(r, 'COMPLETADA')"
+                        [disabled]="guardando()"
+                      >
+                        Completar
+                      </button>
+                    }
+                  }
+                  <button class="booking-cancel" (click)="cancelar(r)" [disabled]="guardando()">
+                    Cancelar con motivo
                   </button>
-                }
-                @if (r.estado === 'CONFIRMADA') {
-                  <button (click)="cambiar(r, 'EN_CURSO')" [disabled]="guardando()">Iniciar</button>
-                }
-                @if (r.estado === 'EN_CURSO') {
-                  <button (click)="cambiar(r, 'COMPLETADA')" [disabled]="guardando()">
-                    Completar
-                  </button>
-                }
+                </div>
               }
-              <button
-                (click)="cancelar(r)"
-                [disabled]="guardando()"
-                class="myt-btn myt-btn--danger"
-              >
-                Cancelar con motivo
-              </button>
-            }
-          </div>
-        </article>
-      } @empty {
-        @if (!error()) {
-          <p>No tienes reservas para este estado.</p>
+            </div>
+          </article>
+        } @empty {
+          @if (!error()) {
+            <section class="myt-empty-state">
+              <app-lucide-icon [name]="esTutor() ? 'calendar' : 'book-open'" [size]="36" />
+              <h2>{{ esTutor() ? 'Tu espacio para enseñar' : 'Tu espacio para aprender' }}</h2>
+              <p>
+                {{
+                  esTutor()
+                    ? 'No tienes tutorías para este estado. Las reservas de tus estudiantes aparecerán aquí.'
+                    : 'No tienes reservas para este estado.'
+                }}
+              </p>
+              @if (esEstudiante()) {
+                <a routerLink="/tutores" class="myt-btn myt-btn--primary">Encontrar un tutor</a>
+              }
+              @if (esTutor()) {
+                <a routerLink="/perfil" class="myt-btn myt-btn--primary">Configurar disponibilidad</a>
+              }
+            </section>
+          }
         }
-      }
+      </div>
     }
   }
 </main>

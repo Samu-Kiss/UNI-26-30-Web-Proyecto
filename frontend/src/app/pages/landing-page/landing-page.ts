@@ -1,11 +1,13 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService, ReservaApi, TutorApi, mensajeHttp } from '../../core/services/api.service';
-import { catchError, EMPTY, finalize, merge, switchMap, timer } from 'rxjs';
+import { ApiService, TutorApi, mensajeHttp } from '../../core/services/api.service';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
+import {
+  LucideIconComponent,
+  LucideIconName,
+} from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-landing-page',
@@ -94,38 +96,23 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                 <button type="submit" class="myt-landing__search-submit">Buscar</button>
               </form>
 
-              <h2>Tutores disponibles</h2>
-              @if (cargando()) {
-                <p role="status">Cargando tutores…</p>
-              }
-              @if (error()) {
-                <p role="alert">{{ error() }}</p>
-                <button (click)="cargar()">Reintentar</button>
-              }
+              <h2>Áreas de conocimiento</h2>
               <div class="myt-landing__preview-list">
-                @for (t of destacados(); track t.id) {
-                  <a [routerLink]="['/tutores', t.id]" class="myt-landing__tutor-mini"
-                    ><span class="myt-landing__mini-avatar">{{ t.nombre.charAt(0) }}</span>
-                    <div class="myt-landing__mini-info">
-                      <strong>{{ t.nombre }}</strong
-                      ><small
-                        >{{ t.tarifaPorHora | currency: 'COP' : 'symbol' : '1.0-0' }} / hora
-                        @if (t.calificacion !== null) {
-                          · ★ {{ t.calificacion | number: '1.1-1' }}
-                        }
-                      </small>
-                    </div></a
+                @for (area of areasConocimiento; track area.nombre) {
+                  <a
+                    routerLink="/tutores"
+                    [queryParams]="{ q: area.nombre }"
+                    class="myt-landing__tutor-mini"
                   >
-                } @empty {
-                  @if (!cargando() && !error()) {
-                    <p>
-                      {{
-                        auth.sesion()
-                          ? 'No hay tutores disponibles.'
-                          : 'Inicia sesión para consultar los perfiles y sus horarios.'
-                      }}
-                    </p>
-                  }
+                    <span class="myt-landing__mini-avatar" aria-hidden="true">
+                      <app-lucide-icon [name]="area.icono" [size]="18" />
+                    </span>
+                    <div class="myt-landing__mini-info">
+                      <strong>{{ area.nombre }}</strong>
+                      <small>{{ area.descripcion }}</small>
+                    </div>
+                    <app-lucide-icon name="chevron-right" [size]="16" />
+                  </a>
                 }
               </div>
             </div>
@@ -183,32 +170,28 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       <!-- 5. Gestión / Tu semana en MyT (30:137) -->
       <section class="myt-landing__management" data-node-id="30:137">
         <div class="myt-landing__management-inner">
-          <div class="myt-week-board">
+          <div class="myt-week-board" aria-label="Ejemplo ilustrativo de agenda semanal">
             <div class="myt-week-board__tape" aria-hidden="true"></div>
-            <h3>Próximas tutorías</h3>
-            @if (!auth.sesion()) {
-              <p>Inicia sesión para consultar tus próximas tutorías.</p>
-              <a routerLink="/login" class="myt-landing__btn myt-landing__btn--outline"
-                >Iniciar sesión</a
-              >
-            } @else if (cargandoReservas()) {
-              <p role="status">Cargando próximas tutorías…</p>
-            } @else if (errorReservas()) {
-              <p role="alert">{{ errorReservas() }}</p>
-              <button type="button" (click)="cargar()">Reintentar próximas tutorías</button>
-            } @else {
-              <div class="myt-upcoming-list">
-                @for (r of proximas(); track r.id) {
-                  <a [routerLink]="['/reservas', r.id]" class="myt-upcoming-list__item">
-                    <strong>{{ r.materia }}</strong>
-                    <span>{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.estado }}</span>
-                  </a>
-                } @empty {
-                  <p>No tienes próximas tutorías.</p>
-                }
-              </div>
-              <a routerLink="/reservas">Ver reservas</a>
-            }
+            <h3>Tu semana en MyT</h3>
+
+            <div class="myt-week-board__cols">
+              @for (dia of diasSemanaEjemplo; track dia.dia) {
+                <div class="myt-week-col">
+                  <span class="myt-week-col__day">{{ dia.dia }}</span>
+                  @if (dia.materia) {
+                    <a
+                      [routerLink]="auth.sesion() ? '/calendario' : '/tutores'"
+                      class="myt-week-pill"
+                      [class.myt-week-pill--teal]="dia.tono === 'teal'"
+                      [class.myt-week-pill--slate]="dia.tono === 'slate'"
+                    >
+                      <strong>{{ dia.materia }}</strong>
+                      <small>{{ dia.hora }}</small>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
           </div>
 
           <div class="myt-landing__management-copy">
@@ -266,8 +249,20 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       <section id="para-tutores" class="myt-landing__tutors" data-node-id="30:175">
         <div class="myt-landing__container">
           <div class="myt-landing__section-head">
-            <h2>Personas reales para retos reales</h2>
-            <p>Explora perfiles con experiencia, disponibilidad y reseñas verificadas.</p>
+            <h2>
+              {{
+                destacados().length
+                  ? 'Personas reales para retos reales'
+                  : 'Lo que sabes puede abrir caminos'
+              }}
+            </h2>
+            <p>
+              {{
+                destacados().length
+                  ? 'Explora perfiles con experiencia, disponibilidad y reseñas verificadas.'
+                  : 'Comparte tu conocimiento y acompaña a otros estudiantes a avanzar.'
+              }}
+            </p>
           </div>
 
           <div class="myt-landing__tutors-grid">
@@ -286,7 +281,21 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                 </div>
               </article>
             } @empty {
-              <p>Consulta el catálogo para encontrar un tutor según tus objetivos.</p>
+              <div class="myt-landing__teach">
+                <app-lucide-icon name="graduation-cap" [size]="36" />
+                <div>
+                  <h3>Enseña a tu manera</h3>
+                  <p>
+                    Crea tu perfil, presenta tus materias y define tus tarifas y disponibilidad.
+                  </p>
+                </div>
+                <a
+                  routerLink="/registro"
+                  [queryParams]="{ rol: 'TUTOR' }"
+                  class="myt-landing__btn myt-landing__btn--primary"
+                  >Quiero ser tutor</a
+                >
+              </div>
             }
           </div>
         </div>
@@ -333,49 +342,37 @@ export class LandingPageComponent {
   readonly cargando = signal(false);
   readonly error = signal('');
   readonly revision = signal(0);
-  readonly proximas = signal<ReservaApi[]>([]);
-  readonly cargandoReservas = signal(false);
-  readonly errorReservas = signal('');
+
+  readonly areasConocimiento: {
+    nombre: string;
+    descripcion: string;
+    icono: LucideIconName;
+  }[] = [
+    {
+      nombre: 'Matemáticas',
+      descripcion: 'Cálculo, Álgebra y Estadística',
+      icono: 'graduation-cap',
+    },
+    {
+      nombre: 'Programación',
+      descripcion: 'Algoritmos, Python y Desarrollo Web',
+      icono: 'book-open',
+    },
+    {
+      nombre: 'Idiomas',
+      descripcion: 'Inglés académico y conversación',
+      icono: 'message-square',
+    },
+  ];
+
+  readonly diasSemanaEjemplo = [
+    { dia: 'LUN 7', materia: '', hora: '', tono: '' },
+    { dia: 'MAR 8', materia: 'Cálculo', hora: '4:00 p. m.', tono: 'teal' },
+    { dia: 'MIÉ 9', materia: '', hora: '', tono: '' },
+    { dia: 'JUE 10', materia: 'Inglés', hora: '6:00 p. m.', tono: 'slate' },
+    { dia: 'VIE 11', materia: '', hora: '', tono: '' },
+  ];
   constructor() {
-    effect((onCleanup) => {
-      this.revision();
-      const sesion = this.auth.sesion();
-      this.proximas.set([]);
-      this.errorReservas.set('');
-      this.cargandoReservas.set(!!sesion);
-      if (!sesion) return;
-      const consulta = merge(timer(0, 30000), this.api.cambios)
-        .pipe(
-          switchMap(() => {
-            this.cargandoReservas.set(true);
-            this.errorReservas.set('');
-            this.proximas.set([]);
-            return this.api.reservas().pipe(
-              catchError((e) => {
-                this.errorReservas.set(mensajeHttp(e));
-                return EMPTY;
-              }),
-              finalize(() => this.cargandoReservas.set(false)),
-            );
-          }),
-        )
-        .subscribe((reservas) => {
-          const ahora = new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' });
-          this.proximas.set(
-            reservas
-              .filter(
-                (r) =>
-                  ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado) &&
-                  `${r.fecha} ${r.horaInicio}` >= ahora,
-              )
-              .sort((a, b) =>
-                `${a.fecha} ${a.horaInicio}`.localeCompare(`${b.fecha} ${b.horaInicio}`),
-              )
-              .slice(0, 3),
-          );
-        });
-      onCleanup(() => consulta.unsubscribe());
-    });
     effect((onCleanup) => {
       this.revision();
       if (!this.auth.sesion()) {

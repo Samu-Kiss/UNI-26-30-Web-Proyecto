@@ -14,70 +14,37 @@ import {
   switchMap,
   timer,
 } from 'rxjs';
-import { ApiService, ResenaApi, TutorApi, mensajeHttp } from '../../core/services/api.service';
+import { ApiService, AgendaApi, ResenaApi, TutorApi, mensajeHttp } from '../../core/services/api.service';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
 import { AgendaEditorComponent } from '../../shared/components/organisms/agenda-editor/agenda-editor';
+import { CalendarioDisponibilidadComponent } from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
+import { of } from 'rxjs';
+
+const DIAS_MAP: Record<number, string> = {
+  0: 'DOMINGO',
+  1: 'LUNES',
+  2: 'MARTES',
+  3: 'MIERCOLES',
+  4: 'JUEVES',
+  5: 'VIERNES',
+  6: 'SABADO',
+};
+
 @Component({
   selector: 'app-tutor-perfil-page',
-  imports: [CommonModule, FormsModule, RouterLink, AgendaEditorComponent],
-  template: ` <main class="myt-page-shell">
-    <a routerLink="/tutores">Volver al catálogo</a>
-    @if (cargando()) {
-      <p role="status">Cargando perfil…</p>
-    }
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar</button>
-    }
-    @if (tutorApi(); as t) {
-      <section class="myt-surface-card">
-        <h1>{{ t.nombre }}</h1>
-        <p>{{ t.biografia }}</p>
-        <p>
-          @for (m of t.materias; track m.id) {
-            <span class="myt-subject-tag">{{ m.nombre }}</span>
-          }
-        </p>
-        <p>{{ t.tarifaPorHora | currency: 'COP' : 'symbol' : '1.0-0' }} / hora</p>
-        @if (t.calificacion !== null) {
-          <p>★ {{ t.calificacion | number: '1.1-1' }} · {{ resenas().length }} reseñas</p>
-        } @else {
-          <p>Sin reseñas</p>
-        }
-        @if (auth.sesion()?.rol === 'ESTUDIANTE') {
-          <a routerLink="/reservas" [queryParams]="{ tutor: t.id }" class="myt-btn myt-btn--primary"
-            >Reservar tutoría</a
-          >
-        }
-      </section>
-      @if (esPropietario()) {
-        <app-agenda-editor [tutorId]="t.id" />
-      }
-      <section class="myt-surface-card">
-        <h2>Próxima disponibilidad</h2>
-        @if (cargandoDisponibilidad()) {
-          <p role="status">Consultando horarios…</p>
-        } @else {
-          @if (proxima()) {
-            <p>{{ proxima() }}</p>
-          } @else {
-            <p>Sin disponibilidad en los próximos 30 días.</p>
-          }
-        }
-      </section>
-      <section class="myt-surface-card">
-        <h2>Reseñas recibidas</h2>
-        @for (r of resenas(); track r.id) {
-          <article>
-            <strong>{{ r.estudiante }} · {{ r.calificacion }} / 5</strong>
-            <p>{{ r.comentario }}</p>
-          </article>
-        } @empty {
-          <p>Aún no hay reseñas.</p>
-        }
-      </section>
-    }
-  </main>`,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    AgendaEditorComponent,
+    CalendarioDisponibilidadComponent,
+    AvatarComponent,
+    LucideIconComponent,
+  ],
+  templateUrl: './tutor-perfil-page.html',
+  styleUrl: './tutor-perfil-page.css',
 })
 export class TutorPerfilPageComponent implements OnInit {
   readonly api = inject(ApiService);
@@ -86,10 +53,57 @@ export class TutorPerfilPageComponent implements OnInit {
   readonly destroyRef = inject(DestroyRef);
   readonly tutorApi = signal<TutorApi | null>(null);
   readonly resenas = signal<ResenaApi[]>([]);
+  readonly agenda = signal<AgendaApi | null>(null);
   readonly cargando = signal(true);
   readonly cargandoDisponibilidad = signal(true);
   readonly error = signal('');
   readonly proxima = signal('');
+  readonly hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
+  readonly fechaSeleccionada = signal('');
+  readonly inicioFechas = signal(this.hoy);
+  readonly horarios = signal<string[]>([]);
+  readonly horaSeleccionada = signal('');
+  readonly errorDisponibilidad = signal('');
+  private consultaDisponibilidad = 0;
+
+  readonly fechasConsulta = computed(() => {
+    const ag = this.agenda();
+    const baseDateStr = this.fechaSeleccionada() || this.inicioFechas() || this.hoy;
+    const baseDate = new Date(baseDateStr + 'T12:00:00');
+    const targetMonth = baseDate.getMonth();
+    const targetYear = baseDate.getFullYear();
+
+    const disponibles: string[] = [];
+    const minTime = new Date(this.hoy + 'T12:00:00').getTime();
+    const monthStart = new Date(targetYear, targetMonth, 1, 12).getTime();
+    const startDate = new Date(Math.max(minTime, monthStart));
+
+    for (let i = 0; i < 35; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+
+      // Strictly stop once we leave the target month so no days of another month leak in
+      if (d.getMonth() !== targetMonth) {
+        break;
+      }
+
+      const str = d.toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
+      const diaSemana = DIAS_MAP[d.getDay()];
+      let atiende = true;
+      let bloqueado = false;
+      if (ag && ag.horarios && ag.horarios.length > 0) {
+        atiende = ag.horarios.some((h) => h.diaSemana === diaSemana);
+        bloqueado = ag.bloqueos?.some((b) => b.fecha === str) ?? false;
+      }
+
+      if (atiende && !bloqueado && str >= this.hoy) {
+        disponibles.push(str);
+        if (disponibles.length >= 4) break;
+      }
+    }
+    return disponibles;
+  });
+
   readonly esPropietario = computed(
     () =>
       this.auth.sesion()?.rol === 'TUTOR' && this.auth.sesion()?.perfilId === this.tutorApi()?.id,
@@ -102,7 +116,8 @@ export class TutorPerfilPageComponent implements OnInit {
           this.cargando.set(true);
           this.error.set('');
           const id = Number(this.route.snapshot.paramMap.get('id'));
-          return forkJoin({ t: this.api.tutor(id), r: this.api.resenas(id) }).pipe(
+          const ag$ = this.api.agenda ? this.api.agenda(id).pipe(catchError(() => of(null))) : of(null);
+          return forkJoin({ t: this.api.tutor(id), r: this.api.resenas(id), ag: ag$ }).pipe(
             catchError((e) => {
               this.error.set(mensajeHttp(e));
               this.tutorApi.set(null);
@@ -113,37 +128,78 @@ export class TutorPerfilPageComponent implements OnInit {
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(({ t, r }) => {
+      .subscribe(({ t, r, ag }) => {
         this.tutorApi.set(t);
         this.resenas.set(r);
-        void this.buscarProxima(t.id);
+        if (ag) this.agenda.set(ag);
+        if (this.fechaSeleccionada()) void this.seleccionarFecha(this.fechaSeleccionada());
+        else void this.buscarProxima(t.id);
       });
   }
   cargar() {
     this.refrescar.next();
   }
+  async seleccionarFecha(fecha: string) {
+    const id = this.tutorApi()?.id;
+    if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha < this.hoy) return;
+    const consulta = ++this.consultaDisponibilidad;
+    this.fechaSeleccionada.set(fecha);
+    this.inicioFechas.set(fecha);
+    this.horaSeleccionada.set('');
+    this.horarios.set([]);
+    this.cargandoDisponibilidad.set(true);
+    this.errorDisponibilidad.set('');
+    try {
+      const horas = await firstValueFrom(
+        this.api.horas(id, fecha, 60).pipe(takeUntilDestroyed(this.destroyRef)),
+      );
+      if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
+        this.horarios.set(horas);
+    } catch (e) {
+      if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
+        this.errorDisponibilidad.set(mensajeHttp(e));
+    } finally {
+      if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
+        this.cargandoDisponibilidad.set(false);
+    }
+  }
   private async buscarProxima(id: number) {
+    const consulta = ++this.consultaDisponibilidad;
+    this.errorDisponibilidad.set('');
     this.cargandoDisponibilidad.set(true);
     this.proxima.set('');
     try {
+      const ag = this.agenda();
       for (let i = 0; i < 30; i++) {
         const d = new Date(
           new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) + 'T12:00:00',
         );
         d.setDate(d.getDate() + i);
         const fecha = d.toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
+        if (ag && ag.horarios && ag.horarios.length > 0) {
+          const diaSemana = DIAS_MAP[d.getDay()];
+          const atiende = ag.horarios.some((h) => h.diaSemana === diaSemana);
+          const bloqueado = ag.bloqueos?.some((b) => b.fecha === fecha);
+          if (!atiende || bloqueado) continue;
+        }
         const horas = await firstValueFrom(
           this.api.horas(id, fecha, 60).pipe(takeUntilDestroyed(this.destroyRef)),
         );
+        if (consulta !== this.consultaDisponibilidad || this.destroyRef.destroyed) return;
         if (horas.length) {
+          this.fechaSeleccionada.set(fecha);
+          this.inicioFechas.set(fecha);
+          this.horarios.set(horas);
           this.proxima.set(fecha + ' · ' + horas[0].slice(0, 5));
           break;
         }
       }
     } catch (e) {
-      this.error.set(mensajeHttp(e));
+      if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
+        this.errorDisponibilidad.set(mensajeHttp(e));
     } finally {
-      this.cargandoDisponibilidad.set(false);
+      if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
+        this.cargandoDisponibilidad.set(false);
     }
   }
 }

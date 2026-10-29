@@ -25,6 +25,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { mensajeHttp } from '../../core/services/api.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-form/usuario-form';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
   selector: 'app-usuarios-page',
@@ -35,8 +37,11 @@ import { UsuarioFormComponent } from '../../shared/components/organisms/usuario-
     ReactiveFormsModule,
     UsuarioFormComponent,
     RouterLink,
+    AvatarComponent,
+    LucideIconComponent,
   ],
   templateUrl: './usuarios-page.html',
+  styleUrl: './usuarios-page.css',
 })
 export class UsuariosPageComponent implements OnInit, OnDestroy {
   private readonly usuarioService = inject(UsuarioService);

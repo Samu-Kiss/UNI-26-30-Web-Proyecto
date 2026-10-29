@@ -4,149 +4,13 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, finalize, forkJoin, merge, of, Subject, switchMap, timer } from 'rxjs';
 import { AgendaApi, ApiService, ReservaApi, mensajeHttp } from '../../core/services/api.service';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-calendario-page',
-  imports: [CommonModule, RouterLink],
-  template: ` <main class="myt-page-shell">
-    <header class="myt-page-header">
-      <h1>Mi calendario</h1>
-      <div class="myt-toolbar-actions">
-        <button (click)="cambiarMes(-1)" aria-label="Mes anterior">←</button
-        ><strong>{{ mesTexto() }}</strong
-        ><button (click)="cambiarMes(1)" aria-label="Mes siguiente">→</button>
-      </div>
-    </header>
-    @if (cargando()) {
-      <p role="status">Cargando calendario…</p>
-    }
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar</button>
-    }
-    @if (!cargando() && !error()) {
-      <section class="myt-surface-card">
-        <h2>Reservas de {{ mesTexto() }}</h2>
-        <div class="calendar-scroll">
-          <div class="calendar-grid" role="grid" aria-label="Calendario mensual">
-            @for (d of ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']; track d) {
-              <strong role="columnheader">{{ d }}</strong>
-            }
-            @for (d of diasMes(); track $index) {
-              <div role="gridcell" class="calendar-day" [class.calendar-day--empty]="!d">
-                @if (d) {
-                  <strong>{{ d.numero }}</strong>
-                  @for (r of d.reservas; track r.id) {
-                    <a [routerLink]="['/reservas', r.id]" class="calendar-event"
-                      >{{ r.horaInicio.slice(0, 5) }} · {{ r.materia
-                      }}<small>{{ r.estado }}</small></a
-                    >
-                  }
-                  @for (b of d.bloqueos; track $index) {
-                    <span class="calendar-block"
-                      >Bloqueado {{ b.horaInicio.slice(0, 5) }}–{{ b.horaFin.slice(0, 5) }}</span
-                    >
-                  }
-                }
-              </div>
-            }
-          </div>
-        </div>
-        @for (r of eventos(); track r.id) {
-          <article class="calendar-entry">
-            <a [routerLink]="['/reservas', r.id]"
-              ><strong>{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.materia }}</strong></a
-            >
-            <p>
-              {{ r.tema }} · {{ auth.sesion()?.rol === 'TUTOR' ? r.estudiante : r.tutor }} ·
-              {{ r.estado }}
-            </p>
-          </article>
-        } @empty {
-          <p>No hay reservas en este mes.</p>
-        }
-      </section>
-      @if (auth.sesion()?.rol === 'TUTOR') {
-        <section class="myt-surface-card">
-          <h2>Disponibilidad semanal</h2>
-          @for (h of agenda().horarios; track $index) {
-            <p>{{ h.diaSemana }} · {{ h.horaInicio.slice(0, 5) }} – {{ h.horaFin.slice(0, 5) }}</p>
-          } @empty {
-            <p>Configura tu disponibilidad desde Mi perfil.</p>
-          }
-          <h3>Bloqueos de este mes</h3>
-          @for (b of bloqueosMes(); track $index) {
-            <p>
-              {{ b.fecha }} · {{ b.horaInicio.slice(0, 5) }} – {{ b.horaFin.slice(0, 5) }} ·
-              {{ b.motivo }}
-            </p>
-          } @empty {
-            <p>No hay bloqueos en este mes.</p>
-          }
-        </section>
-      }
-      <section class="myt-surface-card">
-        <h2>Próximas tutorías</h2>
-        @for (r of proximas(); track r.id) {
-          <p>
-            <a [routerLink]="['/reservas', r.id]"
-              >{{ r.fecha }} · {{ r.horaInicio.slice(0, 5) }} · {{ r.tema }} · {{ r.estado }}</a
-            >
-          </p>
-        } @empty {
-          <p>No tienes próximas tutorías.</p>
-        }
-      </section>
-    }
-  </main>`,
-  styles: [
-    `
-      .calendar-entry {
-        padding: 1rem 0;
-        border-bottom: 1px solid #ddd;
-      }
-      .calendar-scroll {
-        overflow-x: auto;
-        margin: 1rem 0;
-      }
-      .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(100px, 1fr));
-        gap: 1px;
-        background: #ddd;
-        border: 1px solid #ddd;
-      }
-      .calendar-grid > strong {
-        padding: 0.5rem;
-        text-align: center;
-        background: #e9eef0;
-      }
-      .calendar-day {
-        min-height: 100px;
-        padding: 0.5rem;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-      }
-      .calendar-day--empty {
-        background: #f2f2f2;
-      }
-      .calendar-event,
-      .calendar-block {
-        font-size: 0.75rem;
-        background: #ddecef;
-        padding: 0.25rem;
-        border-radius: 5px;
-      }
-      .calendar-event small {
-        display: block;
-      }
-      .calendar-block {
-        background: #fbe7df;
-      }
-    `,
-  ],
+  imports: [CommonModule, RouterLink, LucideIconComponent],
+  templateUrl: './calendario-page.html',
+  styleUrl: './calendario-page.css',
 })
 export class CalendarioPageComponent implements OnInit {
   readonly api = inject(ApiService);
@@ -160,6 +24,22 @@ export class CalendarioPageComponent implements OnInit {
   readonly agenda = signal<AgendaApi>({ horarios: [], bloqueos: [] });
   readonly cargando = signal(true);
   readonly error = signal('');
+  readonly hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
+  readonly pendientes = computed(
+    () => this.reservas().filter((r) => r.estado === 'PENDIENTE').length,
+  );
+  readonly completadas = computed(
+    () => this.reservas().filter((r) => r.estado === 'COMPLETADA').length,
+  );
+  readonly totalProximas = computed(
+    () =>
+      this.reservas().filter(
+        (r) =>
+          ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado) &&
+          r.fecha + ' ' + r.horaInicio >=
+            new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }),
+      ).length,
+  );
   readonly mesTexto = computed(() =>
     this.mes().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }),
   );
@@ -173,6 +53,7 @@ export class CalendarioPageComponent implements OnInit {
     const total = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     const dias: ({
       numero: number;
+      fecha: string;
       reservas: ReservaApi[];
       bloqueos: AgendaApi['bloqueos'];
     } | null)[] = Array.from({ length: offset }, () => null);
@@ -180,10 +61,12 @@ export class CalendarioPageComponent implements OnInit {
       const fecha = this.prefijo() + '-' + String(n).padStart(2, '0');
       dias.push({
         numero: n,
+        fecha,
         reservas: this.eventos().filter((r) => r.fecha === fecha),
         bloqueos: this.bloqueosMes().filter((b) => b.fecha === fecha),
       });
     }
+    while (dias.length % 7) dias.push(null);
     return dias;
   });
   readonly eventos = computed(() =>
@@ -236,6 +119,10 @@ export class CalendarioPageComponent implements OnInit {
   }
   cargar() {
     this.refrescar.next();
+  }
+  irHoy() {
+    this.mes.set(new Date(this.hoy + 'T12:00:00'));
+    this.cargar();
   }
   cambiarMes(delta: number) {
     const d = this.mes();

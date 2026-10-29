@@ -79,7 +79,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
     `
       .myt-login-viewport {
         min-height: 100vh;
-        background: #e9e9ea;
+        background: var(--color-bg-body);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -103,21 +103,21 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         gap: 0.4rem;
         font-size: 0.85rem;
         font-weight: 700;
-        color: #4c5c68;
+        color: var(--color-text-subtle);
         text-decoration: none;
       }
       .myt-login-back:hover {
-        color: #1985a1;
+        color: var(--color-primary);
       }
       .myt-login-card {
-        background: #f5f5f3;
-        border: 1px solid #dcdcdd;
-        border-radius: 22px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-xl);
         padding: 2.25rem;
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
-        box-shadow: 0 22px 48px -28px rgba(70, 73, 76, 0.25);
+        box-shadow: var(--shadow-card);
       }
       .myt-login-brand {
         display: flex;
@@ -127,21 +127,21 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       .myt-login-brand h1 {
         margin: 0.25rem 0 0.15rem;
         font-size: 1.7rem;
-        color: #46494c;
+        color: var(--color-text-main);
       }
       .myt-role-picker {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
         padding: 1.25rem;
-        border-radius: 16px;
-        background: #e9e9ea;
-        border: 1px solid #c5c3c6;
+        border-radius: var(--radius-lg);
+        background: var(--color-bg-body);
+        border: 1px solid var(--color-border-strong);
       }
       .myt-role-picker h2 {
         margin: 0;
         font-size: 1.25rem;
-        color: #46494c;
+        color: var(--color-text-main);
       }
       .myt-role-picker__grid {
         display: flex;
@@ -150,12 +150,12 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       }
       .myt-login-footer {
         padding-top: 0.75rem;
-        border-top: 1px solid #dcdcdd;
+        border-top: 1px solid var(--color-border);
         font-size: 0.85rem;
-        color: #4c5c68;
+        color: var(--color-text-subtle);
       }
       .myt-login-footer a {
-        color: #1985a1;
+        color: var(--color-primary);
         font-weight: 700;
         text-decoration: none;
       }

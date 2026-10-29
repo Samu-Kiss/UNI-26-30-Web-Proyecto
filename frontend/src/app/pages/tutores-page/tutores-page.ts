@@ -132,6 +132,8 @@ export class TutoresPageComponent implements OnInit {
 
   limpiarBusqueda() {
     this.busquedaTexto = '';
+    this.categoriaActiva.set('Todas');
+    this.materiaId = '';
     this.filtrar();
   }
 
@@ -139,6 +141,12 @@ export class TutoresPageComponent implements OnInit {
     const qParam = this.route?.snapshot?.queryParamMap?.get('q');
     if (qParam) {
       this.busquedaTexto = qParam;
+      const chipMatch = this.categoriaChips.find(
+        (c) => normalizeText(c) === normalizeText(qParam),
+      );
+      if (chipMatch) {
+        this.categoriaActiva.set(chipMatch);
+      }
     }
     const materiaParam = this.route?.snapshot?.queryParamMap?.get('materia');
     if (materiaParam) {
@@ -205,6 +213,21 @@ export class TutoresPageComponent implements OnInit {
       this.materiaId = String(coincidencia.id);
       this.filtrar();
     }
+  }
+
+  onMateriaChange() {
+    if (!this.materiaId) {
+      this.categoriaActiva.set('Todas');
+    } else {
+      const mat = this.materias().find((m) => String(m.id) === String(this.materiaId));
+      if (mat) {
+        const chip = this.categoriaChips.find(
+          (c) => c !== 'Todas' && normalizeText(mat.nombre).includes(normalizeText(c.slice(0, 5))),
+        );
+        this.categoriaActiva.set(chip || '');
+      }
+    }
+    this.filtrar();
   }
 
   alternarOrden() {

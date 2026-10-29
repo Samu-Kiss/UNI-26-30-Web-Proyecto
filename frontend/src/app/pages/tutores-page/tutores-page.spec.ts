@@ -44,7 +44,7 @@ describe('Catálogo y editor conectados', () => {
   it('crea un tutor una sola vez, conserva el borrador ante errores y refresca al reintentar', () => {
     const f = pagina();
     const c = f.componentInstance;
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [], totalPages: 0 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [], totalPages: 0 });
     c.usuarioId = 8;
     c.biografia = 'Clases de cálculo';
     c.tarifa = 50000;
@@ -65,7 +65,7 @@ describe('Catálogo y editor conectados', () => {
     expect(c.error()).toContain('no tiene permiso');
     c.crear();
     http.expectOne('/api/tutores').flush(tutor);
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 1 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 1 });
     expect(c.biografia).toBe('');
     expect(c.cambios()).toBe(1);
     f.detectChanges();
@@ -76,7 +76,7 @@ describe('Catálogo y editor conectados', () => {
   it('desactiva solo con confirmación, evita duplicados y permite reintentar un fallo', () => {
     const f = pagina();
     const c = f.componentInstance;
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 1 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 1 });
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     c.desactivar(tutor);
     http.expectNone('/api/tutores/7');
@@ -90,7 +90,7 @@ describe('Catálogo y editor conectados', () => {
     expect(c.pagina()?.content).toEqual([tutor]);
     c.desactivar(tutor);
     http.expectOne('/api/tutores/7').flush(null);
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [], totalPages: 0 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [], totalPages: 0 });
     expect(c.cambios()).toBe(1);
     expect(c.error()).toBe('');
     f.destroy();
@@ -99,7 +99,7 @@ describe('Catálogo y editor conectados', () => {
   it('recupera una selección fallida y no guarda sin tutor o durante otra petición', () => {
     const f = pagina();
     const c = f.componentInstance;
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 1 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 1 });
     c.guardar(tutor);
     http.expectNone('/api/tutores/7');
     c.seleccionar(7);
@@ -118,18 +118,18 @@ describe('Catálogo y editor conectados', () => {
   it('retrocede si la última página queda vacía y filtra categorías conocidas', () => {
     const f = pagina();
     const c = f.componentInstance;
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 2 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 2 });
     c.navegar(1);
-    http.expectOne('/api/tutores?page=1&size=5').flush({ content: [], totalPages: 1 });
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 1 });
+    http.expectOne('/api/tutores?page=1&size=6').flush({ content: [], totalPages: 1 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 1 });
     expect(c.page).toBe(0);
     c.materias.set([{ id: 2, nombre: 'Matemáticas' }]);
     c.seleccionarCategoriaChip('Matemáticas');
-    http.expectOne('/api/tutores?page=0&size=5&materiaId=2').flush({ content: [], totalPages: 0 });
+    http.expectOne('/api/tutores?page=0&size=6&materiaId=2').flush({ content: [], totalPages: 0 });
     c.seleccionarCategoriaChip('Diseño');
     http.expectNone((r) => r.url === '/api/tutores');
     c.seleccionarCategoriaChip('Todas');
-    http.expectOne('/api/tutores?page=0&size=5').flush({ content: [tutor], totalPages: 1 });
+    http.expectOne('/api/tutores?page=0&size=6').flush({ content: [tutor], totalPages: 1 });
     expect(c.materiaId).toBe('');
     f.destroy();
   });
@@ -158,13 +158,13 @@ describe('Catálogo y editor conectados', () => {
     const f = pagina();
     expect(f.nativeElement.textContent).toContain('Cargando tutores');
     http
-      .expectOne('/api/tutores?page=0&size=5')
+      .expectOne('/api/tutores?page=0&size=6')
       .flush({ content: [tutor], number: 0, totalPages: 2, totalElements: 6 });
     f.detectChanges();
     expect(f.nativeElement.textContent).toContain('Ana Pérez');
     f.componentInstance.navegar(1);
     http
-      .expectOne('/api/tutores?page=1&size=5')
+      .expectOne('/api/tutores?page=1&size=6')
       .flush({ mensaje: 'Caída' }, { status: 503, statusText: 'Unavailable' });
     expect(f.componentInstance.cargando()).toBe(false);
     expect(f.componentInstance.error()).toContain('No hay conexión');
@@ -172,7 +172,7 @@ describe('Catálogo y editor conectados', () => {
     f.componentInstance.materiaId = '1';
     f.componentInstance.filtrar();
     http
-      .expectOne('/api/tutores?page=0&size=5&materiaId=1')
+      .expectOne('/api/tutores?page=0&size=6&materiaId=1')
       .flush({ content: [], number: 0, totalPages: 0, totalElements: 0 });
     f.detectChanges();
     expect(f.nativeElement.textContent).toContain('No hay tutores para estos filtros.');
@@ -182,7 +182,7 @@ describe('Catálogo y editor conectados', () => {
   it('precarga editor, emite PUT desde $event, conserva borrador en 409 y actualiza tras éxito', () => {
     const f = pagina();
     http
-      .expectOne('/api/tutores?page=0&size=5')
+      .expectOne('/api/tutores?page=0&size=6')
       .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
     f.componentInstance.seleccionar(7);
     http.expectOne('/api/tutores/7').flush(tutor);
@@ -204,7 +204,7 @@ describe('Catálogo y editor conectados', () => {
     f.nativeElement.querySelector('app-tutor-editor form').dispatchEvent(new Event('submit'));
     http.expectOne('/api/tutores/7').flush({ ...tutor, biografia: 'Nueva biografía' });
     http
-      .expectOne('/api/tutores?page=0&size=5')
+      .expectOne('/api/tutores?page=0&size=6')
       .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
     expect(f.componentInstance.seleccionado()).toBeNull();
     expect(f.componentInstance.cambios()).toBe(1);

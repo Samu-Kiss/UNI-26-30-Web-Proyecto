@@ -95,7 +95,26 @@ describe('App', () => {
       'Tu próxima tutoría empieza con la persona correcta.',
     );
     await harness.navigateByUrl('/tutores');
-    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain('Tutores');
+    expect(harness.routeNativeElement?.querySelector('h1')?.textContent).toContain(
+      'Encuentra al tutor ideal',
+    );
+  });
+
+  it('permite abrir el menú móvil y lo cierra al navegar', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/tutores');
+    fixture.detectChanges();
+    const boton = fixture.nativeElement.querySelector('.myt-sidebar__toggle');
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    boton.click();
+    fixture.detectChanges();
+    expect(boton.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.myt-sidebar--open')).not.toBeNull();
+    await router.navigateByUrl('/reservas');
+    fixture.detectChanges();
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    fixture.destroy();
   });
 
   it('renders /login without sidebar or topbar', async () => {

@@ -1,14 +1,26 @@
 <main class="myt-page-shell app-container laboratorio-page">
-  <header class="myt-explore-header">
+  <header class="myt-page-header">
     <div>
-      <h2>Usuarios registrados</h2>
-      <p class="myt-subtitle">Gestión de cuentas y perfiles de usuarios.</p>
+      <span class="myt-eyebrow">Administración del sistema</span>
+      <h1>Gestión de usuarios</h1>
+      <p class="myt-subtitle">Consulta cuentas, perfiles de rol y estado de usuarios registrados.</p>
+    </div>
+    <div class="myt-header-actions">
+      <button
+        type="button"
+        class="myt-btn myt-btn--secondary myt-btn--sm"
+        (click)="solicitarActualizacion()"
+        [disabled]="cargando()"
+      >
+        <app-lucide-icon name="arrow-up-down" [size]="14" />
+        <span>Actualizar listado</span>
+      </button>
     </div>
   </header>
 
   <!-- Resumen de métricas de usuarios para administración -->
   @if (!cargando() && !mensajeError()) {
-    <section class="myt-kpi-row" aria-label="Resumen de usuarios" style="margin-bottom: 1.25rem">
+    <section class="myt-kpi-row" aria-label="Resumen de usuarios">
       <article class="myt-kpi-card">
         <strong>{{ totalUsuarios() }}</strong>
         <span>Total registrados</span>
@@ -45,30 +57,31 @@
     <p role="alert" class="form-error myt-alert myt-alert--error">{{ mensajeError() }}</p>
   }
 
-  <!-- Barra de búsqueda y acciones en una sola fila intuitiva -->
-  <div class="myt-results-meta">
-    <div class="form-field" style="flex: 1 1 280px; max-width: 420px">
-      <label class="form-label" for="filtro-usuarios">Filtrar usuarios</label>
+  <!-- Barra de búsqueda y acciones -->
+  <div class="myt-filter-bar">
+    <label class="myt-search-wrap" aria-label="Filtrar usuarios">
+      <app-lucide-icon name="search" [size]="16" class="myt-search-icon" />
       <input
         id="filtro-usuarios"
         class="text-input"
+        type="search"
         [formControl]="filtro"
-        placeholder="Buscar por nombre…"
+        placeholder="Buscar por nombre o correo…"
+        aria-label="Filtrar usuarios"
       />
-    </div>
-
-    <div class="myt-toolbar-actions">
+    </label>
+    @if (filtro.value) {
       <button
         type="button"
-        class="btn btn--primary btn--md myt-btn myt-btn--primary"
-        (click)="solicitarActualizacion()"
+        class="myt-btn myt-btn--secondary myt-btn--sm"
+        (click)="filtro.setValue('')"
       >
-        Actualizar listado
+        Limpiar filtro
       </button>
-    </div>
+    }
   </div>
 
-  <!-- Paneles contextuales justo encima de la tabla para edición/inspección inmediata -->
+  <!-- Paneles contextuales para edición/inspección inmediata -->
   @if (usuarioEditando(); as edit) {
     <div class="myt-subpanel">
       <h3>Editar usuario #{{ edit.id }}</h3>
@@ -214,29 +227,16 @@
   }
 
   @if (usuarioActual(); as usuario) {
-    <section
-      class="myt-surface-card"
-      style="margin-bottom: 1.25rem; border-left: 4px solid #1985a1"
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 1rem;
-          flex-wrap: wrap;
-        "
-      >
-        <div>
-          <span class="myt-subject-tag">Ficha de usuario</span>
-          <h3 style="margin: 0.35rem 0 0.2rem 0; font-size: 1.25rem">
-            #{{ usuario.id }} · {{ usuario.nombre }} {{ usuario.apellido }}
-          </h3>
-          <p class="myt-subtle-text" style="margin: 0">
+    <section class="myt-surface-card myt-user-detail-card">
+      <div class="myt-user-detail-header">
+        <div class="myt-user-detail-title">
+          <span class="myt-eyebrow">Ficha de usuario</span>
+          <h3>#{{ usuario.id }} · {{ usuario.nombre }} {{ usuario.apellido }}</h3>
+          <p class="myt-subtle-text">
             {{ usuario.correo }} · Tel: {{ usuario.telefono || 'Sin registrar' }}
           </p>
         </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center">
+        <div class="myt-user-detail-actions">
           <span
             class="myt-status-pill"
             [class.myt-status-pill--active]="usuario.activo"
@@ -253,22 +253,14 @@
           </button>
         </div>
       </div>
-      <div
-        style="
-          margin-top: 0.75rem;
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-          align-items: center;
-        "
-      >
-        <strong style="font-size: 0.85rem; color: #4c5c68">Perfiles:</strong>
+      <div class="myt-user-detail-roles">
+        <strong>Perfiles:</strong>
         @for (rol of usuario.roles; track rol) {
           <span class="myt-subject-tag">{{ rol }}</span>
         }
       </div>
       @if (usuarioSeleccionado$ | async; as compartido) {
-        <p class="myt-subtle-text" style="margin-top: 0.5rem; font-style: italic">
+        <p class="myt-subtle-text myt-subtle-text--italic">
           Selección activa en servicio compartido: {{ compartido.nombre }} {{ compartido.apellido }}
         </p>
       }
@@ -276,95 +268,117 @@
   }
 
   <!-- Tabla administrativa -->
-  <div
-    class="myt-table-scroll"
-    role="region"
-    aria-label="Tabla de clientes y usuarios"
-    tabindex="0"
-  >
-    <table class="myt-table">
-      <thead>
-        <tr>
-          <th scope="col">Usuario (ID - Nombre)</th>
-          <th scope="col">Correo</th>
-          <th scope="col">Roles</th>
-          <th scope="col">Estado</th>
-          <th scope="col">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
+  <div class="myt-surface-card myt-table-card">
+    <div
+      class="myt-table-scroll"
+      role="region"
+      aria-label="Tabla de clientes y usuarios"
+      tabindex="0"
+    >
+      <table class="myt-table">
+        <thead>
           <tr>
-            <td>
-              <strong>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</strong>
-            </td>
-            <td>{{ usuario.correo }}</td>
-            <td>
-              @for (rol of usuario.roles; track rol) {
-                <span class="myt-subject-tag">{{ rol }}</span>
-              }
-            </td>
-            <td>
-              <span
-                class="myt-status-pill"
-                [class.myt-status-pill--active]="usuario.activo"
-                [class.myt-status-pill--inactive]="!usuario.activo"
-              >
-                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
-              </span>
-            </td>
-            <td class="myt-table-actions">
-              <button
-                type="button"
-                class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
-                [attr.aria-label]="'Ver usuario ' + usuario.nombre"
-                (click)="seleccionarUsuario(usuario.id)"
-              >
-                Ver
-              </button>
-              <button
-                type="button"
-                class="myt-btn myt-btn--secondary myt-btn--sm"
-                (click)="abrirAgregarPerfil(usuario)"
-              >
-                Agregar perfil
-              </button>
-              <button
-                type="button"
-                class="myt-btn myt-btn--secondary myt-btn--sm"
-                (click)="abrirEditarUsuario(usuario)"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                class="myt-btn myt-btn--secondary myt-btn--sm"
-                (click)="alternarEstadoUsuario(usuario)"
-              >
-                {{ usuario.activo ? 'Desactivar' : 'Activar' }}
-              </button>
-              <button
-                type="button"
-                class="myt-btn myt-btn--danger myt-btn--sm"
-                [attr.aria-label]="'Eliminar usuario ' + usuario.nombre"
-                (click)="eliminarUsuario(usuario)"
-              >
-                Eliminar
-              </button>
-            </td>
+            <th scope="col">Usuario (ID - Nombre)</th>
+            <th scope="col">Correo</th>
+            <th scope="col">Roles</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
           </tr>
-        } @empty {
-          <tr>
-            <td colspan="5">No hay usuarios que coincidan con el filtro.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (usuario of (usuariosFiltrados$ | async) ?? []; track usuario.id) {
+            <tr>
+              <td>
+                <div class="myt-table__person">
+                  <app-avatar
+                    [name]="usuario.nombre + ' ' + usuario.apellido"
+                    [initials]="usuario.nombre ? usuario.nombre.charAt(0) : 'U'"
+                    size="sm"
+                  />
+                  <div>
+                    <strong>{{ usuario.id }} - {{ usuario.nombre }} {{ usuario.apellido }}</strong>
+                    <div class="myt-subtle-text">ID: #{{ usuario.id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>{{ usuario.correo }}</td>
+              <td>
+                <div class="myt-roles-list">
+                  @for (rol of usuario.roles; track rol) {
+                    <span class="myt-subject-tag">{{ rol }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span
+                  class="myt-status-pill"
+                  [class.myt-status-pill--active]="usuario.activo"
+                  [class.myt-status-pill--inactive]="!usuario.activo"
+                >
+                  {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="myt-table-actions">
+                <button
+                  type="button"
+                  class="btn btn--secondary btn--sm myt-btn myt-btn--secondary myt-btn--sm"
+                  [attr.aria-label]="'Ver usuario ' + usuario.nombre"
+                  (click)="seleccionarUsuario(usuario.id)"
+                >
+                  Ver
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="abrirAgregarPerfil(usuario)"
+                >
+                  Agregar perfil
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="abrirEditarUsuario(usuario)"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--secondary myt-btn--sm"
+                  (click)="alternarEstadoUsuario(usuario)"
+                >
+                  {{ usuario.activo ? 'Desactivar' : 'Activar' }}
+                </button>
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--danger myt-btn--sm"
+                  [attr.aria-label]="'Eliminar usuario ' + usuario.nombre"
+                  (click)="eliminarUsuario(usuario)"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="myt-table__empty">
+                <div class="myt-table__empty-content">
+                  <app-lucide-icon name="users" [size]="32" />
+                  <p>No hay usuarios que coincidan con el filtro.</p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <section class="myt-surface-card">
-    <h1>Nuevo usuario</h1>
-    <p class="myt-subtitle">Registra una cuenta de estudiante, tutor o administrador.</p>
+    <div class="myt-section-intro">
+      <span class="myt-eyebrow">Crear cuenta</span>
+      <h2>Nuevo usuario</h2>
+      <p class="myt-subtitle">Registra una cuenta de estudiante, tutor o administrador.</p>
+    </div>
     @if (!sesion) {
       <p role="alert" class="myt-alert myt-alert--warning">
         Inicia sesión como administrador y abre esta página con tu sesión.

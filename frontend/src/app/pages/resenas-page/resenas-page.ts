@@ -5,76 +5,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, finalize, forkJoin, merge, Subject, switchMap, timer } from 'rxjs';
 import { ApiService, ResenaApi, ReservaApi, mensajeHttp } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { RouterLink } from '@angular/router';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+
 @Component({
   selector: 'app-resenas-page',
-  imports: [CommonModule, FormsModule],
-  template: ` <main class="myt-page-shell">
-    <h1>{{ esEstudiante() ? 'Reseñar mis tutorías' : 'Reseñas recibidas' }}</h1>
-    @if (cargando()) {
-      <p role="status">Cargando reseñas…</p>
-    }
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar</button>
-    }
-    @if (mensaje()) {
-      <p role="status">{{ mensaje() }}</p>
-    }
-    @if (!cargando() && !error()) {
-      @if (esEstudiante()) {
-        @for (r of pendientes(); track r.id) {
-          <article class="myt-surface-card">
-            <h2>{{ r.tema }} · {{ r.tutor }}</h2>
-            <p>{{ r.fecha }} · Completada</p>
-            <button class="myt-btn myt-btn--primary" (click)="seleccionar(r)">Añadir reseña</button>
-          </article>
-        } @empty {
-          <p>No tienes tutorías completadas pendientes de reseña.</p>
-        }
-        @if (seleccionada(); as r) {
-          <section class="myt-surface-card">
-            <h2>Reseñar tutoría #{{ r.id }}</h2>
-            <form #form="ngForm" (ngSubmit)="form.valid && publicar()">
-              <fieldset [disabled]="guardando()">
-                <label class="form-field"
-                  >Puntuación<select name="nota" [(ngModel)]="calificacion">
-                    @for (n of [5, 4, 3, 2, 1]; track n) {
-                      <option [ngValue]="n">{{ n }} / 5</option>
-                    }
-                  </select></label
-                >
-                <label class="form-field"
-                  >Comentario<textarea
-                    name="comentario"
-                    [(ngModel)]="comentario"
-                    required
-                    maxlength="1000"
-                  ></textarea></label
-                ><button
-                  class="myt-btn myt-btn--primary"
-                  [disabled]="form.invalid || !comentario.trim() || guardando()"
-                >
-                  Publicar reseña
-                </button>
-              </fieldset>
-            </form>
-          </section>
-        }
-      } @else {
-        @if (promedio() !== null) {
-          <p>★ {{ promedio() | number: '1.1-1' }} · {{ resenas().length }} reseñas</p>
-        }
-        @for (r of resenas(); track r.id) {
-          <article class="myt-surface-card">
-            <h2>{{ r.estudiante }} · {{ r.calificacion }} / 5</h2>
-            <p>{{ r.comentario }}</p>
-          </article>
-        } @empty {
-          <p>Aún no tienes reseñas.</p>
-        }
-      }
-    }
-  </main>`,
+  imports: [CommonModule, FormsModule, RouterLink, LucideIconComponent, AvatarComponent],
+  templateUrl: './resenas-page.html',
+  styleUrl: './resenas-page.css',
 })
 export class ResenasPageComponent implements OnInit {
   readonly api = inject(ApiService);

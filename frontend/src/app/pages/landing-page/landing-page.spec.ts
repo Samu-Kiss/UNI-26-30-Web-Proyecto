@@ -1,103 +1,121 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { of, Subject, throwError } from 'rxjs';
+import { provideRouter, Router } from '@angular/router';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
-import { ApiService, ReservaApi } from '../../core/services/api.service';
+import { ApiService, TutorApi } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LandingPageComponent } from './landing-page';
 
-describe('Próximas tutorías reales en la portada', () => {
-  const reserva: ReservaApi = {
-    id: 36,
-    tutorId: 1,
-    estudianteId: 1,
-    tutor: 'Felipe',
-    estudiante: 'Juan',
-    materia: 'Cálculo',
-    fecha: '2030-05-16',
-    horaInicio: '10:00:00',
-    duracionMinutos: 60,
-    tema: 'Repaso',
-    estado: 'PENDIENTE',
-    costoTotal: 40000,
+describe('LandingPageComponent (Hero y áreas de conocimiento)', () => {
+  const tutorEjemplo: TutorApi = {
+    id: 1,
+    usuarioId: 10,
+    nombre: 'Elena Guerrero',
+    biografia: 'Docente de Matemáticas y Física con 5 años de experiencia.',
+    tarifaPorHora: 45000,
+    disponible: true,
+    materias: [{ id: 1, nombre: 'Cálculo' }],
+    calificacion: 5.0,
   };
-  const api = {
-    cambios: new Subject<void>(),
-    tutores: vi.fn(() => of({ content: [] })),
-    reservas: vi.fn(() => of([reserva])),
+
+  const apiMock = {
+    tutores: vi.fn(() => of({ content: [tutorEjemplo], totalElements: 1, totalPages: 1, number: 0 })),
   };
+
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2030-05-15T17:00:00Z'));
-    api.reservas.mockReset().mockReturnValue(of([reserva]));
+    apiMock.tutores.mockReset().mockReturnValue(of({ content: [tutorEjemplo], totalElements: 1, totalPages: 1, number: 0 }));
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideRouter([]), { provide: ApiService, useValue: api }],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ApiService, useValue: apiMock },
+      ],
     });
   });
+
   afterEach(() => {
     TestBed.resetTestingModule();
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
-  function abrir(autenticado = true) {
-    if (autenticado)
+
+  function montar(autenticado = false) {
+    if (autenticado) {
       TestBed.inject(AuthService).sesion.set({
         rol: 'ESTUDIANTE',
-        perfilId: 1,
-        nombreUsuario: 'Juan',
+        perfilId: 2,
+        nombreUsuario: 'Samuel',
       });
-    const f = TestBed.createComponent(LandingPageComponent);
-    f.detectChanges();
-    vi.advanceTimersByTime(0);
-    f.detectChanges();
-    return f;
+    }
+    const fixture = TestBed.createComponent(LandingPageComponent);
+    fixture.detectChanges();
+    return fixture;
   }
-  it('invita al visitante a iniciar sesión sin consultar ni mostrar reservas ficticias', () => {
-    const f = abrir(false);
-    expect(api.reservas).not.toHaveBeenCalled();
-    expect(f.nativeElement.textContent).toContain(
-      'Inicia sesión para consultar tus próximas tutorías.',
-    );
-    expect(f.nativeElement.querySelector('a[href="/reservas/1"]')).toBeNull();
-    f.destroy();
+
+  it('muestra las áreas de conocimiento en la tarjeta de búsqueda del hero con enlaces a tutores', () => {
+    const fixture = montar(false);
+    const texto = fixture.nativeElement.textContent;
+
+    expect(texto).toContain('Áreas de conocimiento');
+    expect(texto).toContain('Matemáticas');
+    expect(texto).toContain('Programación');
+    expect(texto).toContain('Idiomas');
+
+    const enlaces = fixture.nativeElement.querySelectorAll('.myt-landing__preview-list a');
+    expect(enlaces.length).toBe(3);
+    const hrefs = Array.from(enlaces).map((a: unknown) => (a as HTMLAnchorElement).getAttribute('href'));
+    expect(hrefs.some((h) => h?.includes('/tutores') && h.includes('Matem'))).toBe(true);
+    expect(hrefs.some((h) => h?.includes('/tutores') && h.includes('Programaci'))).toBe(true);
+    expect(hrefs.some((h) => h?.includes('/tutores') && h.includes('Idiomas'))).toBe(true);
+    fixture.destroy();
   });
-  it('excluye reservas pasadas y canceladas y ordena las próximas por fecha', () => {
-    api.reservas.mockReturnValue(
-      of([
-        { ...reserva, id: 37, fecha: '2030-05-17' },
-        { ...reserva, id: 38, estado: 'CANCELADA' },
-        { ...reserva, id: 39, fecha: '2030-05-14' },
-        reserva,
-      ]),
-    );
-    const f = abrir();
-    expect(f.componentInstance.proximas().map((r) => r.id)).toEqual([36, 37]);
-    expect(f.nativeElement.querySelector('a[href="/reservas/36"]')).not.toBeNull();
-    api.reservas.mockReturnValue(of([]));
-    api.cambios.next();
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('No tienes próximas tutorías.');
-    f.destroy();
+
+  it('muestra el calendario ilustrativo/falso en el hero con la semana de ejemplo y materias decorativas', () => {
+    const fixture = montar(false);
+    const board = fixture.nativeElement.querySelector('.myt-week-board');
+    expect(board).not.toBeNull();
+    expect(board.textContent).toContain('Tu semana en MyT');
+    expect(board.textContent).toContain('LUN 7');
+    expect(board.textContent).toContain('MAR 8');
+    expect(board.textContent).toContain('Cálculo');
+    expect(board.textContent).toContain('JUE 10');
+    expect(board.textContent).toContain('Inglés');
+    expect(board.textContent).toContain('VIE 11');
+
+    // No debe mostrar mensajes vacíos como "No tienes próximas tutorías" en el calendario ilustrativo del hero
+    expect(board.textContent).not.toContain('No tienes próximas tutorías');
+    fixture.destroy();
   });
-  it('presenta carga y error sin reservas anteriores y permite reintentar', () => {
-    const pendientes = new Subject<ReservaApi[]>();
-    api.reservas.mockReturnValueOnce(pendientes);
-    const f = abrir();
-    expect(f.nativeElement.textContent).toContain('Cargando próximas tutorías…');
-    pendientes.next([reserva]);
-    pendientes.complete();
-    api.reservas.mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 500 })));
-    api.cambios.next();
-    f.detectChanges();
-    expect(f.componentInstance.proximas()).toEqual([]);
-    expect(f.nativeElement.querySelector('a[href="/reservas/36"]')).toBeNull();
-    expect(f.nativeElement.textContent).toContain('Reintentar próximas tutorías');
-    f.componentInstance.cargar();
-    f.detectChanges();
-    vi.advanceTimersByTime(0);
-    f.detectChanges();
-    expect(f.componentInstance.proximas().map((r) => r.id)).toEqual([36]);
-    f.destroy();
+
+  it('permite buscar rápidamente desde el hero redirigiendo a la ruta con parámetro de búsqueda', () => {
+    const fixture = montar(false);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    fixture.componentInstance.busquedaHero.set('Cálculo diferencial');
+    fixture.componentInstance.buscarRapido();
+    expect(navigateSpy).toHaveBeenCalledWith(['/tutores'], {
+      queryParams: { q: 'Cálculo diferencial' },
+    });
+
+    fixture.componentInstance.busquedaHero.set('   ');
+    fixture.componentInstance.buscarRapido();
+    expect(navigateSpy).toHaveBeenCalledWith(['/tutores']);
+    fixture.destroy();
+  });
+
+  it('muestra tutores destacados cuando hay sesión activa o invitación a enseñar en estado vacío', () => {
+    const fixtureAuth = montar(true);
+    expect(apiMock.tutores).toHaveBeenCalled();
+    expect(fixtureAuth.componentInstance.destacados().length).toBe(1);
+    expect(fixtureAuth.nativeElement.textContent).toContain('Elena Guerrero');
+    expect(fixtureAuth.nativeElement.textContent).toContain('Personas reales para retos reales');
+    fixtureAuth.destroy();
+
+    apiMock.tutores.mockReturnValue(of({ content: [], totalElements: 0, totalPages: 0, number: 0 }));
+    const fixtureVacio = montar(true);
+    expect(fixtureVacio.nativeElement.textContent).toContain('Lo que sabes puede abrir caminos');
+    expect(fixtureVacio.nativeElement.textContent).toContain('Quiero ser tutor');
+    fixtureVacio.destroy();
   });
 });

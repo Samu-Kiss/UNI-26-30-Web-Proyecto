@@ -1,72 +1,43 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, finalize, Subject, switchMap, timer } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
+import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { ApiService, MensajeApi, ReservaApi, mensajeHttp } from '../../core/services/api.service';
 @Component({
   selector: 'app-mensajes-page',
-  imports: [CommonModule, FormsModule, RouterLink],
-  template: ` <main class="myt-page-shell">
-    <h1>Mensajes</h1>
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar</button>
-    }
-    @if (cargando()) {
-      <p role="status">Cargando conversaciones…</p>
-    }
-    <label class="form-field"
-      >Tutoría<select [ngModel]="seleccionada()" (ngModelChange)="seleccionar($event)">
-        <option [ngValue]="0">Selecciona una reserva</option>
-        @for (r of reservas(); track r.id) {
-          <option [ngValue]="r.id">
-            #{{ r.id }} · {{ r.tema }} · {{ r.tutor }} / {{ r.estudiante }}
-          </option>
-        }
-      </select></label
-    >
-    @if (!cargando() && !reservas().length && !error()) {
-      <p>No tienes reservas con conversaciones disponibles.</p>
-    }
-    @if (seleccionada()) {
-      <a [routerLink]="['/reservas', seleccionada()]">Ver detalle de la reserva</a>
-      <section class="myt-surface-card" aria-live="polite">
-        @if (cargandoMensajes()) {
-          <p role="status">Cargando mensajes…</p>
-        } @else {
-          @for (m of mensajes(); track m.id) {
-            <article>
-              <strong>{{ m.autor }}</strong>
-              <p>{{ m.contenido }}</p>
-              <small>{{ m.fecha | date: 'short' }}</small>
-            </article>
-          } @empty {
-            <p>No hay mensajes en esta conversación.</p>
-          }
-        }
-      </section>
-      <form #form="ngForm" (ngSubmit)="form.valid && enviar()">
-        <label class="form-field"
-          >Mensaje<textarea
-            name="texto"
-            [(ngModel)]="texto"
-            required
-            maxlength="4000"
-            [disabled]="enviando()"
-          ></textarea></label
-        ><button
-          class="myt-btn myt-btn--primary"
-          [disabled]="form.invalid || !texto.trim() || enviando()"
-        >
-          Enviar mensaje
-        </button>
-      </form>
-    }
-  </main>`,
+  imports: [CommonModule, FormsModule, RouterLink, AvatarComponent, LucideIconComponent],
+  templateUrl: './mensajes-page.html',
+  styleUrl: './mensajes-page.css',
 })
 export class MensajesPageComponent implements OnInit {
+  readonly auth = inject(AuthService);
+  readonly busqueda = signal('');
+  readonly conversaciones = computed(() =>
+    this.reservas().filter((r) =>
+      (this.interlocutor(r) + ' ' + r.materia + ' ' + r.tema)
+        .toLocaleLowerCase()
+        .includes(this.busqueda().trim().toLocaleLowerCase()),
+    ),
+  );
+  readonly reservaSeleccionada = computed(() =>
+    this.reservas().find((r) => r.id === this.seleccionada()),
+  );
+  interlocutor(r: ReservaApi) {
+    return this.auth.sesion()?.rol === 'TUTOR' ? r.estudiante : r.tutor;
+  }
+  esPropio(m: MensajeApi) {
+    const nombre = this.auth.sesion()?.nombreUsuario?.trim().toLocaleLowerCase() || '';
+    return (
+      !!nombre &&
+      (m.autor.trim().toLocaleLowerCase() === nombre ||
+        m.autor.trim().toLocaleLowerCase() === nombre.split(' ')[0])
+    );
+  }
   readonly api = inject(ApiService);
   readonly route = inject(ActivatedRoute);
   readonly destroyRef = inject(DestroyRef);
@@ -120,12 +91,17 @@ export class MensajesPageComponent implements OnInit {
           this.reservas.set(r);
           const id =
             Number(this.route.snapshot.queryParamMap.get('reserva')) || this.seleccionada();
-          if (r.some((x) => x.id === id)) this.seleccionar(id);
+          if (r.some((x) => x.id === id)) {
+            if (id === this.seleccionada()) this.refrescar.next(id);
+            else this.seleccionar(id);
+          }
         },
         error: (e) => this.error.set(mensajeHttp(e)),
       });
   }
   seleccionar(id: number) {
+    if (id === this.seleccionada()) return;
+    this.texto = '';
     this.seleccionada.set(id);
     this.error.set('');
     this.refrescar.next(id);

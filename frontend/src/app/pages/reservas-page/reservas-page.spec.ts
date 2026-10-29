@@ -196,4 +196,19 @@ describe('Reservas según disponibilidad real', () => {
     expect(c.guardando()).toBe(false);
     f.destroy();
   });
+  it('muestra mensaje adaptado para tutores en estado vacío', () => {
+    TestBed.inject(AuthService).sesion.set({
+      rol: 'TUTOR',
+      perfilId: 7,
+      nombreUsuario: 'Ana',
+    });
+    api.reservas.mockReturnValueOnce(of([]));
+    parametros.next(convertToParamMap({}));
+    const f = abrir();
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Tu espacio para enseñar');
+    expect(f.nativeElement.textContent).toContain('No tienes tutorías para este estado');
+    expect(f.nativeElement.querySelector('a[href="/perfil"]')).not.toBeNull();
+    f.destroy();
+  });
 });
