@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { AdministradoresPageComponent } from './administradores-page/administradores-page';
@@ -48,6 +48,11 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Laura Mendoza');
     expect(fixture.nativeElement.textContent).toContain('Próxima disponibilidad');
+
+    const c = fixture.componentInstance;
+    c.seleccionarDia(1);
+    expect(c.indiceDia()).toBe(1);
+    expect(c.horarioSeleccionado()).toBeTruthy();
   });
 
   it('renderiza 05 · Calendario con agenda mensual y próximas tutorías', () => {
@@ -145,6 +150,102 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
     const admFixture = TestBed.createComponent(AdministradoresPageComponent);
     admFixture.detectChanges();
     expect(admFixture.nativeElement.textContent).toContain('Administradores');
+  });
+
+  it('filtra y sincroniza estudiantes desde la API', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const estFixture = TestBed.createComponent(EstudiantesPageComponent);
+    estFixture.detectChanges();
+    const c = estFixture.componentInstance;
+
+    const reqEst = httpMock.expectOne('/api/estudiantes');
+    reqEst.flush([
+      {
+        id: 99,
+        usuarioId: 101,
+        nombreCompleto: 'Estudiante Nuevo',
+        correo: 'nuevo@correo.com',
+        codigoEstudiantil: '20261999',
+        universidad: 'Javeriana',
+        programaAcademico: 'Sistemas',
+        semestre: 3,
+        activo: true,
+      },
+      {
+        id: 1,
+        usuarioId: 10,
+        nombreCompleto: 'Sofía Martínez',
+        correo: 'sofia.martinez@myt.edu.co',
+        codigoEstudiantil: '20261011',
+        universidad: 'Universidad Nacional',
+        programaAcademico: 'Ingeniería',
+        semestre: 4,
+        activo: true,
+      },
+    ]);
+
+    const reqUsr = httpMock.expectOne('/api/usuarios');
+    reqUsr.flush([
+      {
+        id: 202,
+        nombre: 'Pedro',
+        apellido: 'Pérez',
+        correo: 'pedro.perez@myt.edu.co',
+        roles: ['ESTUDIANTE'],
+        activo: true,
+      },
+    ]);
+
+    expect(c.registros().some((e) => e.correo === 'nuevo@correo.com')).toBe(true);
+    expect(c.registros().some((e) => e.correo === 'pedro.perez@myt.edu.co')).toBe(true);
+
+    c.filtro.set('Nuevo');
+    expect(c.estudiantesFiltrados().length).toBe(1);
+    expect(c.estudiantesFiltrados()[0].nombreCompleto).toBe('Estudiante Nuevo');
+
+    c.filtro.set('20261999');
+    expect(c.estudiantesFiltrados().length).toBe(1);
+
+    c.filtro.set('Javeriana');
+    expect(c.estudiantesFiltrados().length).toBeGreaterThanOrEqual(1);
+
+    c.filtro.set('Sistemas');
+    expect(c.estudiantesFiltrados().length).toBeGreaterThanOrEqual(1);
+
+    c.filtro.set('');
+    expect(c.estudiantesFiltrados().length).toBeGreaterThan(1);
+  });
+
+  it('filtra administradores y sincroniza usuarios cuando la sesión es de rol ADMINISTRADOR', () => {
+    const auth = TestBed.inject(AuthService);
+    auth.sesion.set({ rol: 'ADMINISTRADOR', perfilId: 1, nombreUsuario: 'Admin' });
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    const admFixture = TestBed.createComponent(AdministradoresPageComponent);
+    admFixture.detectChanges();
+    const c = admFixture.componentInstance;
+
+    const req = httpMock.expectOne('/api/usuarios');
+    req.flush([
+      {
+        id: 50,
+        nombre: 'Super',
+        apellido: 'Admin',
+        correo: 'super.admin@myt.edu.co',
+        roles: ['ADMINISTRADOR'],
+        activo: true,
+      },
+    ]);
+
+    expect(c.administradores().length).toBe(1);
+    c.filtro.set('Super');
+    expect(c.administradoresFiltrados().length).toBe(1);
+    c.filtro.set('super.admin@myt.edu.co');
+    expect(c.administradoresFiltrados().length).toBe(1);
+    c.filtro.set('no-existe');
+    expect(c.administradoresFiltrados().length).toBe(0);
+    c.filtro.set('');
+    expect(c.administradoresFiltrados().length).toBe(1);
   });
 
   it('cambia las acciones visibles entre los paneles de estudiante, tutor y administrador', () => {

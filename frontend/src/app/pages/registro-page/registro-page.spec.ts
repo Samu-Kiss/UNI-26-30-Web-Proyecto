@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { routes } from '../../app.routes';
 import { RegistroPageComponent } from './registro-page';
 
@@ -36,11 +36,41 @@ describe('RegistroPageComponent', () => {
     expect(comp.error()).toContain('Por favor completa tu nombre');
 
     comp.datos.nombre = 'Carlos';
+    comp.datos.apellido = '';
+    comp.datos.correo = 'carlos@test.edu';
+    comp.registrar();
+    expect(comp.error()).toContain('Por favor completa tu nombre');
+
     comp.datos.apellido = 'Ruiz';
+    comp.datos.correo = '';
+    comp.registrar();
+    expect(comp.error()).toContain('Por favor completa tu nombre');
+
     comp.datos.correo = 'carlos@test.edu';
     comp.datos.contrasena = 'corta';
     comp.registrar();
     expect(comp.error()).toContain('al menos 8 caracteres');
+  });
+
+  it('inicializa con rol TUTOR cuando el queryParam rol es TUTOR', () => {
+    const route = TestBed.inject(ActivatedRoute);
+    (route as { snapshot: unknown }).snapshot = {
+      paramMap: convertToParamMap({}),
+      queryParamMap: convertToParamMap({ rol: 'TUTOR' }),
+    };
+    const fixture = TestBed.createComponent(RegistroPageComponent);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.rolSeleccionado()).toBe('TUTOR');
+    expect(fixture.componentInstance.datos.rol).toBe('TUTOR');
+  });
+
+  it('no ejecuta el registro si ya esta guardando', () => {
+    const fixture = TestBed.createComponent(RegistroPageComponent);
+    fixture.detectChanges();
+    const comp = fixture.componentInstance;
+    comp.guardando.set(true);
+    comp.registrar();
+    httpMock.expectNone('/api/usuarios');
   });
 
   it('registra exitosamente un nuevo estudiante', () => {
@@ -68,5 +98,28 @@ describe('RegistroPageComponent', () => {
 
     expect(comp.exito()).toBe(true);
     expect(comp.guardando()).toBe(false);
+  });
+
+  it('registra un tutor y maneja error HTTP si la peticion falla', () => {
+    const fixture = TestBed.createComponent(RegistroPageComponent);
+    fixture.detectChanges();
+    const comp = fixture.componentInstance;
+
+    comp.seleccionarRol('TUTOR');
+    comp.datos.nombre = 'María';
+    comp.datos.apellido = 'López';
+    comp.datos.correo = 'maria@test.edu';
+    comp.datos.contrasena = 'Password123!';
+
+    comp.registrar();
+    expect(comp.guardando()).toBe(true);
+
+    const req = httpMock.expectOne('/api/usuarios');
+    expect(req.request.body.rol).toBe('TUTOR');
+    req.flush({ mensaje: 'El correo ya está registrado.' }, { status: 409, statusText: 'Conflict' });
+
+    expect(comp.guardando()).toBe(false);
+    expect(comp.exito()).toBe(false);
+    expect(comp.error()).toContain('El correo ya está registrado.');
   });
 });
