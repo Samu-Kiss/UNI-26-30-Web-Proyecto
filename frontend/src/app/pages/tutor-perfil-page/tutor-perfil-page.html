@@ -1,0 +1,165 @@
+<main class="myt-page-shell tutor-profile">
+  <a routerLink="/tutores" class="profile-back"
+    ><app-lucide-icon name="arrow-left" [size]="16" />Volver a resultados</a
+  >
+  @if (cargando() && !tutorApi()) {
+    <p role="status">Cargando perfil…</p>
+  }
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      {{ error() }}<button class="myt-btn myt-btn--secondary" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+  @if (tutorApi(); as t) {
+    <header class="profile-hero">
+      <app-avatar
+        class="profile-avatar"
+        [name]="t.nombre"
+        [initials]="t.nombre.charAt(0)"
+        size="lg"
+      />
+      <div class="profile-identity">
+        <h1>{{ t.nombre }}</h1>
+        <p class="profile-specialty">Tutoría en {{ t.materias[0]?.nombre || 'apoyo académico' }}</p>
+        <p class="profile-rating">
+          @if (t.calificacion !== null) {
+            <app-lucide-icon name="star" [size]="15" /> {{ t.calificacion | number: '1.1-1' }} ·
+            {{ resenas().length }} {{ resenas().length === 1 ? 'reseña' : 'reseñas' }}
+          } @else {
+            Sin reseñas
+          }
+        </p>
+        <span class="profile-availability" [class.profile-availability--off]="!t.disponible"
+          ><i></i>{{ t.disponible ? 'Disponible para tutorías' : 'No disponible por ahora' }}</span
+        >
+      </div>
+      <div class="profile-price">
+        <strong>{{ t.tarifaPorHora | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} COP</strong
+        ><span>por hora</span>
+        @if (auth.sesion()?.rol === 'ESTUDIANTE' && t.disponible) {
+          <a routerLink="/reservas" [queryParams]="{ tutor: t.id }" class="myt-btn myt-btn--primary"
+            >Reservar tutoría</a
+          >
+        }
+      </div>
+    </header>
+    <div class="profile-layout">
+      <div class="profile-main">
+        <section class="profile-section">
+          <h2>Sobre {{ t.nombre.split(' ')[0] }}</h2>
+          <p class="profile-bio">
+            {{ t.biografia || 'Este tutor aún no ha añadido una presentación.' }}
+          </p>
+          <div class="profile-subjects">
+            @for (m of t.materias; track m.id) {
+              <span>{{ m.nombre }}</span>
+            }
+          </div>
+        </section>
+        <section class="profile-section">
+          <div class="profile-section-title">
+            <h2>Reseñas de estudiantes</h2>
+            @if (resenas().length) {
+              <span>{{ resenas().length }} {{ resenas().length === 1 ? 'reseña' : 'reseñas' }}</span>
+            }
+          </div>
+          @for (r of resenas(); track r.id) {
+            <article class="profile-review">
+              <div class="profile-review__heading">
+                <span class="profile-stars" [attr.aria-label]="r.calificacion + ' de 5 estrellas'"
+                  >{{ '★'.repeat(r.calificacion)
+                  }}<span>{{ '☆'.repeat(5 - r.calificacion) }}</span></span
+                ><strong>{{ r.estudiante }}</strong>
+              </div>
+              <p>{{ r.comentario }}</p>
+              <time>{{ r.fecha | date: 'dd MMM yyyy' }}</time>
+            </article>
+          } @empty {
+            <div class="profile-no-reviews">
+              <app-lucide-icon name="star" [size]="24" />
+              <p>Aún no hay reseñas.</p>
+              <span>Las valoraciones aparecen después de completar una tutoría.</span>
+            </div>
+          }
+        </section>
+      </div>
+      <aside class="profile-schedule">
+        <h2>Próxima disponibilidad</h2>
+        @if (cargandoDisponibilidad()) {
+          <p role="status">Consultando horarios…</p>
+        }
+        @if (errorDisponibilidad()) {
+          <p role="alert">{{ errorDisponibilidad() }}</p>
+          <button
+            class="myt-btn myt-btn--secondary"
+            (click)="seleccionarFecha(fechaSeleccionada() || hoy)"
+          >
+            Reintentar horarios
+          </button>
+        }
+        <p class="profile-month">
+          {{ (fechaSeleccionada() || inicioFechas() || hoy) + 'T12:00:00' | date: 'MMMM yyyy' | titlecase }}
+        </p>
+        <div class="profile-days" aria-label="Consultar fecha de tutoría">
+          @for (fecha of fechasConsulta(); track fecha) {
+            <button
+              type="button"
+              [class.is-selected]="fechaSeleccionada() === fecha"
+              [attr.aria-pressed]="fechaSeleccionada() === fecha"
+              (click)="seleccionarFecha(fecha)"
+            >
+              <span>{{ fecha + 'T12:00:00' | date: 'EEE' }}</span
+              ><strong>{{ fecha + 'T12:00:00' | date: 'dd' }}</strong>
+            </button>
+          }
+        </div>
+        <div class="profile-calendar-wrap">
+          <app-calendario-disponibilidad
+            [tutorId]="t.id"
+            [agenda]="agenda()"
+            [fecha]="fechaSeleccionada()"
+            (fechaChange)="seleccionarFecha($event)"
+          />
+        </div>
+        <h3>Horarios disponibles</h3>
+        <div class="profile-slots">
+          @for (hora of horarios(); track hora) {
+            <button
+              type="button"
+              [class.is-selected]="horaSeleccionada() === hora"
+              [attr.aria-pressed]="horaSeleccionada() === hora"
+              (click)="horaSeleccionada.set(hora)"
+            >
+              {{ hora.slice(0, 5) }}
+            </button>
+          } @empty {
+            @if (!cargandoDisponibilidad() && !errorDisponibilidad()) {
+              <p>
+                {{
+                  fechaSeleccionada()
+                    ? 'No hay horarios para esta fecha.'
+                    : 'Sin disponibilidad en los próximos 30 días.'
+                }}
+              </p>
+            }
+          }
+        </div>
+        @if (horaSeleccionada() && auth.sesion()?.rol === 'ESTUDIANTE' && t.disponible) {
+          <a
+            routerLink="/reservas"
+            [queryParams]="{ tutor: t.id, fecha: fechaSeleccionada(), hora: horaSeleccionada() }"
+            class="myt-btn myt-btn--primary"
+            >Reservar este horario</a
+          >
+        }
+        <p class="profile-schedule-note">
+          <app-lucide-icon name="calendar" [size]="16" />Horarios para sesiones de 60 minutos. La
+          reserva queda pendiente de confirmación.
+        </p>
+      </aside>
+    </div>
+    @if (esPropietario()) {
+      <section class="profile-section"><app-agenda-editor [tutorId]="t.id" /></section>
+    }
+  }
+</main>

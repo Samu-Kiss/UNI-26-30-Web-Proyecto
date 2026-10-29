@@ -67,13 +67,16 @@ public class Usuario {
 
     @Size(max = 30)
     @Column(length = 30)
+    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+            message = "Ingresa 10 dígitos, opcionalmente precedidos por +57")
     private String telefono;
 
     @Column(nullable = false)
     private Boolean activo = true;
 
     @NotEmpty(message = "El usuario debe tener al menos un rol")
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
+    @org.hibernate.annotations.BatchSize(size = 64)
     @CollectionTable(name = "usuario_roles", joinColumns = @JoinColumn(name = "usuario_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "rol", nullable = false, length = 30)

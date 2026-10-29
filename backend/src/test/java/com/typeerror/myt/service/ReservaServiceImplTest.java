@@ -71,7 +71,7 @@ class ReservaServiceImplTest {
     @Test
     void guardaUnaReservaValidaSinSolapamientos() {
         Reserva reserva = reserva();
-        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(List.of());
+        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(agenda());
         when(bloqueoRepository.findByTutorIdAndFecha(any(), any())).thenReturn(List.of());
         when(reservaRepository.findByTutorIdAndFechaAndEstadoNotIn(any(), any(), any()))
                 .thenReturn(List.of());
@@ -127,7 +127,7 @@ class ReservaServiceImplTest {
         Reserva nueva = reserva();
         nueva.setId(9);
         nueva.setHoraInicio(LocalTime.of(9, 30));
-        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(List.of());
+        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(agenda());
         when(bloqueoRepository.findByTutorIdAndFecha(any(), any())).thenReturn(List.of());
         when(reservaRepository.findByTutorIdAndFechaAndEstadoNotIn(any(), any(), any()))
                 .thenReturn(List.of(existente));
@@ -157,7 +157,7 @@ class ReservaServiceImplTest {
         bloqueo.setHoraFin(LocalTime.of(9, 30));
 
         when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any()))
-                .thenReturn(List.of());
+                .thenReturn(agenda());
         when(bloqueoRepository.findByTutorIdAndFecha(any(), any()))
                 .thenReturn(List.of(bloqueo));
 
@@ -232,13 +232,13 @@ class ReservaServiceImplTest {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
         when(materiaRepository.findById(10)).thenReturn(Optional.of(materia));
-        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(List.of());
+        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(agenda());
         when(bloqueoRepository.findByTutorIdAndFecha(any(), any())).thenReturn(List.of());
         when(reservaRepository.findByTutorIdAndFechaAndEstadoNotIn(any(), any(), any())).thenReturn(List.of());
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(i -> i.getArgument(0));
 
         Reserva creada = servicio.crearReserva(3, 1, 10,
-                LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 90,
+                LocalDate.now().plusDays(7), LocalTime.of(10, 0), 90,
                 "Leyes de Newton", ModalidadReserva.VIRTUAL);
 
         assertNotNull(creada);
@@ -246,7 +246,7 @@ class ReservaServiceImplTest {
         assertEquals(estudiante, creada.getEstudiante());
         assertEquals(materia, creada.getMateria());
         assertEquals(ModalidadReserva.VIRTUAL, creada.getModalidad());
-        assertEquals("https://meet.google.com/myt-tutoria", creada.getUbicacionOEnlace());
+        assertEquals("Por acordar con el tutor", creada.getUbicacionOEnlace());
         assertEquals(new BigDecimal("90000.00"), creada.getCostoTotal());
         assertEquals(EstadoReserva.PENDIENTE, creada.getEstado());
     }
@@ -261,24 +261,24 @@ class ReservaServiceImplTest {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
         when(materiaRepository.findById(10)).thenReturn(Optional.of(materia));
-        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(List.of());
+        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(agenda());
         when(bloqueoRepository.findByTutorIdAndFecha(any(), any())).thenReturn(List.of());
         when(reservaRepository.findByTutorIdAndFechaAndEstadoNotIn(any(), any(), any())).thenReturn(List.of());
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(i -> i.getArgument(0));
 
         Reserva creada = servicio.crearReserva(3, 1, 10,
-                LocalDate.of(2026, 9, 21), LocalTime.of(10, 0), 60,
+                LocalDate.now().plusDays(7), LocalTime.of(10, 0), 60,
                 "Estequiometría", ModalidadReserva.PRESENCIAL);
 
         assertNotNull(creada);
-        assertEquals("Campus Universitario / Aula del Tutor", creada.getUbicacionOEnlace());
+        assertEquals("Por acordar con el tutor", creada.getUbicacionOEnlace());
         assertEquals(new BigDecimal("40000.00"), creada.getCostoTotal());
     }
 
     @Test
     void crearReservaFallaSiTutorNoExiste() {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalDate fecha = LocalDate.now().plusDays(7);
         LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(TutorNotFoundException.class, () ->
@@ -291,7 +291,7 @@ class ReservaServiceImplTest {
     void crearReservaFallaSiTutorNoDisponible() {
         Tutor tutorNoDisponible = tutorConTarifa(3, new BigDecimal("40000"), false);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutorNoDisponible));
-        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalDate fecha = LocalDate.now().plusDays(7);
         LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(IllegalStateException.class, () ->
@@ -305,7 +305,7 @@ class ReservaServiceImplTest {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("40000"), true);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalDate fecha = LocalDate.now().plusDays(7);
         LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(EstudianteNotFoundException.class, () ->
@@ -321,7 +321,7 @@ class ReservaServiceImplTest {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
         when(materiaRepository.findById(10)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.of(2026, 9, 21);
+        LocalDate fecha = LocalDate.now().plusDays(7);
         LocalTime hora = LocalTime.of(10, 0);
 
         assertThrows(MateriaNotFoundException.class, () ->
@@ -349,6 +349,17 @@ class ReservaServiceImplTest {
         verify(reservaRepository).findByEstudianteIdOrderByFechaAscHoraInicioAsc(1);
     }
 
+    @Test
+    void sinDisponibilidadNoAceptaReservas() {
+        when(disponibilidadRepository.findByTutorIdAndDiaSemana(any(), any())).thenReturn(List.of());
+        assertThrows(InformacionNoValidaException.class, () -> servicio.guardar(reserva()));
+    }
+
+    private List<DisponibilidadTutor> agenda() {
+        return List.of(new DisponibilidadTutor(1, null, DiaSemana.LUNES,
+                LocalTime.of(8, 0), LocalTime.of(18, 0)));
+    }
+
     private Reserva reserva() {
         Usuario estudianteUsuario = usuario(1);
         Usuario tutorUsuario = usuario(2);
@@ -362,7 +373,7 @@ class ReservaServiceImplTest {
         reserva.setEstudiante(estudiante);
         reserva.setTutor(tutor);
         reserva.setMateria(new Materia(1, "Calculo"));
-        reserva.setFecha(LocalDate.of(2026, 9, 21));
+        reserva.setFecha(LocalDate.now().plusDays(7));
         reserva.setHoraInicio(LocalTime.of(9, 0));
         reserva.setDuracionMinutos(60);
         reserva.setTema("Limites");

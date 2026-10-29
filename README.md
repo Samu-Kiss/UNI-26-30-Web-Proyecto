@@ -53,8 +53,7 @@ Ese token no concede acceso a los menus. `POST /logout` elimina la cookie; no ha
 renovacion automatica ni revocacion individual de tokens copiados, que vencen al
 cumplir su duracion. Cambiar el secreto invalida todas las sesiones existentes.
 
-Esta implementacion corresponde al backend Thymeleaf. El laboratorio Angular
-continua usando sus datos temporales y todavia no tiene un flujo de autenticacion.
+Esta implementación se encuentra integrada tanto en los controladores MVC como en la API REST utilizada por Angular. La aplicación SPA en Angular cuenta con autenticación completa mediante cookies HttpOnly, selección de perfiles, protección de rutas (sessionGuard), autorregistro de usuarios y persistencia real en PostgreSQL.
 
 ## PostgreSQL y Supabase
 

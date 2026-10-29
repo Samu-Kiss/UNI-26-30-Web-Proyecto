@@ -1,0 +1,135 @@
+<main class="chat-layout" [class.chat-layout--selected]="seleccionada()">
+  <aside class="chat-inbox" aria-label="Conversaciones">
+    <header>
+      <h1>Mensajes</h1>
+      <p>Coordina tus próximas tutorías.</p>
+    </header>
+    <label class="chat-search"
+      ><app-lucide-icon name="search" [size]="17" /><input
+        type="search"
+        placeholder="Buscar conversación"
+        aria-label="Buscar conversación"
+        [ngModel]="busqueda()"
+        (ngModelChange)="busqueda.set($event)"
+    /></label>
+    @if (cargando()) {
+      <p role="status">Cargando conversaciones…</p>
+    }
+    <div class="chat-threads">
+      @for (r of conversaciones(); track r.id) {
+        <button
+          type="button"
+          class="chat-thread"
+          [class.chat-thread--active]="r.id === seleccionada()"
+          [attr.aria-pressed]="r.id === seleccionada()"
+          (click)="seleccionar(r.id)"
+        >
+          <app-avatar [name]="interlocutor(r)" [initials]="interlocutor(r).charAt(0)" size="sm" />
+          <span
+            ><strong>{{ interlocutor(r) }}</strong
+            ><span>{{ r.materia }} · Sesión #{{ r.id }}</span
+            ><small>{{ r.tema }}</small></span
+          >
+          <small class="chat-thread__date">{{ r.fecha + 'T12:00:00' | date: 'dd MMM' }}</small>
+        </button>
+      } @empty {
+        @if (!cargando()) {
+          <div class="chat-inbox-empty">
+            <p>
+              {{
+                busqueda()
+                  ? 'No hay conversaciones que coincidan.'
+                  : 'No tienes reservas con conversaciones disponibles.'
+              }}
+            </p>
+            <a routerLink="/reservas">Ver mis reservas</a>
+          </div>
+        }
+      }
+    </div>
+  </aside>
+  <section class="chat-room" aria-label="Chat de coordinación">
+    @if (error()) {
+      <div class="myt-alert myt-alert--error" role="alert">
+        {{ error()
+        }}<button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargar()">
+          Reintentar
+        </button>
+      </div>
+    }
+    @if (reservaSeleccionada(); as r) {
+      <header class="chat-header">
+        <button
+          type="button"
+          class="chat-back"
+          aria-label="Volver a conversaciones"
+          (click)="seleccionar(0)"
+        >
+          <app-lucide-icon name="arrow-left" [size]="20" />
+        </button>
+        <app-avatar [name]="interlocutor(r)" [initials]="interlocutor(r).charAt(0)" />
+        <div>
+          <h2>{{ interlocutor(r) }}</h2>
+          <span>Conversación de tu tutoría</span>
+        </div>
+        <a [routerLink]="['/reservas', r.id]" class="chat-detail"
+          >Ver reserva <app-lucide-icon name="chevron-right" [size]="16"
+        /></a>
+      </header>
+      <a [routerLink]="['/reservas', r.id]" class="chat-context"
+        ><strong>{{ r.estado.replace('_', ' ') | titlecase }}</strong
+        ><span
+          >{{ r.materia }} · {{ r.fecha + 'T12:00:00' | date: 'dd MMM' }} ·
+          {{ r.horaInicio.slice(0, 5) }}</span
+        ></a
+      >
+      <div class="chat-history" aria-live="polite" aria-label="Mensajes de la tutoría">
+        @if (cargandoMensajes()) {
+          <p role="status">Cargando mensajes…</p>
+        } @else {
+          @for (m of mensajes(); track m.id) {
+            <article class="chat-bubble" [class.chat-bubble--own]="esPropio(m)">
+              <strong>{{ m.autor }}</strong>
+              <p>{{ m.contenido }}</p>
+              <time>{{ m.fecha | date: 'dd MMM · HH:mm' }}</time>
+            </article>
+          } @empty {
+            <div class="chat-start">
+              <app-lucide-icon name="message-square" [size]="36" />
+              <h3>Todo listo para conversar</h3>
+              <p>No hay mensajes en esta conversación.</p>
+              <p>Comparte tus dudas o acuerda los detalles de tu sesión.</p>
+            </div>
+          }
+        }
+      </div>
+      <form #form="ngForm" class="chat-composer" (ngSubmit)="form.valid && enviar()">
+        <label class="sr-only" for="chat-text">Mensaje</label
+        ><textarea
+          id="chat-text"
+          name="texto"
+          [(ngModel)]="texto"
+          required
+          maxlength="4000"
+          [disabled]="enviando()"
+          placeholder="Escribe un mensaje…"
+          rows="1"
+        ></textarea>
+        <button
+          type="submit"
+          class="chat-send"
+          aria-label="Enviar mensaje"
+          [disabled]="form.invalid || !texto.trim() || enviando()"
+        >
+          <app-lucide-icon name="send" [size]="20" />
+        </button>
+      </form>
+    } @else {
+      <div class="chat-start chat-start--empty">
+        <app-lucide-icon name="message-square" [size]="48" />
+        <h2>Tus conversaciones, en un solo lugar</h2>
+        <p>Selecciona una tutoría para conversar y coordinar los detalles de tu sesión.</p>
+      </div>
+    }
+  </section>
+</main>

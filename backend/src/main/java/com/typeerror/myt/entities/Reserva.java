@@ -124,6 +124,10 @@ public class Reserva {
     @ToString.Exclude
     private Resena resena;
 
+    @Size(max = 300)
+    @Column(length = 300)
+    private String objetivo;
+
     @OneToOne(mappedBy = "reserva", fetch = FetchType.LAZY)
     @ToString.Exclude
     private Conversacion conversacion;

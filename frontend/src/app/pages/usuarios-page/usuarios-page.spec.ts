@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
 import { routes } from '../../app.routes';
-import { Usuario } from '../../core/models/usuario.model';
+import { RegistroUsuario, Usuario } from '../../core/models/usuario.model';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { UsuariosPageComponent } from './usuarios-page';
 
@@ -39,7 +39,7 @@ const usuariosMock: Usuario[] = [
   },
 ];
 
-describe('UsuariosPageComponent - Laboratorio RxJS', () => {
+describe('UsuariosPageComponent', () => {
   let httpMock: HttpTestingController;
   let usuarioService: UsuarioService;
 
@@ -55,6 +55,106 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
 
   afterEach(() => {
     httpMock.verify();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('edita una copia, agrega perfiles sin duplicarlos y alterna el estado local', async () => {
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    c.guardarEdicionLocal();
+    c.confirmarAgregarPerfil();
+    c.abrirAgregarPerfil(usuariosMock[0]);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Código estudiantil');
+    c.abrirEditarUsuario(usuariosMock[0]);
+    expect(c.usuarioAgregandoPerfil()).toBeNull();
+    c.usuarioEditando()!.nombre = 'Pedro actualizado';
+    expect(usuariosMock[0].nombre).toBe('Pedro');
+    f.detectChanges();
+    await f.whenStable();
+    expect(f.nativeElement.querySelector('input[name="editNombre"]').value).toBe(
+      'Pedro actualizado',
+    );
+    const guardar = (
+      Array.from(f.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]
+    ).find((b) => b.textContent?.trim() === 'Guardar cambios')!;
+    guardar.click();
+    expect(c.usuarios()[0].nombre).toBe('Pedro actualizado');
+    expect(c.usuarios()[1]).toEqual(usuariosMock[1]);
+    expect(c.usuarioEditando()).toBeNull();
+    c.abrirAgregarPerfil(c.usuarios()[0]);
+    c.nuevoPerfilRol = 'TUTOR';
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Tarifa por hora');
+    c.confirmarAgregarPerfil();
+    expect(c.usuarios()[0].roles).toEqual(['ESTUDIANTE', 'TUTOR']);
+    c.abrirAgregarPerfil(c.usuarios()[0]);
+    c.confirmarAgregarPerfil();
+    expect(c.usuarios()[0].roles).toEqual(['ESTUDIANTE', 'TUTOR']);
+    c.alternarEstadoUsuario(c.usuarios()[0]);
+    expect(c.usuarios()[0].activo).toBe(false);
+    c.alternarEstadoUsuario(c.usuarios()[0]);
+    expect(c.usuarios()[0].activo).toBe(true);
+    f.destroy();
+  });
+
+  it('restringe el registro a administradores y permite reintentar sin duplicar peticiones', () => {
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    const nuevo: RegistroUsuario = {
+      nombre: 'Eva',
+      apellido: 'Díaz',
+      correo: 'eva@test.edu',
+      contrasena: 'Clave123!',
+      rol: 'ESTUDIANTE',
+      telefono: '',
+      activo: true,
+      roles: ['ESTUDIANTE'],
+      codigoEstudiantil: '123',
+      universidad: 'Universidad',
+      programaAcademico: 'Ingeniería',
+      semestre: '3',
+      biografia: '',
+      materias: '',
+      tarifaPorHora: '',
+    };
+    c.guardarUsuario(nuevo);
+    httpMock.expectNone('/api/usuarios');
+    c.auth.sesion.set({ rol: 'ADMINISTRADOR', perfilId: 3, nombreUsuario: 'Ana' });
+    c.guardarUsuario(nuevo);
+    c.guardarUsuario(nuevo);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Registrando usuario');
+    const req = httpMock.expectOne('/api/usuarios');
+    expect(req.request.method).toBe('POST');
+    req.flush({ mensaje: 'Correo duplicado' }, { status: 409, statusText: 'Conflict' });
+    expect(c.mensajeError()).toBe('Correo duplicado');
+    expect(c.guardando()).toBe(false);
+    c.guardarUsuario(nuevo);
+    httpMock.expectOne('/api/usuarios').flush(null);
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Usuario registrado.');
+    expect(c.mensajeError()).toBe('');
+    f.destroy();
+  });
+
+  it('limpia la selección cuando falla la consulta del usuario', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    c.seleccionarUsuario(1);
+    httpMock.expectOne('/api/usuarios/1').error(new ProgressEvent('error'));
+    expect(c.usuarioActual()).toBeNull();
+    f.destroy();
   });
 
   it('carga inicialmente el listado mediante listado$, async pipe y filtra con combineLatest (Actividad 1, 5 y 8)', () => {
@@ -100,20 +200,11 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     fixture.destroy();
   });
 
-  it('examina usuarios con of, from, range y new Observable (Actividad 2)', () => {
-    const spyLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  it('no ofrece la acción eliminada de examinar usuarios', () => {
     const fixture = TestBed.createComponent(UsuariosPageComponent);
     fixture.detectChanges();
-
     httpMock.expectOne('/api/usuarios').flush(usuariosMock);
-    fixture.componentInstance.examinarUsuarios();
-
-    expect(spyLog).toHaveBeenCalledWith('OF: total', 3);
-    expect(spyLog).toHaveBeenCalledWith('FROM:', 1, 'Pedro');
-    expect(spyLog).toHaveBeenCalledWith('RANGE:', 0, 'Pedro');
-    expect(spyLog).toHaveBeenCalledWith('MANUAL:', 'Se recibieron 3 usuarios');
-    expect(spyLog).toHaveBeenCalledWith('MANUAL:', 'Exploración de usuarios finalizada');
-    spyLog.mockRestore();
+    expect(fixture.nativeElement.textContent).not.toContain('Examinar usuarios');
     fixture.destroy();
   });
 
@@ -139,36 +230,6 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     fixture.destroy();
   });
 
-  it('ejecuta consultas en orden con concatMap y concurrentes con mergeMap (Actividad 4)', () => {
-    const spyLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    const fixture = TestBed.createComponent(UsuariosPageComponent);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
-
-    // concatMap: solo 1 petición activa a la vez
-    fixture.componentInstance.revisarEnOrden();
-    const req1 = httpMock.expectOne('/api/usuarios/1');
-    req1.flush(usuariosMock[0]);
-    const req2 = httpMock.expectOne('/api/usuarios/2');
-    req2.flush(usuariosMock[1]);
-    const req3 = httpMock.expectOne('/api/usuarios/3');
-    req3.flush(usuariosMock[2]);
-    expect(fixture.componentInstance.resultadosRevision().map((u) => u.id)).toEqual([1, 2, 3]);
-
-    // mergeMap(..., 2): 2 peticiones activas simultáneamente
-    fixture.componentInstance.revisarSimultaneamente();
-    const concurrentes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
-    expect(concurrentes).toHaveLength(2);
-    concurrentes[0].flush(usuariosMock[0]);
-    const reqRestante = httpMock.expectOne('/api/usuarios/3');
-    concurrentes[1].flush(usuariosMock[1]);
-    reqRestante.flush(usuariosMock[2]);
-    expect(fixture.componentInstance.resultadosRevision()).toHaveLength(3);
-
-    spyLog.mockRestore();
-    fixture.destroy();
-  });
-
   it('ignora clics repetidos con exhaustMap mientras una consulta sigue activa (Actividad 5)', () => {
     const fixture = TestBed.createComponent(UsuariosPageComponent);
     fixture.detectChanges();
@@ -180,24 +241,6 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
     const pendientes = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
     expect(pendientes).toHaveLength(1);
     pendientes[0].flush(usuariosMock);
-    fixture.destroy();
-  });
-
-  it('compara dos usuarios esperando ambas respuestas con forkJoin (Actividad 9)', () => {
-    const fixture = TestBed.createComponent(UsuariosPageComponent);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
-
-    fixture.componentInstance.compararUsuarios();
-    const peticiones = httpMock.match((req) => req.url.startsWith('/api/usuarios'));
-    expect(peticiones).toHaveLength(2);
-
-    peticiones[0].flush(usuariosMock[0]);
-    expect(fixture.componentInstance.comparacion()).toBeNull();
-
-    peticiones[1].flush(usuariosMock[1]);
-    expect(fixture.componentInstance.comparacion()?.primero?.nombre).toBe('Pedro');
-    expect(fixture.componentInstance.comparacion()?.segundo?.nombre).toBe('Juan');
     fixture.destroy();
   });
 });

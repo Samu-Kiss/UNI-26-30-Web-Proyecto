@@ -1,12 +1,29 @@
 import { Routes } from '@angular/router';
 import { sessionGuard } from './core/services/auth.service';
+
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'tutores' },
   {
-    path: 'tutores',
+    path: 'mi-perfil',
     canActivate: [sessionGuard],
     loadComponent: () =>
+      import('./pages/perfil-page/perfil-page').then((m) => m.PerfilPageComponent),
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./pages/landing-page/landing-page').then((m) => m.LandingPageComponent),
+  },
+  { path: 'landing', redirectTo: '', pathMatch: 'full' },
+  {
+    path: 'tutores',
+    loadComponent: () =>
       import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
+  },
+  {
+    path: 'tutores/:id',
+    loadComponent: () =>
+      import('./pages/tutor-perfil-page/tutor-perfil-page').then((m) => m.TutorPerfilPageComponent),
   },
   {
     path: 'reservas',
@@ -15,8 +32,78 @@ export const routes: Routes = [
       import('./pages/reservas-page/reservas-page').then((m) => m.ReservasPageComponent),
   },
   {
+    path: 'reservas/:id',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./pages/reserva-detalle-page/reserva-detalle-page').then(
+        (m) => m.ReservaDetallePageComponent,
+      ),
+  },
+  {
+    path: 'calendario',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./pages/calendario-page/calendario-page').then((m) => m.CalendarioPageComponent),
+  },
+  {
+    path: 'mensajes',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./pages/mensajes-page/mensajes-page').then((m) => m.MensajesPageComponent),
+  },
+  {
+    path: 'resenas',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./pages/resenas-page/resenas-page').then((m) => m.ResenasPageComponent),
+  },
+  {
+    path: 'menu',
+    loadComponent: () =>
+      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
+  },
+  {
+    path: 'estudiante',
+    data: { rol: 'ESTUDIANTE' },
+    loadComponent: () =>
+      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
+  },
+  {
+    path: 'tutor',
+    data: { rol: 'TUTOR' },
+    loadComponent: () =>
+      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
+  },
+  {
+    path: 'admin',
+    data: { rol: 'ADMINISTRADOR' },
+    loadComponent: () =>
+      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
+  },
+  {
+    path: 'estudiantes',
+    canActivate: [sessionGuard],
+    data: { admin: true },
+    loadComponent: () =>
+      import('./pages/estudiantes-page/estudiantes-page').then((m) => m.EstudiantesPageComponent),
+  },
+  {
+    path: 'administradores',
+    canActivate: [sessionGuard],
+    data: { admin: true },
+    loadComponent: () =>
+      import('./pages/administradores-page/administradores-page').then(
+        (m) => m.AdministradoresPageComponent,
+      ),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./pages/login-page/login-page').then((m) => m.LoginPageComponent),
+  },
+  {
+    path: 'registro',
+    loadComponent: () =>
+      import('./pages/registro-page/registro-page').then((m) => m.RegistroPageComponent),
   },
   {
     path: 'usuarios',
@@ -32,5 +119,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
   },
-  { path: '**', redirectTo: 'tutores' },
+  { path: '**', redirectTo: '' },
 ];

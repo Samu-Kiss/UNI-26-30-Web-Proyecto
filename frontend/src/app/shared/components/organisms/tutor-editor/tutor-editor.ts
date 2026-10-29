@@ -7,20 +7,18 @@ import { TutorApi, TutorEdicion } from '../../../../core/services/api.service';
   template: `<form [formGroup]="form" (ngSubmit)="guardar()" class="laboratorio-form">
     <h2>Editar {{ tutor().nombre }}</h2>
     <fieldset [disabled]="ocupado()">
-      <label class="form-field"
-        >Biografía
-        <textarea class="text-input" formControlName="biografia"></textarea>
-      </label>
-      @if (form.controls.biografia.touched && form.controls.biografia.hasError('required')) {
-        <p role="alert">La biografía es obligatoria.</p>
-      }
-      @if (form.controls.biografia.touched && form.controls.biografia.hasError('maxlength')) {
-        <p role="alert">La biografía no puede superar 2000 caracteres.</p>
-      }
-      <label class="form-field"
-        >Tarifa por hora
-        <input class="text-input" type="number" formControlName="tarifaPorHora" />
-      </label>
+      <div class="myt-form-row-2">
+        <label class="form-field"
+          >Tarifa por hora
+          <input class="text-input" type="number" formControlName="tarifaPorHora" />
+        </label>
+        <label class="form-field form-field--checkbox">
+          <span class="form-field__checkbox-label">
+            <input type="checkbox" formControlName="disponible" />
+            Disponible para reservas
+          </span>
+        </label>
+      </div>
       @if (
         form.controls.tarifaPorHora.touched && form.controls.tarifaPorHora.hasError('required')
       ) {
@@ -32,13 +30,24 @@ import { TutorApi, TutorEdicion } from '../../../../core/services/api.service';
       ) {
         <p role="alert">La tarifa debe estar entre 1 y 9999999999.99.</p>
       }
-      <label><input type="checkbox" formControlName="disponible" /> Disponible para reservas</label>
-      <button class="btn btn--primary btn--md" type="submit" [disabled]="form.invalid || ocupado()">
-        Guardar cambios
-      </button>
-      <button class="btn btn--secondary btn--md" type="button" (click)="cancelar()">
-        Cancelar
-      </button>
+      <label class="form-field"
+        >Biografía
+        <textarea class="text-input" rows="3" formControlName="biografia"></textarea>
+      </label>
+      @if (form.controls.biografia.touched && form.controls.biografia.hasError('required')) {
+        <p role="alert">La biografía es obligatoria.</p>
+      }
+      @if (form.controls.biografia.touched && form.controls.biografia.hasError('maxlength')) {
+        <p role="alert">La biografía no puede superar 2000 caracteres.</p>
+      }
+      <div class="myt-toolbar-actions">
+        <button class="btn btn--primary btn--md" type="submit" [disabled]="form.invalid || ocupado()">
+          Guardar cambios
+        </button>
+        <button class="btn btn--secondary btn--md" type="button" (click)="cancelar()">
+          Cancelar
+        </button>
+      </div>
     </fieldset>
   </form>`,
 })

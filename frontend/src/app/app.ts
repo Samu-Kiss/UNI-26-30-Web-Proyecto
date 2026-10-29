@@ -1,11 +1,14 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from './core/services/auth.service';
 import { mensajeHttp } from './core/services/api.service';
 import { ButtonComponent } from './shared/components/atoms/button/button';
+import { LucideIconComponent } from './shared/components/atoms/lucide-icon/lucide-icon';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonComponent, LucideIconComponent],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
@@ -13,7 +16,36 @@ import { ButtonComponent } from './shared/components/atoms/button/button';
 export class App {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly errorSesion = signal('');
+  readonly esLanding = signal(false);
+  readonly menuAbierto = signal(false);
+
+  constructor() {
+    this.actualizarEsLanding(this.router.url);
+    this.router.events
+      .pipe(
+        filter((ev): ev is NavigationEnd => ev instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((ev) => {
+        this.errorSesion.set('');
+        this.menuAbierto.set(false);
+        this.actualizarEsLanding(ev.urlAfterRedirects);
+      });
+  }
+
+  private actualizarEsLanding(url: string): void {
+    const clean = url.split('?')[0].split('#')[0];
+    this.esLanding.set(
+      clean === '' ||
+        clean === '/' ||
+        clean === '/landing' ||
+        clean === '/login' ||
+        clean === '/registro',
+    );
+  }
+
   cerrarSesion() {
     this.auth.cerrar().subscribe({
       next: () => {
@@ -23,6 +55,7 @@ export class App {
       error: (e) => this.errorSesion.set(mensajeHttp(e)),
     });
   }
+
   protected readonly sentryTestEnabled =
     new URLSearchParams(window.location.search).get('sentry-test') === '1' &&
     Boolean(window.__MYT_CONFIG__?.sentryDsn);

@@ -1,0 +1,135 @@
+<main class="myt-page-shell calendar-page">
+  <header class="myt-page-header">
+    <div>
+      <h1>Mi calendario</h1>
+      <p class="myt-subtitle">Consulta tus sesiones programadas, pendientes y pasadas.</p>
+    </div>
+    @if (auth.sesion()?.rol === 'ESTUDIANTE') {
+      <a routerLink="/tutores" class="myt-btn myt-btn--primary">Buscar tutor</a>
+    }
+  </header>
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      {{ error() }}<button class="myt-btn myt-btn--secondary" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+  <section class="calendar-stats" aria-label="Resumen de tutorías">
+    <div>
+      <strong>{{ cargando() ? '—' : totalProximas() }}</strong
+      ><span>Próximas</span>
+    </div>
+    <div>
+      <strong>{{ cargando() ? '—' : pendientes() }}</strong
+      ><span>Pendientes</span>
+    </div>
+    <div>
+      <strong>{{ cargando() ? '—' : completadas() }}</strong
+      ><span>Completadas</span>
+    </div>
+  </section>
+  <div class="calendar-layout">
+    <section class="calendar-board" [attr.aria-busy]="cargando()">
+      <header class="calendar-month">
+        <h2>{{ mesTexto() | titlecase }}</h2>
+        <div class="calendar-navigation">
+          <button class="calendar-nav" (click)="cambiarMes(-1)" aria-label="Mes anterior">
+            <app-lucide-icon name="chevron-left" [size]="18" />
+          </button>
+          <button class="calendar-nav" (click)="irHoy()">Hoy</button>
+          <button class="calendar-nav" (click)="cambiarMes(1)" aria-label="Mes siguiente">
+            <app-lucide-icon name="chevron-right" [size]="18" />
+          </button>
+        </div>
+      </header>
+      @if (cargando()) {
+        <p role="status" class="calendar-loading">Cargando calendario…</p>
+      }
+      <div class="calendar-grid" role="grid" aria-label="Calendario mensual">
+        @for (dia of ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']; track dia) {
+          <span role="columnheader" class="calendar-weekday">{{ dia }}</span>
+        }
+        @for (d of diasMes(); track $index) {
+          <div
+            role="gridcell"
+            class="calendar-day"
+            [class.calendar-day--empty]="!d"
+            [class.calendar-day--today]="d?.fecha === hoy"
+          >
+            @if (d) {
+              <span class="calendar-number" [attr.aria-current]="d.fecha === hoy ? 'date' : null">{{
+                d.numero
+              }}</span>
+              @for (r of d.reservas; track r.id) {
+                <a
+                  [routerLink]="['/reservas', r.id]"
+                  class="calendar-event"
+                  [attr.data-state]="r.estado"
+                  [attr.aria-label]="r.materia + ', ' + r.horaInicio.slice(0, 5) + ', ' + r.estado"
+                >
+                  <strong>{{ r.materia }}</strong
+                  ><span>{{ r.horaInicio.slice(0, 5) }}</span>
+                </a>
+              }
+              @for (b of d.bloqueos; track $index) {
+                <span class="calendar-block"
+                  >Bloqueado {{ b.horaInicio.slice(0, 5) }}–{{ b.horaFin.slice(0, 5) }}</span
+                >
+              }
+            }
+          </div>
+        }
+      </div>
+      @if (!cargando() && !error() && !eventos().length) {
+        <p class="calendar-empty">No hay reservas en este mes.</p>
+      }
+    </section>
+    <aside class="calendar-upcoming">
+      <h2>Próximas tutorías</h2>
+      @for (r of proximas(); track r.id) {
+        <a [routerLink]="['/reservas', r.id]" class="calendar-next" [attr.data-state]="r.estado">
+          <span class="calendar-date">{{ r.fecha + 'T12:00:00' | date: 'dd MMM' }}</span>
+          <strong
+            >{{ r.materia }} con
+            {{ auth.sesion()?.rol === 'TUTOR' ? r.estudiante : r.tutor }}</strong
+          >
+          <span
+            >{{ r.horaInicio.slice(0, 5) }} ·
+            {{ r.modalidad === 'PRESENCIAL' ? 'Presencial' : 'En línea' }}</span
+          >
+          <small>{{ r.estado.replace('_', ' ') | titlecase }}</small>
+        </a>
+      } @empty {
+        <div class="calendar-next calendar-next--empty">
+          <app-lucide-icon name="calendar" [size]="28" />
+          <p>No tienes próximas tutorías.</p>
+          <a routerLink="/reservas">Ver mis reservas</a>
+        </div>
+      }
+      <div class="calendar-legend">
+        <strong>Estados</strong><span><i class="confirmed"></i>Confirmada</span
+        ><span><i class="pending"></i>Pendiente</span
+        ><span><i class="completed"></i>Finalizada</span>
+      </div>
+      @if (auth.sesion()?.rol === 'TUTOR') {
+        <div class="calendar-availability">
+          <h3>Disponibilidad semanal</h3>
+          @for (h of agenda().horarios; track $index) {
+            <p>{{ h.diaSemana }} · {{ h.horaInicio.slice(0, 5) }}–{{ h.horaFin.slice(0, 5) }}</p>
+          } @empty {
+            <p>Configura tu disponibilidad desde Mi perfil.</p>
+          }
+          <a routerLink="/mi-perfil">Editar disponibilidad</a>
+          <h3>Bloqueos de este mes</h3>
+          @for (b of bloqueosMes(); track $index) {
+            <p>
+              {{ b.fecha }} · {{ b.horaInicio.slice(0, 5) }}–{{ b.horaFin.slice(0, 5) }} ·
+              {{ b.motivo }}
+            </p>
+          } @empty {
+            <p>No hay bloqueos en este mes.</p>
+          }
+        </div>
+      }
+    </aside>
+  </div>
+</main>
