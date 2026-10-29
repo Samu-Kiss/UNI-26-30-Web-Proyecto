@@ -51,6 +51,14 @@ public class ReservaRestController {
                 .map(ApiDtos::reserva).toList();
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiDtos.ReservaDto> consultar(@PathVariable Integer id,
+            @RequestAttribute("apiSesion") ContextoSesion sesion) {
+        var reserva = obtener(id);
+        autorizar(sesion, reserva);
+        return ResponseEntity.ok(ApiDtos.reserva(reserva));
+    }
+
     @PostMapping
     @Transactional
     public ResponseEntity<ApiDtos.ReservaDto> crear(@Valid @RequestBody ApiDtos.ReservaAlta datos,
@@ -62,7 +70,8 @@ public class ReservaRestController {
         var tutor = tutores.bloquearPorId(datos.tutorId()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tutor no encontrado"));
         if (tutor.getMaterias().stream().noneMatch(m -> m.getId().equals(datos.materiaId()))
-                || !Boolean.TRUE.equals(tutor.getUsuario().getActivo())) {
+                || !Boolean.TRUE.equals(tutor.getUsuario().getActivo())
+                || !Boolean.TRUE.equals(tutor.getDisponible())) {
             return ResponseEntity.badRequest().build();
         }
         var reserva = reservas.crearReserva(datos.tutorId(), sesion.perfilId(), datos.materiaId(),

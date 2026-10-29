@@ -143,20 +143,6 @@ export type RolMenu = 'ESTUDIANTE' | 'TUTOR' | 'ADMINISTRADOR';
               <span class="myt-menu-card__cta">Ver directorio de estudiantes →</span>
             </a>
 
-            <a routerLink="/tutores" class="myt-menu-card">
-              <span class="myt-menu-card__tag">Catálogo</span>
-              <h2>Tutores</h2>
-              <p>Administra la información de los tutores, sus tarifas, biografías y perfiles activos.</p>
-              <span class="myt-menu-card__cta">Gestionar tutores →</span>
-            </a>
-
-            <a routerLink="/reservas" class="myt-menu-card">
-              <span class="myt-menu-card__tag">Operación</span>
-              <h2>Reservas</h2>
-              <p>Supervisa las reservas registradas en el sistema, sus estados y motivos de cancelación.</p>
-              <span class="myt-menu-card__cta">Supervisar reservas →</span>
-            </a>
-
             <a routerLink="/administradores" class="myt-menu-card">
               <span class="myt-menu-card__tag">Seguridad</span>
               <h2>Administradores</h2>

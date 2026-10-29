@@ -275,4 +275,71 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
         em.clear();
         assertEquals(EstadoReserva.PENDIENTE, reservas.findById(reserva.getId()).orElseThrow().getEstado());
     }
+
+    @Test
+    void nuevosEndpointsEstudiantesUsuariosYConsultaReserva() throws Exception {
+        mvc.perform(get("/api/estudiantes").cookie(cookie(adminPerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoEstudiantil").value("API-123"))
+                .andExpect(jsonPath("$[0].universidad").value("Universidad"));
+
+        mvc.perform(get("/api/estudiantes/" + estudiante.getId()).cookie(cookie(adminPerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.codigoEstudiantil").value("API-123"));
+
+        mvc.perform(get("/api/estudiantes").cookie(cookie(estudiantePerfil())))
+                .andExpect(status().isForbidden());
+
+        String datosAdmin = "{\"nombre\":\"AdminNuevo\",\"apellido\":\"Prueba\","
+                + "\"correo\":\"admin-api@test.edu\",\"telefono\":\"3001234567\"}";
+        mvc.perform(json(put("/api/usuarios/" + admin.getId()), datosAdmin, adminPerfil()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("AdminNuevo"));
+
+        // Asignación de rol ADMINISTRADOR a usuario existente
+        mvc.perform(json(post("/api/usuarios/" + estudiante.getUsuario().getId() + "/perfiles"),
+                "{\"rol\":\"ADMINISTRADOR\"}", adminPerfil()))
+                .andExpect(status().isCreated());
+
+        mvc.perform(json(put("/api/usuarios/" + admin.getId() + "/activo"),
+                "{\"activo\":false}", adminPerfil()))
+                .andExpect(status().isNoContent());
+
+        // Sesión de admin desactivada ya no permite consultar recursos privados
+        mvc.perform(get("/api/usuarios").cookie(cookie(adminPerfil())))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/usuarios")
+                .header("X-MYT-Request", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {"nombre":"Publico","apellido":"Usuario","correo":"publico@test.edu",
+                 "contrasena":"ClaveSegura123!","rol":"ESTUDIANTE","codigoEstudiantil":"PUB-1",
+                 "universidad":"U","programaAcademico":"Sistemas","semestre":1}
+                """))
+                .andExpect(status().isCreated());
+
+        String alta = """
+                {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"10:00",
+                 "duracionMinutos":60,"tema":"Consulta detalle","modalidad":"VIRTUAL"}
+                """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(10));
+        mvc.perform(json(post("/api/reservas"), alta, estudiantePerfil()))
+                .andExpect(status().isCreated());
+        var res = reservas.buscarPorEstudiante(estudiante.getId(), null).getFirst();
+
+        mvc.perform(get("/api/reservas/" + res.getId()).cookie(cookie(estudiantePerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(res.getId()))
+                .andExpect(jsonPath("$.tema").value("Consulta detalle"));
+
+        // Tutor no disponible rechaza nuevas reservas
+        tutor.setDisponible(false);
+        tutores.save(tutor);
+        String altaTutorDesactivado = """
+                {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"11:00",
+                 "duracionMinutos":60,"tema":"Intento tutor inactivo","modalidad":"VIRTUAL"}
+                """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(11));
+        mvc.perform(json(post("/api/reservas"), altaTutorDesactivado, estudiantePerfil()))
+                .andExpect(status().isBadRequest());
+    }
 }

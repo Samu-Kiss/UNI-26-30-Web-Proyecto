@@ -1,5 +1,5 @@
 import { AsyncPipe, CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -49,6 +49,27 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   readonly guardando = signal(false);
   readonly cargando = signal(false);
   readonly guardado = signal('');
+  readonly mensajeRevision = signal('');
+  readonly mostrarFormNuevo = signal(false);
+
+  readonly diagnosticoRxjs = signal<{
+    totalOf: number;
+    muestrasFrom: { id: number; nombre: string; roles: string[] }[];
+    primerosRange: string[];
+    avisosManual: string[];
+  } | null>(null);
+
+  readonly totalUsuarios = computed(() => this.usuarios().length);
+  readonly totalActivos = computed(() => this.usuarios().filter((u) => u.activo).length);
+  readonly totalEstudiantes = computed(
+    () => this.usuarios().filter((u) => u.roles.includes('ESTUDIANTE')).length,
+  );
+  readonly totalTutores = computed(
+    () => this.usuarios().filter((u) => u.roles.includes('TUTOR')).length,
+  );
+  readonly totalAdministradores = computed(
+    () => this.usuarios().filter((u) => u.roles.includes('ADMINISTRADOR')).length,
+  );
 
   // Migración de usuario-form.html y perfil-usuario-form.html
   readonly usuarioEditando = signal<Usuario | null>(null);
@@ -58,7 +79,8 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   nuevoPerfilUniversidad = 'Pontificia Universidad Javeriana';
   nuevoPerfilPrograma = 'Ingeniería de Sistemas';
   nuevoPerfilSemestre = 5;
-  nuevoPerfilBiografia = '';
+  nuevoPerfilBiografia = 'Docente y tutor universitario con experiencia.';
+  nuevoPerfilMaterias = 'Cálculo diferencial';
   nuevoPerfilTarifa = 45000;
 
   get sesion() {
@@ -153,16 +175,41 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   examinarUsuarios(): void {
     const datos = this.usuarios();
     of(datos).subscribe((lista) => console.log('OF: total', lista.length));
-    from(datos).subscribe((usuario) => console.log('FROM:', usuario.id, usuario.nombre));
-    range(0, Math.min(5, datos.length)).subscribe((indice) =>
-      console.log('RANGE:', indice, datos[indice].nombre),
-    );
+    const muestras: { id: number; nombre: string; roles: string[] }[] = [];
+    from(datos).subscribe((usuario) => {
+      console.log('FROM:', usuario.id, usuario.nombre);
+      if (muestras.length < 6) {
+        muestras.push({
+          id: usuario.id,
+          nombre: `${usuario.nombre} ${usuario.apellido}`,
+          roles: usuario.roles,
+        });
+      }
+    });
+    const primerosRange: string[] = [];
+    range(0, Math.min(5, datos.length)).subscribe((indice) => {
+      console.log('RANGE:', indice, datos[indice].nombre);
+      primerosRange.push(`#${datos[indice].id} ${datos[indice].nombre}`);
+    });
+    const avisosManual: string[] = [];
     const aviso$ = new Observable<string>((observador) => {
       observador.next(`Se recibieron ${datos.length} usuarios`);
       observador.next('Exploración de usuarios finalizada');
       observador.complete();
     });
-    aviso$.subscribe((mensaje) => console.log('MANUAL:', mensaje));
+    aviso$.subscribe((mensaje) => {
+      console.log('MANUAL:', mensaje);
+      avisosManual.push(mensaje);
+    });
+    this.diagnosticoRxjs.set({
+      totalOf: datos.length,
+      muestrasFrom: muestras,
+      primerosRange,
+      avisosManual,
+    });
+    this.mensajeRevision.set(
+      `Diagnóstico reactivo completado: se examinaron ${datos.length} usuarios utilizando operadores RxJS (of, from, range, new Observable).`,
+    );
   }
 
   seleccionarUsuario(id: number): void {
@@ -260,6 +307,16 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
     if (!editado) return;
     this.usuarios.update((lista) => lista.map((u) => (u.id === editado.id ? { ...editado } : u)));
     this.guardado.set(`Datos de ${editado.nombre} actualizados.`);
+    if (this.sesion) {
+      this.usuarioService
+        .actualizar(editado.id, {
+          nombre: editado.nombre,
+          apellido: editado.apellido,
+          correo: editado.correo,
+          telefono: editado.telefono,
+        })
+        .subscribe({ error: (e) => this.mensajeError.set(mensajeHttp(e)) });
+    }
     this.usuarioEditando.set(null);
   }
 
@@ -278,15 +335,51 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
       ),
     );
     this.guardado.set(`Perfil ${rol} asociado a ${objetivo.nombre}.`);
+    if (this.sesion) {
+      this.usuarioService
+        .agregarPerfil(objetivo.id, {
+          rol,
+          codigoEstudiantil: this.nuevoPerfilCodigo,
+          universidad: this.nuevoPerfilUniversidad,
+          programaAcademico: this.nuevoPerfilPrograma,
+          semestre: this.nuevoPerfilSemestre,
+          biografia: this.nuevoPerfilBiografia,
+          materias: this.nuevoPerfilMaterias,
+          tarifaPorHora: this.nuevoPerfilTarifa,
+        })
+        .subscribe({ error: (e) => this.mensajeError.set(mensajeHttp(e)) });
+    }
     this.usuarioAgregandoPerfil.set(null);
   }
 
   alternarEstadoUsuario(usuario: Usuario): void {
+    const nuevoEstado = !usuario.activo;
     this.usuarios.update((lista) =>
-      lista.map((u) => (u.id === usuario.id ? { ...u, activo: !u.activo } : u)),
+      lista.map((u) => (u.id === usuario.id ? { ...u, activo: nuevoEstado } : u)),
     );
     this.guardado.set(
-      `Estado de ${usuario.nombre} cambiado a ${!usuario.activo ? 'Activo' : 'Inactivo'}.`,
+      `Estado de ${usuario.nombre} cambiado a ${nuevoEstado ? 'Activo' : 'Inactivo'}.`,
     );
+    if (this.sesion) {
+      this.usuarioService.alternarEstado(usuario.id, nuevoEstado).subscribe({
+        error: (e) => this.mensajeError.set(mensajeHttp(e)),
+      });
+    }
+  }
+
+  eliminarUsuario(usuario: Usuario): void {
+    if (!confirm(`¿Estás seguro de eliminar al usuario #${usuario.id} (${usuario.nombre} ${usuario.apellido})?`)) {
+      return;
+    }
+    this.usuarios.update((lista) => lista.filter((u) => u.id !== usuario.id));
+    this.guardado.set(`Usuario #${usuario.id} (${usuario.nombre}) eliminado.`);
+    if (this.usuarioActual()?.id === usuario.id) {
+      this.usuarioActual.set(null);
+    }
+    if (this.sesion) {
+      this.usuarioService.eliminar(usuario.id).subscribe({
+        error: (e) => this.mensajeError.set(mensajeHttp(e)),
+      });
+    }
   }
 }

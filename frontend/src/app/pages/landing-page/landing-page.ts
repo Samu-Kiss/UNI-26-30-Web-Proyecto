@@ -29,7 +29,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
               <a routerLink="/login" class="myt-landing__btn myt-landing__btn--outline">
                 Iniciar sesión
               </a>
-              <a routerLink="/usuarios/nuevo" class="myt-landing__btn myt-landing__btn--primary">
+              <a routerLink="/registro" class="myt-landing__btn myt-landing__btn--primary">
                 Crear cuenta
               </a>
             }
@@ -54,7 +54,8 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                 Encontrar un tutor
               </a>
               <a
-                routerLink="/usuarios/nuevo"
+                routerLink="/registro"
+                [queryParams]="{ rol: 'TUTOR' }"
                 class="myt-landing__btn myt-landing__btn--outline myt-landing__btn--lg"
               >
                 Quiero enseñar

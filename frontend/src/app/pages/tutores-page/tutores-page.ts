@@ -88,7 +88,11 @@ export class TutoresPageComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (m) => this.materias.set(m),
-        error: (e) => this.error.set(mensajeHttp(e)),
+        error: (e) => {
+          if (this.auth.sesion() || (e?.status && e.status !== 401)) {
+            this.error.set(mensajeHttp(e));
+          }
+        },
       });
     this.refrescar
       .pipe(
@@ -98,7 +102,9 @@ export class TutoresPageComponent implements OnInit {
           this.error.set('');
           return this.api.tutores(this.page, this.materiaId, this.tarifaMax).pipe(
             catchError((e) => {
-              this.error.set(mensajeHttp(e));
+              if (this.auth.sesion() || (e?.status && e.status !== 401)) {
+                this.error.set(mensajeHttp(e));
+              }
               return EMPTY;
             }),
             finalize(() => this.cargando.set(false)),

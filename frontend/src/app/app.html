@@ -5,38 +5,16 @@
     <!-- Left Sidebar -->
     <aside class="myt-sidebar" aria-label="Menú lateral MyT">
       <div class="myt-sidebar__brand">
-        <a routerLink="/tutores" class="myt-sidebar__logo">MyT</a>
+        <a
+          [routerLink]="auth.sesion()?.rol === 'ADMINISTRADOR' ? '/usuarios' : (auth.sesion()?.rol === 'TUTOR' ? '/reservas' : '/tutores')"
+          class="myt-sidebar__logo"
+          >MyT</a
+        >
         <p class="myt-sidebar__tagline">Encuentra. Aprende. Avanza.</p>
       </div>
 
       <nav class="myt-sidebar__nav laboratorio-nav" aria-label="Navegación principal">
-        <a
-          routerLink="/tutores"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: false }"
-          class="myt-nav-item"
-        >
-          <app-lucide-icon name="compass" [size]="18" />
-          <span>Explorar</span>
-        </a>
-
-        <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
-          <app-lucide-icon name="book-open" [size]="18" />
-          <span>Mis tutorías</span>
-        </a>
-
-        <a routerLink="/calendario" routerLinkActive="active" class="myt-nav-item">
-          <app-lucide-icon name="calendar" [size]="18" />
-          <span>Calendario</span>
-        </a>
-
-        <a routerLink="/mensajes" routerLinkActive="active" class="myt-nav-item">
-          <app-lucide-icon name="message-square" [size]="18" />
-          <span>Mensajes</span>
-        </a>
-
         @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
-          <div class="myt-sidebar__divider" role="separator"></div>
           <span class="myt-sidebar__section-label">Administración</span>
           <a routerLink="/usuarios" routerLinkActive="active" class="myt-nav-item">
             <app-lucide-icon name="users" [size]="18" />
@@ -49,6 +27,53 @@
           <a routerLink="/administradores" routerLinkActive="active" class="myt-nav-item">
             <app-lucide-icon name="shield-check" [size]="18" />
             <span>Administradores</span>
+          </a>
+        } @else if (auth.sesion()?.rol === 'TUTOR') {
+          <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="book-open" [size]="18" />
+            <span>Mis tutorías</span>
+          </a>
+          <a routerLink="/calendario" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="calendar" [size]="18" />
+            <span>Calendario</span>
+          </a>
+          <a routerLink="/mensajes" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="message-square" [size]="18" />
+            <span>Mensajes</span>
+          </a>
+          <a routerLink="/resenas" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="star" [size]="18" />
+            <span>Reseñas</span>
+          </a>
+        } @else {
+          <a
+            routerLink="/tutores"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="myt-nav-item"
+          >
+            <app-lucide-icon name="compass" [size]="18" />
+            <span>Explorar</span>
+          </a>
+
+          <a routerLink="/reservas" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="book-open" [size]="18" />
+            <span>Mis tutorías</span>
+          </a>
+
+          <a routerLink="/calendario" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="calendar" [size]="18" />
+            <span>Calendario</span>
+          </a>
+
+          <a routerLink="/mensajes" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="message-square" [size]="18" />
+            <span>Mensajes</span>
+          </a>
+
+          <a routerLink="/resenas" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="star" [size]="18" />
+            <span>Reseñas</span>
           </a>
         }
       </nav>
@@ -72,6 +97,10 @@
           <a routerLink="/login" class="myt-sidebar__logout">
             <app-lucide-icon name="log-in" [size]="15" />
             <span>Iniciar sesión</span>
+          </a>
+          <a routerLink="/registro" class="myt-sidebar__logout">
+            <app-lucide-icon name="user-plus" [size]="15" />
+            <span>Crear cuenta</span>
           </a>
         }
       </div>

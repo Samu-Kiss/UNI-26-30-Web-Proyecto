@@ -11,7 +11,6 @@ export const routes: Routes = [
   { path: 'landing', redirectTo: '', pathMatch: 'full' },
   {
     path: 'tutores',
-    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
   },
@@ -30,6 +29,7 @@ export const routes: Routes = [
   },
   {
     path: 'reservas/:id',
+    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/reserva-detalle-page/reserva-detalle-page').then(
         (m) => m.ReservaDetallePageComponent,
@@ -37,16 +37,19 @@ export const routes: Routes = [
   },
   {
     path: 'calendario',
+    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/calendario-page/calendario-page').then((m) => m.CalendarioPageComponent),
   },
   {
     path: 'mensajes',
+    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/mensajes-page/mensajes-page').then((m) => m.MensajesPageComponent),
   },
   {
     path: 'resenas',
+    canActivate: [sessionGuard],
     loadComponent: () =>
       import('./pages/resenas-page/resenas-page').then((m) => m.ResenasPageComponent),
   },
@@ -75,11 +78,15 @@ export const routes: Routes = [
   },
   {
     path: 'estudiantes',
+    canActivate: [sessionGuard],
+    data: { admin: true },
     loadComponent: () =>
       import('./pages/estudiantes-page/estudiantes-page').then((m) => m.EstudiantesPageComponent),
   },
   {
     path: 'administradores',
+    canActivate: [sessionGuard],
+    data: { admin: true },
     loadComponent: () =>
       import('./pages/administradores-page/administradores-page').then(
         (m) => m.AdministradoresPageComponent,
@@ -88,6 +95,11 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login-page/login-page').then((m) => m.LoginPageComponent),
+  },
+  {
+    path: 'registro',
+    loadComponent: () =>
+      import('./pages/registro-page/registro-page').then((m) => m.RegistroPageComponent),
   },
   {
     path: 'usuarios',

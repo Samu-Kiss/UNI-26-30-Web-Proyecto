@@ -53,6 +53,17 @@ export interface ReservaApi {
   estado: EstadoReserva;
   costoTotal: number;
 }
+export interface EstudianteApi {
+  id: number;
+  usuarioId: number;
+  nombreCompleto: string;
+  correo: string;
+  codigoEstudiantil: string;
+  universidad: string;
+  programaAcademico: string;
+  semestre: number;
+  activo: boolean;
+}
 export interface ReservaAlta {
   tutorId: number;
   materiaId: number;
@@ -110,6 +121,9 @@ export class ApiService {
   desactivarTutor(id: number) {
     return this.http.delete<void>(`/api/tutores/${id}`);
   }
+  reserva(id: number) {
+    return this.http.get<ReservaApi>(`/api/reservas/${id}`);
+  }
   reservas(estado = '') {
     return this.http.get<ReservaApi[]>('/api/reservas', { params: estado ? { estado } : {} });
   }
@@ -121,5 +135,11 @@ export class ApiService {
   }
   cancelarReserva(id: number) {
     return this.http.delete<void>(`/api/reservas/${id}`);
+  }
+  estudiantes() {
+    return this.http.get<EstudianteApi[]>('/api/estudiantes');
+  }
+  estudiante(id: number) {
+    return this.http.get<EstudianteApi>(`/api/estudiantes/${id}`);
   }
 }

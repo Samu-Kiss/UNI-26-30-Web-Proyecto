@@ -2,6 +2,7 @@ import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ApiService, ReservaApi } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 
@@ -26,10 +27,12 @@ interface CeldaCalendario {
           <h1>Mi calendario</h1>
           <p>Consulta tus sesiones programadas, pendientes y pasadas.</p>
         </div>
-        <a routerLink="/tutores" class="myt-btn myt-btn--primary">
-          <app-lucide-icon name="search" [size]="16" />
-          <span>Buscar tutor</span>
-        </a>
+        @if (esEstudiante()) {
+          <a routerLink="/tutores" class="myt-btn myt-btn--primary">
+            <app-lucide-icon name="search" [size]="16" />
+            <span>Buscar tutor</span>
+          </a>
+        }
       </header>
 
       <section class="myt-kpi-row" aria-label="Resumen de sesiones" data-node-id="10:122">
@@ -222,7 +225,8 @@ interface CeldaCalendario {
       }
       .myt-calendar-weekdays {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.45rem;
         text-align: center;
         font-size: 0.72rem;
         font-weight: 700;
@@ -231,11 +235,17 @@ interface CeldaCalendario {
       }
       .myt-calendar-grid {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-auto-rows: 96px;
         gap: 0.45rem;
       }
       .myt-calendar-cell {
-        min-height: 86px;
+        height: 96px;
+        min-height: 96px;
+        max-height: 96px;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow: hidden;
         background: #ffffff;
         border: 1px solid #e4e4e5;
         border-radius: 12px;
@@ -261,6 +271,14 @@ interface CeldaCalendario {
         text-decoration: none;
         font-size: 0.7rem;
         line-height: 1.2;
+        overflow: hidden;
+      }
+      .myt-calendar-event strong,
+      .myt-calendar-event small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
       }
       .myt-calendar-event--teal,
       .myt-calendar-event--teal:hover {
@@ -363,47 +381,70 @@ interface CeldaCalendario {
 export class CalendarioPageComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly auth = inject(AuthService);
   readonly state = inject(MytStateService);
 
+  readonly esEstudiante = computed(() => !this.auth.sesion() || this.auth.sesion()?.rol === 'ESTUDIANTE');
+
   readonly reservasApi = signal<ReservaApi[]>([]);
+  readonly reservasCargadas = signal(false);
   private readonly meses = ['Agosto 2026', 'Septiembre 2026', 'Octubre 2026'];
   readonly indiceMes = signal(1);
 
   readonly mesActual = computed(() => this.meses[this.indiceMes()] ?? 'Septiembre 2026');
 
   readonly totalProximas = computed(() => {
-    const apiCount = this.reservasApi().filter((r) => r.estado === 'CONFIRMADA').length;
-    return apiCount > 0
-      ? apiCount
-      : this.state.eventosCalendario().filter((e) => e.estado !== 'CANCELADA').length;
+    if (this.reservasCargadas()) {
+      return this.reservasApi().filter((r) => r.estado === 'CONFIRMADA').length;
+    }
+    return this.state.eventosCalendario().filter((e) => e.estado !== 'CANCELADA').length;
   });
 
   readonly totalPendientes = computed(() => {
-    const apiCount = this.reservasApi().filter((r) => r.estado === 'PENDIENTE').length;
-    return apiCount > 0 ? apiCount : 1;
+    if (this.reservasCargadas()) {
+      return this.reservasApi().filter((r) => r.estado === 'PENDIENTE').length;
+    }
+    return 1;
   });
 
   readonly totalCompletadas = computed(() => {
-    const apiCount = this.reservasApi().filter((r) => r.estado === 'COMPLETADA').length;
-    return apiCount > 0 ? apiCount : 8;
+    if (this.reservasCargadas()) {
+      return this.reservasApi().filter((r) => r.estado === 'COMPLETADA').length;
+    }
+    return 8;
   });
 
   readonly celdas = computed<CeldaCalendario[]>(() => {
+    const apiRes = this.reservasApi();
     const eventos = this.state.eventosCalendario();
     const resultado: CeldaCalendario[] = [{ numero: 31, fueraDeMes: true }];
     for (let d = 1; d <= 30; d++) {
       const ev = eventos.find((e) => e.diaMes === d && e.estado !== 'CANCELADA');
+      const rMatch = apiRes.find((r) => {
+        if (!r.fecha) return false;
+        const partes = r.fecha.split('-');
+        return partes.length === 3 && parseInt(partes[2], 10) === d && r.estado !== 'CANCELADA';
+      });
+      let eventoData = ev
+        ? {
+            id: ev.id,
+            etiqueta: ev.estado === 'PENDIENTE' && d === 3 ? 'Pendiente' : ev.materia,
+            hora: ev.horaInicio,
+            tono: ev.estado === 'PENDIENTE' ? ('pending' as const) : d === 15 ? ('green' as const) : ('teal' as const),
+          }
+        : undefined;
+      if (rMatch) {
+        eventoData = {
+          id: rMatch.id,
+          etiqueta: rMatch.materia,
+          hora: rMatch.horaInicio,
+          tono: rMatch.estado === 'PENDIENTE' ? ('pending' as const) : ('teal' as const),
+        };
+      }
       resultado.push({
         numero: d,
         fueraDeMes: false,
-        evento: ev
-          ? {
-              id: ev.id,
-              etiqueta: ev.estado === 'PENDIENTE' && d === 3 ? 'Pendiente' : ev.materia,
-              hora: ev.horaInicio,
-              tono: ev.estado === 'PENDIENTE' ? 'pending' : d === 15 ? 'green' : 'teal',
-            }
-          : undefined,
+        evento: eventoData,
       });
     }
     for (let next = 1; next <= 4; next++) {
@@ -417,7 +458,10 @@ export class CalendarioPageComponent implements OnInit {
       .reservas()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (r) => this.reservasApi.set(r),
+        next: (r) => {
+          this.reservasApi.set(r);
+          this.reservasCargadas.set(true);
+        },
         error: () => undefined,
       });
   }

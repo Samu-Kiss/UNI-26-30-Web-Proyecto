@@ -60,6 +60,10 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
             <app-login-form [habilitado]="!cargando()" (loginEnviado)="procesarLogin($event)" />
             <div class="myt-login-footer">
               <p>
+                ¿No tienes una cuenta aún?
+                <a routerLink="/registro"><strong>Regístrate gratis</strong></a>.
+              </p>
+              <p>
                 ¿Quieres conocer primero la plataforma?
                 <a routerLink="/">Explora la Landing de MyT</a> o
                 <a routerLink="/tutores">consulta el catálogo de tutores</a>.
@@ -192,6 +196,12 @@ export class LoginPageComponent implements OnInit {
   }
 
   private navegar(estado: EstadoSesion) {
-    if (estado.actual) void this.router.navigateByUrl('/tutores');
+    if (estado.actual) {
+      if (estado.actual.rol === 'ADMINISTRADOR') {
+        void this.router.navigateByUrl('/usuarios');
+      } else {
+        void this.router.navigateByUrl('/tutores');
+      }
+    }
   }
 }

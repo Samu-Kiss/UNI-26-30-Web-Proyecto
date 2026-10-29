@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
 import { routes } from '../../app.routes';
-import { Usuario } from '../../core/models/usuario.model';
+import { RegistroUsuario, Usuario } from '../../core/models/usuario.model';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { UsuariosPageComponent } from './usuarios-page';
 
@@ -55,6 +55,122 @@ describe('UsuariosPageComponent - Laboratorio RxJS', () => {
 
   afterEach(() => {
     httpMock.verify();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('edita una copia, agrega perfiles sin duplicarlos y alterna el estado local', async () => {
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    c.guardarEdicionLocal();
+    c.confirmarAgregarPerfil();
+    c.abrirAgregarPerfil(usuariosMock[0]);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Código estudiantil');
+    c.abrirEditarUsuario(usuariosMock[0]);
+    expect(c.usuarioAgregandoPerfil()).toBeNull();
+    c.usuarioEditando()!.nombre = 'Pedro actualizado';
+    expect(usuariosMock[0].nombre).toBe('Pedro');
+    f.detectChanges();
+    await f.whenStable();
+    expect(f.nativeElement.querySelector('input[name="editNombre"]').value).toBe(
+      'Pedro actualizado',
+    );
+    const guardar = (
+      Array.from(f.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]
+    ).find((b) => b.textContent?.trim() === 'Guardar cambios')!;
+    guardar.click();
+    expect(c.usuarios()[0].nombre).toBe('Pedro actualizado');
+    expect(c.usuarios()[1]).toEqual(usuariosMock[1]);
+    expect(c.usuarioEditando()).toBeNull();
+    c.abrirAgregarPerfil(c.usuarios()[0]);
+    c.nuevoPerfilRol = 'TUTOR';
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Tarifa por hora');
+    c.confirmarAgregarPerfil();
+    expect(c.usuarios()[0].roles).toEqual(['ESTUDIANTE', 'TUTOR']);
+    c.abrirAgregarPerfil(c.usuarios()[0]);
+    c.confirmarAgregarPerfil();
+    expect(c.usuarios()[0].roles).toEqual(['ESTUDIANTE', 'TUTOR']);
+    c.alternarEstadoUsuario(c.usuarios()[0]);
+    expect(c.usuarios()[0].activo).toBe(false);
+    c.alternarEstadoUsuario(c.usuarios()[0]);
+    expect(c.usuarios()[0].activo).toBe(true);
+    f.destroy();
+  });
+
+  it('restringe el registro a administradores y permite reintentar sin duplicar peticiones', () => {
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    const nuevo: RegistroUsuario = {
+      nombre: 'Eva',
+      apellido: 'Díaz',
+      correo: 'eva@test.edu',
+      contrasena: 'Clave123!',
+      rol: 'ESTUDIANTE',
+      telefono: '',
+      activo: true,
+      roles: ['ESTUDIANTE'],
+      codigoEstudiantil: '123',
+      universidad: 'Universidad',
+      programaAcademico: 'Ingeniería',
+      semestre: '3',
+      biografia: '',
+      materias: '',
+      tarifaPorHora: '',
+    };
+    c.guardarUsuario(nuevo);
+    httpMock.expectNone('/api/usuarios');
+    c.auth.sesion.set({ rol: 'ADMINISTRADOR', perfilId: 3, nombreUsuario: 'Ana' });
+    c.guardarUsuario(nuevo);
+    c.guardarUsuario(nuevo);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Registrando usuario');
+    const req = httpMock.expectOne('/api/usuarios');
+    expect(req.request.method).toBe('POST');
+    req.flush({ mensaje: 'Correo duplicado' }, { status: 409, statusText: 'Conflict' });
+    expect(c.mensajeError()).toBe('Correo duplicado');
+    expect(c.guardando()).toBe(false);
+    c.guardarUsuario(nuevo);
+    httpMock.expectOne('/api/usuarios').flush(null);
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Usuario registrado.');
+    expect(c.mensajeError()).toBe('');
+    f.destroy();
+  });
+
+  it('limpia la selección fallida y continúa revisiones después de errores individuales', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const f = TestBed.createComponent(UsuariosPageComponent);
+    f.detectChanges();
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+    const c = f.componentInstance;
+    c.seleccionarUsuario(1);
+    httpMock.expectOne('/api/usuarios/1').error(new ProgressEvent('error'));
+    expect(c.usuarioActual()).toBeNull();
+    for (const revisar of [() => c.revisarEnOrden(), () => c.revisarSimultaneamente()]) {
+      revisar();
+      httpMock.expectOne('/api/usuarios/1').error(new ProgressEvent('error'));
+      httpMock.expectOne('/api/usuarios/2').flush(usuariosMock[1]);
+      httpMock.expectOne('/api/usuarios/3').flush(usuariosMock[2]);
+      expect(c.resultadosRevision()).toEqual(usuariosMock.slice(1));
+    }
+    c.compararUsuarios();
+    const primero = httpMock.expectOne('/api/usuarios/1');
+    const segundo = httpMock.expectOne('/api/usuarios/2');
+    primero.error(new ProgressEvent('error'));
+    expect(segundo.cancelled).toBe(true);
+    expect(c.comparacion()).toBeNull();
+    c.usuarios.set([]);
+    c.compararUsuarios();
+    httpMock.expectNone((r) => r.url.startsWith('/api/usuarios/'));
+    f.destroy();
   });
 
   it('carga inicialmente el listado mediante listado$, async pipe y filtra con combineLatest (Actividad 1, 5 y 8)', () => {

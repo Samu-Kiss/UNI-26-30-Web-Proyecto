@@ -14,7 +14,7 @@
       </p>
     </div>
 
-    @if (!tutor()) {
+    @if (!tutor() && esEstudiante()) {
       <div class="myt-booking-topbar__actions">
         <a routerLink="/tutores" class="myt-btn myt-btn--primary">
           <app-lucide-icon name="plus" [size]="16" />
@@ -344,11 +344,19 @@
           <a [routerLink]="['/reservas', r.id]" class="myt-btn myt-btn--secondary myt-btn--sm">
             Ver detalle
           </a>
-          <a routerLink="/mensajes" class="myt-btn myt-btn--secondary myt-btn--sm">
+          <a
+            routerLink="/mensajes"
+            [queryParams]="{ tutor: r.tutorId, reserva: r.id }"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+          >
             Chat
           </a>
           @if (r.estado === 'COMPLETADA') {
-            <a routerLink="/resenas" class="myt-btn myt-btn--primary myt-btn--sm">
+            <a
+              routerLink="/resenas"
+              [queryParams]="{ tutorId: r.tutorId, tutorNombre: r.tutor, tema: r.tema }"
+              class="myt-btn myt-btn--primary myt-btn--sm"
+            >
               Dejar reseña
             </a>
           }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -29,6 +29,8 @@ export class ReservasPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refrescar = new Subject<void>();
+
+  readonly esEstudiante = computed(() => !this.auth.sesion() || this.auth.sesion()?.rol === 'ESTUDIANTE');
 
   readonly reservas = signal<ReservaApi[]>([]);
   readonly tutor = signal<TutorApi | null>(null);
@@ -60,6 +62,24 @@ export class ReservasPageComponent implements OnInit {
 
   ngOnInit() {
     const id = Number(this.route.snapshot.queryParamMap.get('tutor'));
+    const fechaParam = this.route.snapshot.queryParamMap.get('fecha');
+    const horaParam = this.route.snapshot.queryParamMap.get('hora');
+    if (fechaParam) {
+      this.datos.fecha = fechaParam;
+    }
+    if (horaParam) {
+      let horaNorm = horaParam;
+      if (horaParam.includes('p. m.')) {
+        const partes = horaParam.replace('p. m.', '').trim().split(':');
+        const h = (parseInt(partes[0], 10) % 12) + 12;
+        horaNorm = `${h.toString().padStart(2, '0')}:${partes[1] || '00'}`;
+      } else if (horaParam.includes('a. m.')) {
+        const partes = horaParam.replace('a. m.', '').trim().split(':');
+        const h = parseInt(partes[0], 10) % 12;
+        horaNorm = `${h.toString().padStart(2, '0')}:${partes[1] || '00'}`;
+      }
+      this.datos.horaInicio = horaNorm;
+    }
     if (id > 0) {
       const enCache = this.api.tutorEnCache(id);
       if (enCache) {

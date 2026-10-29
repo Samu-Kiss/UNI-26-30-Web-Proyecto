@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
@@ -352,12 +352,28 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
     `,
   ],
 })
-export class MensajesPageComponent {
+export class MensajesPageComponent implements OnInit {
   readonly state = inject(MytStateService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly busqueda = signal('');
   readonly conversacionActivaId = signal(1);
   nuevoMensaje = '';
+
+  ngOnInit(): void {
+    const tutorParam = this.route.snapshot.queryParamMap.get('tutor');
+    const reservaParam = this.route.snapshot.queryParamMap.get('reserva');
+    if (tutorParam || reservaParam) {
+      const tid = Number(tutorParam);
+      const rid = Number(reservaParam);
+      const coincidencia = this.state
+        .conversaciones()
+        .find((c) => (tid > 0 && c.tutorId === tid) || (rid > 0 && c.reservaId === rid));
+      if (coincidencia) {
+        this.conversacionActivaId.set(coincidencia.id);
+      }
+    }
+  }
 
   readonly conversacionesFiltradas = computed(() => {
     const q = this.busqueda().trim().toLowerCase();

@@ -44,7 +44,7 @@ import { UsuarioService } from '../../core/services/usuario.service';
                 <td>{{ admin.id }}</td>
                 <td><strong>{{ admin.nombre }} {{ admin.apellido }}</strong></td>
                 <td>{{ admin.correo }}</td>
-                <td>{{ admin.telefono || '300 555 0199' }}</td>
+                <td>{{ admin.telefono || '—' }}</td>
                 <td>
                   <span
                     class="myt-status-pill"
@@ -146,12 +146,10 @@ export class AdministradoresPageComponent implements OnInit {
     this.usuarioService.obtenerUsuarios().subscribe({
       next: (usuarios) => {
         const admins = usuarios.filter((u) => u.roles.includes('ADMINISTRADOR'));
-        if (admins.length > 0) {
-          this.administradores.set(admins);
-        }
+        this.administradores.set(admins);
       },
       error: () => {
-        // Usa semilla local si no hay sesión o backend activo
+        // Conserva estado actual ante desconexión
       },
     });
   }

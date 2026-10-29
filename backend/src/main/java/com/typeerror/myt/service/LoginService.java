@@ -54,6 +54,7 @@ public class LoginService {
         }
         if (usuario.getRoles().contains(RolUsuario.TUTOR)) {
             tutorRepository.findByUsuarioId(usuario.getId())
+                    .filter(tutor -> Boolean.TRUE.equals(tutor.getDisponible()))
                     .ifPresent(tutor -> accesos.add(
                             new UsuarioAutenticado(RolUsuario.TUTOR, tutor.getId())));
         }

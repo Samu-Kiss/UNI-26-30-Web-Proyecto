@@ -11,6 +11,7 @@ import { MenuRolPageComponent } from './menu-rol-page/menu-rol-page';
 import { ResenasPageComponent } from './resenas-page/resenas-page';
 import { ReservaDetallePageComponent } from './reserva-detalle-page/reserva-detalle-page';
 import { TutorPerfilPageComponent } from './tutor-perfil-page/tutor-perfil-page';
+import { AuthService } from '../core/services/auth.service';
 
 describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
   beforeEach(async () => {
@@ -52,15 +53,27 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
   it('renderiza 05 · Calendario con agenda mensual y próximas tutorías', () => {
     const fixture = TestBed.createComponent(CalendarioPageComponent);
     fixture.detectChanges();
+    const c = fixture.componentInstance;
     expect(fixture.nativeElement.textContent).toContain('Mi calendario');
     expect(fixture.nativeElement.textContent).toContain('Septiembre 2026');
+    c.cambiarMes(1);
+    expect(c.mesActual()).toBe('Octubre 2026');
+    c.cambiarMes(-2);
+    expect(c.mesActual()).toBe('Agosto 2026');
+    c.irAHoy();
+    expect(c.mesActual()).toBe('Septiembre 2026');
   });
 
   it('renderiza 06 · Detalle y reprogramación de la tutoría', () => {
     const fixture = TestBed.createComponent(ReservaDetallePageComponent);
     fixture.detectChanges();
+    const c = fixture.componentInstance;
     expect(fixture.nativeElement.textContent).toContain('Detalle de la tutoría');
     expect(fixture.nativeElement.textContent).toContain('Reprogramar tutoría');
+    c.proponerHorario();
+    expect(c.aviso()).toContain('Propuesta enviada');
+    c.cancelarTutoria();
+    expect(c.aviso()).toContain('cancelada');
   });
 
   it('renderiza 07 · Chat de coordinación y permite enviar mensajes', () => {
@@ -71,6 +84,10 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
     comp.enviarMensaje();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Hola Laura, te comparto el taller.');
+    comp.busqueda.set('Laura');
+    expect(comp.conversacionesFiltradas().length).toBeGreaterThan(0);
+    comp.seleccionarConversacion(1);
+    expect(comp.conversacionActivaId()).toBe(1);
   });
 
   it('renderiza 08 · Dejar reseña y permite alternar etiquetas destacables', () => {
@@ -79,7 +96,41 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
     const comp = fixture.componentInstance;
     comp.alternarDestacado('Material útil');
     expect(comp.esDestacado('Material útil')).toBe(true);
+    comp.alternarDestacado('Material útil');
+    expect(comp.esDestacado('Material útil')).toBe(false);
+    comp.calificacion.set(4);
+    expect(comp.etiquetaCalificacion()).toBe('Muy buena');
+    comp.calificacion.set(3);
+    expect(comp.etiquetaCalificacion()).toBe('Buena');
+    comp.calificacion.set(2);
+    expect(comp.etiquetaCalificacion()).toBe('Regular');
+    comp.calificacion.set(1);
+    expect(comp.etiquetaCalificacion()).toBe('Por mejorar');
+    comp.publicarResena();
+    expect(comp.enviada()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Cuéntanos cómo te fue');
+  });
+
+  it('gestiona parametros de tutor y reserva en resenas y mensajes', () => {
+    const route = TestBed.inject(ActivatedRoute);
+    (route as { snapshot: unknown }).snapshot = {
+      paramMap: convertToParamMap({ id: '1' }),
+      queryParamMap: convertToParamMap({
+        tutor: '2',
+        tutorNombre: 'Profesor X',
+        tema: 'Álgebra',
+        reserva: '1',
+      }),
+      data: {},
+    };
+    const resenaFixture = TestBed.createComponent(ResenasPageComponent);
+    resenaFixture.detectChanges();
+    expect(resenaFixture.componentInstance.tutorSeleccionado()).toBe('Profesor X');
+    expect(resenaFixture.componentInstance.tutorId()).toBe(2);
+
+    const msgFixture = TestBed.createComponent(MensajesPageComponent);
+    msgFixture.detectChanges();
+    expect(msgFixture.componentInstance.conversacionActivaId()).toBe(1);
   });
 
   it('renderiza los menús por rol y directorios de estudiantes y administradores', () => {
@@ -94,5 +145,32 @@ describe('Vistas migradas desde Figma Mockups MyT y Thymeleaf', () => {
     const admFixture = TestBed.createComponent(AdministradoresPageComponent);
     admFixture.detectChanges();
     expect(admFixture.nativeElement.textContent).toContain('Administradores');
+  });
+
+  it('cambia las acciones visibles entre los paneles de estudiante, tutor y administrador', () => {
+    TestBed.inject(AuthService).sesion.set({ rol: 'TUTOR', perfilId: 1, nombreUsuario: 'Ana' });
+    const f = TestBed.createComponent(MenuRolPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Hola, Ana');
+    expect(f.nativeElement.textContent).toContain('Panel de tutor');
+    expect(f.nativeElement.querySelector('[aria-label="Acciones de tutor"]')).not.toBeNull();
+    const tabs = f.nativeElement.querySelectorAll('[role="tab"]');
+    tabs[2].click();
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Panel administrativo');
+    expect(
+      f.nativeElement
+        .querySelector('[aria-label="Acciones administrativas"] a')
+        .getAttribute('href'),
+    ).toBe('/usuarios');
+    expect(f.nativeElement.querySelector('[aria-label="Acciones de tutor"]')).toBeNull();
+    tabs[0].click();
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Panel de estudiante');
+    expect(f.nativeElement.querySelector('[aria-label="Acciones de estudiante"]')).not.toBeNull();
+    tabs[1].click();
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('[aria-label="Acciones de tutor"]')).not.toBeNull();
+    f.destroy();
   });
 });

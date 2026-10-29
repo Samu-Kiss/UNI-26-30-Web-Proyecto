@@ -32,8 +32,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
             <h1>{{ perfilVista().nombre }}</h1>
             <p class="myt-profile-hero__role">{{ perfilVista().subtitulo }}</p>
             <p class="myt-profile-hero__stats">
-              ★ {{ perfilVista().calificacionTexto }} · {{ resenasTutor().length + 124 }} reseñas ·
-              8 años de experiencia
+              ★ {{ perfilVista().calificacionTexto }} · {{ resenasTutor().length }} reseñas verificadas
             </p>
             <p class="myt-profile-hero__meta">
               Docente universitaria · Bogotá · Clases online y presenciales
@@ -375,7 +374,7 @@ export class TutorPerfilPageComponent implements OnInit {
           listaMaterias.length > 0
             ? `Tutora de ${listaMaterias.join(' y ')}`
             : 'Tutora de Cálculo y Física',
-        calificacionTexto: t.calificacion ? t.calificacion.toFixed(1).replace('.', ',') : '4,9',
+        calificacionTexto: t.calificacion ? t.calificacion.toFixed(1).replace('.', ',') : 'Sin calificaciones',
         tarifaTexto: `$${Number(t.tarifaPorHora || 45000).toLocaleString('es-CO')} COP`,
         biografia:
           t.biografia ||
@@ -390,7 +389,7 @@ export class TutorPerfilPageComponent implements OnInit {
       id: 1,
       nombre: 'Laura Mendoza',
       subtitulo: 'Tutora de Cálculo y Física',
-      calificacionTexto: '4,9',
+      calificacionTexto: 'Sin calificaciones',
       tarifaTexto: '$45.000 COP',
       biografia:
         'Acompaño a estudiantes universitarios a comprender cálculo diferencial, integral y física mecánica mediante ejemplos claros y ejercicios guiados. Mi enfoque se adapta al ritmo y objetivos de cada estudiante.',
@@ -401,8 +400,9 @@ export class TutorPerfilPageComponent implements OnInit {
   readonly primerNombre = computed(() => this.perfilVista().nombre.split(' ')[0] || 'Laura');
 
   readonly resenasTutor = computed(() => {
-    const lista = this.state.resenas().filter((r) => r.publica);
-    return lista.length > 0 ? lista : this.state.resenas();
+    return this.state
+      .resenas()
+      .filter((r) => r.publica && r.tutorNombre.toLowerCase().includes(this.primerNombre().toLowerCase()));
   });
 
   ngOnInit(): void {

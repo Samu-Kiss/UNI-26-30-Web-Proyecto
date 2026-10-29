@@ -93,6 +93,9 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional
     public Reserva guardar(Reserva reserva) {
+        if (reserva.getTutor() != null && reserva.getTutor().getId() != null) {
+            tutorRepository.bloquearPorId(reserva.getTutor().getId());
+        }
         validarDatos(reserva);
         validarDisponibilidad(reserva);
         validarSolapamiento(reserva);
@@ -130,7 +133,8 @@ public class ReservaServiceImpl implements ReservaService {
             LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
             String tema, ModalidadReserva modalidad) {
 
-        Tutor tutor = tutorRepository.findOneById(tutorId)
+        Tutor tutor = tutorRepository.bloquearPorId(tutorId)
+                .or(() -> tutorRepository.findOneById(tutorId))
                 .orElseThrow(() -> new TutorNotFoundException(tutorId));
 
         if (!Boolean.TRUE.equals(tutor.getDisponible())) {

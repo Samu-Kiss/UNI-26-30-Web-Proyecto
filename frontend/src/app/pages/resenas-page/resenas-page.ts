@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
@@ -97,7 +99,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 
           <!-- Actions -->
           <div class="myt-review-actions">
-            <a routerLink="/tutores/1" class="myt-btn myt-btn--secondary">Ahora no</a>
+            <a [routerLink]="['/tutores', tutorId()]" class="myt-btn myt-btn--secondary">Ahora no</a>
             <button type="submit" class="myt-btn myt-btn--primary">Publicar reseña</button>
           </div>
         </form>
@@ -325,14 +327,19 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
     `,
   ],
 })
-export class ResenasPageComponent {
+export class ResenasPageComponent implements OnInit {
   readonly state = inject(MytStateService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
 
   readonly estrellas = [1, 2, 3, 4, 5];
   readonly calificacion = signal(5);
+  readonly tutorId = signal(1);
   readonly tutorSeleccionado = signal('Laura Mendoza');
-  readonly sesionDetalle = signal('Derivadas e integrales · 8 sep 2026');
+  readonly temaActual = signal('Derivadas e integrales');
+  readonly sesionDetalle = signal('Derivadas e integrales · Sesión reciente');
   readonly enviada = signal(false);
 
   readonly opcionesDestacables = [
@@ -352,6 +359,36 @@ export class ResenasPageComponent {
   comentario =
     'Excelente sesión. Me ayudó a entender cómo plantear los ejercicios antes de resolverlos y me compartió apuntes muy claros.';
   publicarEnPerfil = true;
+
+  ngOnInit(): void {
+    const rawId =
+      this.route.snapshot.queryParamMap.get('tutor') ||
+      this.route.snapshot.queryParamMap.get('tutorId');
+    const idParam = rawId ? Number(rawId) : 0;
+    const nombreParam = this.route.snapshot.queryParamMap.get('tutorNombre');
+    const temaParam = this.route.snapshot.queryParamMap.get('tema');
+
+    if (idParam > 0) {
+      this.tutorId.set(idParam);
+      if (nombreParam) {
+        this.tutorSeleccionado.set(nombreParam);
+      } else {
+        const enCache = this.api.tutorEnCache(idParam);
+        if (enCache) {
+          this.tutorSeleccionado.set(enCache.nombre);
+        } else {
+          this.api.tutor(idParam).subscribe({
+            next: (t) => this.tutorSeleccionado.set(t.nombre),
+            error: () => undefined,
+          });
+        }
+      }
+    }
+    if (temaParam) {
+      this.temaActual.set(temaParam);
+      this.sesionDetalle.set(`${temaParam} · Tutoría`);
+    }
+  }
 
   readonly etiquetaCalificacion = computed(() => {
     const val = this.calificacion();
@@ -376,19 +413,21 @@ export class ResenasPageComponent {
   }
 
   publicarResena(): void {
+    const tid = this.tutorId();
+    const estudianteNombre = this.auth.sesion()?.nombreUsuario || 'Estudiante MyT';
     this.state.agregarResena({
-      tutorId: 1,
+      tutorId: tid,
       tutorNombre: this.tutorSeleccionado(),
-      estudiante: 'Estudiante MyT',
+      estudiante: estudianteNombre,
       calificacion: this.calificacion(),
       comentario: this.comentario.trim() || 'Sesión muy clara y bien estructurada.',
       etiquetas: this.destacadosSeleccionados(),
-      tema: 'Derivadas e integrales',
+      tema: this.temaActual(),
       publica: this.publicarEnPerfil,
     });
     this.enviada.set(true);
     setTimeout(() => {
-      void this.router.navigate(['/tutores', 1]);
+      void this.router.navigate(['/tutores', tid]);
     }, 900);
   }
 }

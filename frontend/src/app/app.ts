@@ -27,13 +27,16 @@ export class App {
         filter((ev): ev is NavigationEnd => ev instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((ev) => this.actualizarEsLanding(ev.urlAfterRedirects));
+      .subscribe((ev) => {
+        this.errorSesion.set('');
+        this.actualizarEsLanding(ev.urlAfterRedirects);
+      });
   }
 
   private actualizarEsLanding(url: string): void {
     const clean = url.split('?')[0].split('#')[0];
     this.esLanding.set(
-      clean === '' || clean === '/' || clean === '/landing' || clean === '/login',
+      clean === '' || clean === '/' || clean === '/landing' || clean === '/login' || clean === '/registro',
     );
   }
 

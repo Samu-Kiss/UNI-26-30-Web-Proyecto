@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
 import { EstudianteRegistro, MytStateService } from '../../core/services/myt-state.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 
@@ -16,7 +17,7 @@ import { UsuarioService } from '../../core/services/usuario.service';
           <h1>Estudiantes</h1>
           <p>Consulta la información académica de los estudiantes.</p>
         </div>
-        <div class="myt-header-filters">
+        <div class="myt-header-filters" style="display: flex; gap: 0.5rem; align-items: center;">
           <input
             type="search"
             [ngModel]="filtro()"
@@ -24,6 +25,13 @@ import { UsuarioService } from '../../core/services/usuario.service';
             placeholder="Filtrar por nombre, código o programa…"
             aria-label="Filtrar estudiantes"
           />
+          <button
+            type="button"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+            (click)="cargarEstudiantes()"
+          >
+            Actualizar
+          </button>
         </div>
       </header>
 
@@ -134,36 +142,85 @@ export class EstudiantesPageComponent implements OnInit {
     );
   });
 
+  private readonly api = inject(ApiService);
+
   ngOnInit(): void {
-    if (this.auth.sesion()?.rol !== 'ADMINISTRADOR') {
-      return;
-    }
-    this.usuarioService.obtenerUsuarios().subscribe({
-      next: (usuarios) => {
-        const deApi: EstudianteRegistro[] = usuarios
-          .filter((u) => u.roles.includes('ESTUDIANTE'))
-          .map((u, idx) => ({
-            id: u.id,
-            usuarioId: u.id,
-            nombreCompleto: `${u.nombre} ${u.apellido}`,
-            correo: u.correo,
-            codigoEstudiantil: `202610${u.id}`,
-            universidad:
-              idx % 2 === 0
-                ? 'Pontificia Universidad Javeriana'
-                : 'Universidad de los Andes',
-            programaAcademico:
-              idx % 2 === 0 ? 'Ingeniería de Sistemas' : 'Matemáticas Aplicadas',
-            semestre: (idx % 8) + 2,
-            activo: u.activo,
-          }));
-        if (deApi.length > 0) {
-          this.registros.set(deApi);
+    this.cargarEstudiantes();
+  }
+
+  cargarEstudiantes(): void {
+    const base = this.state.estudiantesBase();
+    this.api.estudiantes().subscribe({
+      next: (estudiantes) => {
+        const mapa = new Map<string, EstudianteRegistro>();
+        for (const e of base) {
+          mapa.set(e.correo.toLowerCase(), { ...e });
         }
+        if (estudiantes && estudiantes.length > 0) {
+          for (const e of estudiantes) {
+            const correoKey = (e.correo || '').toLowerCase();
+            const existente = mapa.get(correoKey);
+            if (existente) {
+              existente.id = e.id;
+              existente.usuarioId = e.usuarioId;
+              existente.nombreCompleto = e.nombreCompleto || existente.nombreCompleto;
+              if (e.codigoEstudiantil) existente.codigoEstudiantil = e.codigoEstudiantil;
+              if (e.universidad) existente.universidad = e.universidad;
+              if (e.programaAcademico) existente.programaAcademico = e.programaAcademico;
+              if (e.semestre != null) existente.semestre = e.semestre;
+              existente.activo = e.activo;
+            } else {
+              mapa.set(correoKey, {
+                id: e.id,
+                usuarioId: e.usuarioId,
+                nombreCompleto: e.nombreCompleto,
+                correo: e.correo,
+                codigoEstudiantil: e.codigoEstudiantil || 'No disponible',
+                universidad: e.universidad || 'No disponible',
+                programaAcademico: e.programaAcademico || 'No disponible',
+                semestre: e.semestre ?? 1,
+                activo: e.activo,
+              });
+            }
+          }
+        }
+        this.registros.set(Array.from(mapa.values()));
+        this.sincronizarConUsuarios();
       },
       error: () => {
-        // Mantiene semilla local si el backend no está activo
+        this.sincronizarConUsuarios();
       },
+    });
+  }
+
+  private sincronizarConUsuarios(): void {
+    this.usuarioService.obtenerUsuarios().subscribe({
+      next: (usuarios) => {
+        const estudiantesUsuarios = usuarios.filter((u) => u.roles.includes('ESTUDIANTE'));
+        if (estudiantesUsuarios.length === 0) return;
+        const actuales = this.registros();
+        const combinados = [...actuales];
+        for (const u of estudiantesUsuarios) {
+          const existe = combinados.some(
+            (c) => c.usuarioId === u.id || c.correo.toLowerCase() === u.correo.toLowerCase(),
+          );
+          if (!existe) {
+            combinados.push({
+              id: u.id,
+              usuarioId: u.id,
+              nombreCompleto: `${u.nombre} ${u.apellido}`,
+              correo: u.correo,
+              codigoEstudiantil: 'EST-2026-' + u.id,
+              universidad: 'Pontificia Universidad Javeriana',
+              programaAcademico: 'Ingeniería de Sistemas',
+              semestre: 1,
+              activo: u.activo,
+            });
+          }
+        }
+        this.registros.set(combinados);
+      },
+      error: () => undefined,
     });
   }
 }

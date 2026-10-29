@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ApiService, ReservaApi, mensajeHttp } from '../../core/services/api.service';
 import { MytStateService } from '../../core/services/myt-state.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
@@ -104,7 +105,11 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
               <app-lucide-icon name="video" [size]="16" />
               <span>Abrir videollamada</span>
             </a>
-            <a routerLink="/mensajes" class="myt-btn myt-btn--secondary">
+            <a
+              routerLink="/mensajes"
+              [queryParams]="{ reserva: eventoActual().id }"
+              class="myt-btn myt-btn--secondary"
+            >
               <app-lucide-icon name="message-square" [size]="16" />
               <span>Enviar mensaje</span>
             </a>
@@ -326,10 +331,14 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
 })
 export class ReservaDetallePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(ApiService);
   readonly state = inject(MytStateService);
 
   readonly idReserva = signal(1);
+  readonly reservaApi = signal<ReservaApi | null>(null);
+  readonly error = signal('');
   readonly aviso = signal('');
+  readonly cargando = signal(false);
 
   diaNuevo = '10';
   mesNuevo = '09';
@@ -337,6 +346,27 @@ export class ReservaDetallePageComponent implements OnInit {
   nuevoHorario = '6:00 p. m.';
 
   readonly eventoActual = computed(() => {
+    const r = this.reservaApi();
+    if (r) {
+      return {
+        id: r.id,
+        codigo: `MYT-${r.id.toString().padStart(4, '0')}`,
+        tutorNombre: r.tutor,
+        tutorSubtitulo: `Tutor de ${r.materia}`,
+        tutorCalificacion: '4.9',
+        estudianteNombre: r.estudiante,
+        materia: r.materia,
+        tema: r.tema,
+        fechaLarga: r.fecha,
+        rangoHora: `${r.horaInicio} (${r.duracionMinutos} min)`,
+        duracionMinutos: r.duracionMinutos,
+        modalidad: 'VIRTUAL',
+        enlace: 'meet.google.com/myt-tutoria',
+        mensajeInicial: `Tutoría de ${r.materia} sobre ${r.tema}.`,
+        estado: r.estado,
+        valorTotal: r.costoTotal,
+      };
+    }
     const id = this.idReserva();
     return (
       this.state.eventosCalendario().find((e) => e.id === id) ?? this.state.eventosCalendario()[0]
@@ -347,7 +377,21 @@ export class ReservaDetallePageComponent implements OnInit {
     const idParam = Number(this.route.snapshot.paramMap.get('id'));
     if (idParam > 0) {
       this.idReserva.set(idParam);
+      this.cargarReserva(idParam);
     }
+  }
+
+  cargarReserva(id: number): void {
+    this.cargando.set(true);
+    this.api.reserva(id).subscribe({
+      next: (res) => {
+        this.reservaApi.set(res);
+        this.cargando.set(false);
+      },
+      error: () => {
+        this.cargando.set(false);
+      },
+    });
   }
 
   proponerHorario(): void {
@@ -359,7 +403,18 @@ export class ReservaDetallePageComponent implements OnInit {
   }
 
   cancelarTutoria(): void {
-    this.state.cancelarEvento(this.eventoActual().id);
-    this.aviso.set('La tutoría fue marcada como cancelada.');
+    const id = this.eventoActual().id;
+    if (this.reservaApi()) {
+      this.api.cancelarReserva(id).subscribe({
+        next: () => {
+          this.aviso.set('La tutoría fue cancelada exitosamente.');
+          this.cargarReserva(id);
+        },
+        error: (e) => this.aviso.set(mensajeHttp(e)),
+      });
+    } else {
+      this.state.cancelarEvento(id);
+      this.aviso.set('La tutoría fue marcada como cancelada.');
+    }
   }
 }

@@ -66,6 +66,7 @@ public interface TutorRepository extends JpaRepository<Tutor, Integer> {
         WHERE (:materiaId IS NULL OR m.id = :materiaId)
         AND (:tarifaMax IS NULL OR t.tarifaPorHora <= :tarifaMax)
         AND t.usuario.activo = true
+        AND t.disponible = true
         """)
     org.springframework.data.domain.Page<Tutor> buscar(
             @Param("materiaId") @org.jspecify.annotations.Nullable Integer materiaId,
