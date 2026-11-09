@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        MYT_BACKEND_URL: ""
+    environment:
+      RENDER_BACKEND_HOST: ${RENDER_BACKEND_HOST:?Indica el host del backend en Render}
+    ports:
+      - "127.0.0.1:4200:80"
+    volumes:
+      - ./frontend/nginx.render.conf.template:/etc/nginx/templates/default.conf.template:ro

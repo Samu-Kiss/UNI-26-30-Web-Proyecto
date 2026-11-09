@@ -119,5 +119,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
   },
+  {
+    path: 'pago',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent),
+  },
+  {
+    path: 'pago/resultado',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

@@ -1,0 +1,22 @@
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass https://${RENDER_BACKEND_HOST};
+        proxy_ssl_server_name on;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+        add_header X-MYT-Upstream $proxy_host always;
+    }
+
+    location = /runtime-config.js {
+        add_header Cache-Control "no-store";
+    }
+}

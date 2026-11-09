@@ -103,6 +103,12 @@
             <span>Reseñas</span>
           </a>
         }
+        @if (auth.sesion()) {
+          <a routerLink="/pago" routerLinkActive="active" class="myt-nav-item">
+            <app-lucide-icon name="check-circle" [size]="18" />
+            <span>Laboratorio Wompi</span>
+          </a>
+        }
       </nav>
 
       <a routerLink="/mi-perfil" routerLinkActive="active" class="myt-nav-item">
