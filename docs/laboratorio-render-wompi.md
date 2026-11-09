@@ -54,7 +54,7 @@ Para capturar también una solicitud directa a Render desde el navegador, ejecut
 
 1. En el panel de Wompi Colombia, selecciona **Sandbox** y registra `https://TU-SERVICIO.onrender.com/api/pagos/webhook` como URL de eventos.
 2. Inicia sesión en el frontend local y abre **Laboratorio Wompi**. El backend fija el monto en $15.000 COP y guarda la orden pendiente antes de redirigir al Checkout.
-3. Haz un pago aprobado y otro rechazado con las tarjetas de la documentación oficial de Sandbox. Al regresar, la pantalla consulta el estado guardado por MyT. El backend valida el aviso y consulta la transacción en Wompi antes de actualizarla.
+3. Haz un pago aprobado y otro rechazado con las tarjetas de la documentación oficial de Sandbox. Con el frontend en localhost, abre el checkout en otra pestaña y vuelve a MyT para ver el estado de la orden. Wompi bloquea el retorno automático a direcciones locales. El backend valida el aviso y consulta la transacción en Wompi antes de actualizarla.
 4. Verifica en PostgreSQL que las dos referencias correspondan a los estados esperados.
 
 ```sql

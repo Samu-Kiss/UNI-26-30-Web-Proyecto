@@ -1,11 +1,13 @@
 package com.typeerror.myt.pagos;
 
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -49,11 +51,18 @@ public class WompiService {
 
     public String checkout(String referencia, long centavos) {
         String retorno = frontendUrl + "/pago/resultado?referencia=" + referencia;
-        return UriComponentsBuilder.fromUriString("https://checkout.wompi.co/p/")
+        var url = UriComponentsBuilder.fromUriString("https://checkout.wompi.co/p/")
                 .queryParam("public-key", publicKey).queryParam("currency", "COP")
                 .queryParam("amount-in-cents", centavos).queryParam("reference", referencia)
-                .queryParam("signature:integrity", sha256(referencia + centavos + "COP" + integrityKey))
-                .queryParam("redirect-url", "{retorno}").encode().buildAndExpand(retorno).toUriString();
+                .queryParam("signature:integrity", sha256(referencia + centavos + "COP" + integrityKey));
+        // Wompi bloquea el Checkout Web si la URL de retorno apunta al equipo local.
+        String host = URI.create(frontendUrl).getHost();
+        if (host != null && Set.of("localhost", "127.0.0.1", "[::1]")
+                .contains(host.toLowerCase(java.util.Locale.ROOT))) {
+            return url.build().toUriString();
+        }
+        return url.queryParam("redirect-url", "{retorno}")
+                .encode().buildAndExpand(retorno).toUriString();
     }
 
     public boolean firmaValida(JsonNode evento) {

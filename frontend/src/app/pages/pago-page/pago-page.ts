@@ -12,7 +12,21 @@ import { mensajeHttp } from '../../core/services/api.service';
       <h1>Laboratorio Wompi</h1>
       <p>Pago de prueba por $15.000 COP.</p>
       <p role="status">{{ mensaje() }}</p>
-      @if (!referencia) {
+      @if (checkout(); as pago) {
+        <a
+          class="myt-btn myt-btn--primary"
+          [href]="pago.url"
+          target="_blank"
+          rel="noopener"
+          (click)="seguirPago(pago.referencia)"
+        >
+          Abrir checkout de Wompi
+        </a>
+        <p>Completa el pago en la otra pestaña y vuelve aquí para ver el resultado.</p>
+        @if (!consultando()) {
+          <button type="button" class="myt-btn" (click)="nuevoPago()">Iniciar otro pago</button>
+        }
+      } @else if (!referencia) {
         <button
           type="button"
           class="myt-btn myt-btn--primary"
@@ -33,6 +47,8 @@ export class PagoPageComponent implements OnInit {
   readonly referencia = inject(ActivatedRoute).snapshot.queryParamMap.get('referencia');
   readonly habilitado = signal(false);
   readonly enviando = signal(false);
+  readonly checkout = signal<{ url: string; referencia: string } | null>(null);
+  readonly consultando = signal(false);
   readonly mensaje = signal('Cargando el laboratorio…');
 
   ngOnInit() {
@@ -56,18 +72,34 @@ export class PagoPageComponent implements OnInit {
     this.enviando.set(true);
     this.mensaje.set('');
     this.http
-      .post<{ url: string }>('/api/pagos/checkout', {})
+      .post<{ url: string; referencia: string }>('/api/pagos/checkout', {})
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.enviando.set(false)),
       )
       .subscribe({
-        next: ({ url }) => window.location.assign(url),
+        next: (pago) => {
+          if (new URL(pago.url).searchParams.has('redirect-url')) {
+            window.location.assign(pago.url);
+          } else {
+            this.checkout.set(pago);
+          }
+        },
         error: (error) => this.mensaje.set(mensajeHttp(error)),
       });
   }
 
+  nuevoPago() {
+    this.checkout.set(null);
+    this.mensaje.set('');
+  }
+
+  seguirPago(referencia: string) {
+    if (!this.consultando()) this.consultar(referencia);
+  }
+
   private consultar(referencia: string) {
+    this.consultando.set(true);
     this.mensaje.set('Estamos confirmando tu pago…');
     timer(0, 2500)
       .pipe(
@@ -79,6 +111,7 @@ export class PagoPageComponent implements OnInit {
         take(25),
         takeWhile(({ estado }) => estado === 'PENDING', true),
         takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.consultando.set(false)),
       )
       .subscribe({
         next: ({ estado }) => {
