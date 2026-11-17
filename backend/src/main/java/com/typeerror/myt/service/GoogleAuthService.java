@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -153,6 +154,7 @@ public class GoogleAuthService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Tu cuenta está desactivada. Comunícate con soporte para revisar tu perfil.");
             }
+            usuario = sincronizarNombreUsuario(usuario, nombreResuelto, correoLimpio);
             var perfiles = loginService.resolverPerfiles(usuario);
             if (!perfiles.isEmpty()) {
                 return perfiles;
@@ -334,6 +336,9 @@ public class GoogleAuthService {
     private IdentidadGoogle construirIdentidadDesdeClaims(
             JWTClaimsSet claims, String nombreFallback) throws ParseException {
         Map<String, Object> userMetadata = claims.getJSONObjectClaim("user_metadata");
+        if (userMetadata == null) {
+            userMetadata = claims.getJSONObjectClaim("raw_user_meta_data");
+        }
         String correo = claims.getStringClaim("email");
         if ((correo == null || correo.isBlank()) && userMetadata != null
                 && userMetadata.get("email") instanceof String metaEmail) {
@@ -360,6 +365,11 @@ public class GoogleAuthService {
             if (userMetadata.get("name") instanceof String metaName && !metaName.isBlank()) {
                 return metaName;
             }
+            String given = userMetadata.get("given_name") instanceof String g ? g.trim() : "";
+            String family = userMetadata.get("family_name") instanceof String f ? f.trim() : "";
+            if (!given.isEmpty() || !family.isEmpty()) {
+                return (given + " " + family).trim();
+            }
         }
         String claimFullName = claims.getStringClaim("full_name");
         if (claimFullName != null && !claimFullName.isBlank()) {
@@ -370,6 +380,25 @@ public class GoogleAuthService {
             return claimName;
         }
         return null;
+    }
+
+    private Usuario sincronizarNombreUsuario(
+            Usuario usuario, String nombreResuelto, String correoLimpio) {
+        boolean tieneNombreVerificado = nombreResuelto != null && !nombreResuelto.isBlank();
+        boolean tieneNombrePlaceholder = "Camila".equalsIgnoreCase(usuario.getNombre())
+                && "Google".equalsIgnoreCase(usuario.getApellido());
+        if (!tieneNombreVerificado && !tieneNombrePlaceholder) {
+            return usuario;
+        }
+        String[] partesNombre = separarNombre(nombreResuelto, correoLimpio);
+        if (!Objects.equals(usuario.getNombre(), partesNombre[0])
+                || !Objects.equals(usuario.getApellido(), partesNombre[1])) {
+            usuario.setNombre(partesNombre[0]);
+            usuario.setApellido(partesNombre[1]);
+            Usuario guardado = usuarioRepository.save(usuario);
+            return guardado != null ? guardado : usuario;
+        }
+        return usuario;
     }
 
     private String[] separarNombre(String nombreCompleto, String correo) {
@@ -383,10 +412,33 @@ public class GoogleAuthService {
         String alias = correo.substring(0, correo.indexOf('@'))
                 .replace('.', ' ')
                 .replace('_', ' ')
+                .replace('-', ' ')
                 .trim();
-        String capitalizado = alias.isEmpty() ? "Usuario"
-                : Character.toUpperCase(alias.charAt(0)) + alias.substring(1);
-        return new String[] {capitalizado, "Google"};
+        if (!alias.isEmpty()) {
+            String[] partesAlias = alias.split("\\s+", 2);
+            String nombreAlias = capitalizarPalabras(partesAlias[0]);
+            if (partesAlias.length == 2 && !partesAlias[1].isBlank()) {
+                return new String[] {nombreAlias, capitalizarPalabras(partesAlias[1])};
+            }
+            return new String[] {nombreAlias, "Google"};
+        }
+        return new String[] {"Usuario", "Google"};
+    }
+
+    private String capitalizarPalabras(String texto) {
+        String[] palabras = texto.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String palabra : palabras) {
+            if (palabra.isEmpty()) {
+                continue;
+            }
+            if (!sb.isEmpty()) {
+                sb.append(' ');
+            }
+            sb.append(Character.toUpperCase(palabra.charAt(0)))
+                    .append(palabra.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return sb.toString();
     }
 
     private record IdentidadGoogle(String correo, String nombre) { }

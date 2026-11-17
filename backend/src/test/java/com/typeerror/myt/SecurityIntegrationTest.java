@@ -338,6 +338,24 @@ class SecurityIntegrationTest extends PostgreSqlIntegrationTest {
         assertNotNull(googleCookie);
         assertTrue(googleCookie.isHttpOnly());
         assertFalse(googleCookie.getValue().isBlank());
+
+        // Si el usuario ya existía con un nombre previo/placeholder, el JWT de Google sincroniza su nombre real
+        String payloadActualizado = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"sub\":\"9d8f7a6b-0001\","
+                        + "\"email\":\"camila.google@javeriana.edu.co\","
+                        + "\"user_metadata\":{\"full_name\":\"Samuel Pico\"}}")
+                        .getBytes(StandardCharsets.UTF_8));
+        String jwtActualizado = header + "." + payloadActualizado + ".signature";
+
+        mvc.perform(post("/api/sesion/google")
+                        .header("X-MYT-Request", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"credencial":"%s"}
+                                """.formatted(jwtActualizado)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actual.rol").value("ESTUDIANTE"))
+                .andExpect(jsonPath("$.actual.nombreUsuario").value("Samuel Pico"));
     }
 
     private Cookie autenticar(String correo, String contrasena, String rolDominio,
