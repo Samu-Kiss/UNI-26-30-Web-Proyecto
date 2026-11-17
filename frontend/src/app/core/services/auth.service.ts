@@ -20,6 +20,11 @@ export interface SolicitudRecuperacionRespuesta {
   tokenRecuperacion: string;
   expiraEnMinutos: number;
 }
+export interface UrlOAuthGoogleRespuesta {
+  url: string;
+  supabaseUrl?: string;
+  provider?: string;
+}
 
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
   const base = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl?.replace(/\/+$/, '') ?? '';
@@ -69,9 +74,13 @@ export class AuthService {
   iniciarSesion(datos: Credenciales) {
     return this.http.post<EstadoSesion>('/api/sesion/login', datos).pipe(tap(this.aplicar));
   }
-  iniciarSesionGoogle(correo: string, nombre?: string, credencial?: string) {
+  obtenerUrlGoogle(redirectTo?: string) {
+    const params = redirectTo ? { params: { redirectTo } } : {};
+    return this.http.get<UrlOAuthGoogleRespuesta>('/api/sesion/google/url', params);
+  }
+  iniciarSesionGoogle(credencial: string, correo?: string, nombre?: string) {
     return this.http
-      .post<EstadoSesion>('/api/sesion/google', { correo, nombre, credencial })
+      .post<EstadoSesion>('/api/sesion/google', { credencial, correo, nombre })
       .pipe(tap(this.aplicar));
   }
   solicitarRecuperacion(correo: string) {

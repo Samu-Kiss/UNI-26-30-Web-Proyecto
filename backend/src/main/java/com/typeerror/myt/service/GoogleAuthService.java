@@ -1,15 +1,25 @@
 package com.typeerror.myt.service;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +27,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Usuario;
@@ -27,26 +47,78 @@ import com.typeerror.myt.repository.UsuarioRepository;
 @Transactional
 public class GoogleAuthService {
 
-    private static final Pattern EMAIL_CLAIM = Pattern.compile("\"email\"\\s*:\\s*\"([^\"]+)\"");
-    private static final Pattern NAME_CLAIM = Pattern.compile("\"name\"\\s*:\\s*\"([^\"]+)\"");
+    private static final String DEFAULT_SUPABASE_PROJECT_REF = "rrxvxcufuwmjbqiwhgmt";
+    private static final String DEFAULT_REDIRECT_TO = "http://localhost:4200/login";
 
     private final UsuarioRepository usuarioRepository;
     private final EstudianteRepository estudianteRepository;
     private final LoginService loginService;
     private final PasswordEncoder passwordEncoder;
     private final boolean demoEnabled;
+    private final String supabaseUrl;
+    private final String supabaseAnonKey;
+    private final HttpClient httpClient;
+    private volatile JWKSet cachedJwkSet;
 
     public GoogleAuthService(
             UsuarioRepository usuarioRepository,
             EstudianteRepository estudianteRepository,
             LoginService loginService,
             PasswordEncoder passwordEncoder,
-            @Value("${myt.google.demo-enabled:true}") boolean demoEnabled) {
+            boolean demoEnabled) {
+        this(usuarioRepository, estudianteRepository, loginService, passwordEncoder,
+                demoEnabled, "", "", "");
+    }
+
+    @Autowired
+    public GoogleAuthService(
+            UsuarioRepository usuarioRepository,
+            EstudianteRepository estudianteRepository,
+            LoginService loginService,
+            PasswordEncoder passwordEncoder,
+            @Value("${myt.google.demo-enabled:false}") boolean demoEnabled,
+            @Value("${myt.supabase.url:}") String configuredSupabaseUrl,
+            @Value("${myt.supabase.anon-key:}") String supabaseAnonKey,
+            @Value("${spring.datasource.username:}") String datasourceUsername) {
         this.usuarioRepository = usuarioRepository;
         this.estudianteRepository = estudianteRepository;
         this.loginService = loginService;
         this.passwordEncoder = passwordEncoder;
         this.demoEnabled = demoEnabled;
+        this.supabaseUrl = determinarSupabaseUrl(configuredSupabaseUrl, datasourceUsername);
+        this.supabaseAnonKey = supabaseAnonKey != null ? supabaseAnonKey.trim() : "";
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+    }
+
+    void establecerJwkSet(JWKSet jwkSet) {
+        this.cachedJwkSet = jwkSet;
+    }
+
+    static String determinarSupabaseUrl(String configuredSupabaseUrl, String datasourceUsername) {
+        if (configuredSupabaseUrl != null && !configuredSupabaseUrl.isBlank()) {
+            return configuredSupabaseUrl.trim().replaceAll("/+$", "");
+        }
+        if (datasourceUsername != null && datasourceUsername.startsWith("postgres.")) {
+            String ref = datasourceUsername.substring("postgres.".length()).trim();
+            if (!ref.isEmpty()) {
+                return "https://" + ref + ".supabase.co";
+            }
+        }
+        return "https://" + DEFAULT_SUPABASE_PROJECT_REF + ".supabase.co";
+    }
+
+    public String resolverSupabaseUrl() {
+        return supabaseUrl;
+    }
+
+    public String construirUrlAutorizacionGoogle(String redirectTo) {
+        String destino = (redirectTo != null && !redirectTo.isBlank())
+                ? redirectTo.trim()
+                : DEFAULT_REDIRECT_TO;
+        return supabaseUrl + "/auth/v1/authorize?provider=google&redirect_to="
+                + URLEncoder.encode(destino, StandardCharsets.UTF_8);
     }
 
     public List<UsuarioAutenticado> autenticarConGoogle(
@@ -57,34 +129,15 @@ public class GoogleAuthService {
         String nombreResuelto = nombreCompleto;
 
         if (credencialJwt != null && !credencialJwt.isBlank()) {
-            String[] partes = credencialJwt.trim().split("\\.");
-            if (partes.length != 3) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "Credencial de Google no válida");
-            }
-            try {
-                String payload = new String(
-                        Base64.getUrlDecoder().decode(partes[1]),
-                        StandardCharsets.UTF_8);
-                Matcher emailMatcher = EMAIL_CLAIM.matcher(payload);
-                if (!emailMatcher.find()) {
-                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                            "Token de Google sin correo verificado");
-                }
-                correoResuelto = emailMatcher.group(1);
-                Matcher nameMatcher = NAME_CLAIM.matcher(payload);
-                if (nameMatcher.find() && (nombreResuelto == null || nombreResuelto.isBlank())) {
-                    nombreResuelto = nameMatcher.group(1);
-                }
-            } catch (IllegalArgumentException ignored) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "Token de Google inválido");
-            }
+            IdentidadGoogle identidad = verificarTokenSupabaseOGoogle(
+                    credencialJwt.trim(), nombreResuelto);
+            correoResuelto = identidad.correo();
+            nombreResuelto = identidad.nombre();
         } else if (demoEnabled) {
             correoResuelto = correo;
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Se requiere credencial de Google Identity Services");
+                    "Se requiere credencial de Google OAuth emitida por Supabase");
         }
 
         if (correoResuelto == null || correoResuelto.isBlank() || !correoResuelto.contains("@")) {
@@ -100,7 +153,22 @@ public class GoogleAuthService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Tu cuenta está desactivada. Comunícate con soporte para revisar tu perfil.");
             }
-            return loginService.resolverPerfiles(usuario);
+            var perfiles = loginService.resolverPerfiles(usuario);
+            if (!perfiles.isEmpty()) {
+                return perfiles;
+            }
+            if (!usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
+                usuario.getRoles().add(RolUsuario.ESTUDIANTE);
+                usuario = usuarioRepository.save(usuario);
+            }
+            Estudiante estudiante = estudianteRepository.save(new Estudiante(
+                    null,
+                    usuario,
+                    "GOOGLE-" + usuario.getId(),
+                    "Pontificia Universidad Javeriana",
+                    "Estudiante autenticado con Google",
+                    1));
+            return List.of(new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.getId()));
         }
 
         String[] partesNombre = separarNombre(nombreResuelto, correoLimpio);
@@ -124,6 +192,186 @@ public class GoogleAuthService {
         return List.of(new UsuarioAutenticado(RolUsuario.ESTUDIANTE, estudiante.getId()));
     }
 
+    private IdentidadGoogle verificarTokenSupabaseOGoogle(String token, String nombreFallback) {
+        if (!supabaseAnonKey.isEmpty()) {
+            IdentidadGoogle verificadaRemota = consultarUsuarioSupabase(token, nombreFallback);
+            if (verificadaRemota != null) {
+                return verificadaRemota;
+            }
+        }
+        return extraerIdentidadJwt(token, nombreFallback);
+    }
+
+    private IdentidadGoogle consultarUsuarioSupabase(String token, String nombreFallback) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(supabaseUrl + "/auth/v1/user"))
+                    .timeout(Duration.ofSeconds(5))
+                    .header("Authorization", "Bearer " + token)
+                    .header("apikey", supabaseAnonKey)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() == 200) {
+                JWTClaimsSet claims = JWTClaimsSet.parse(response.body());
+                return construirIdentidadDesdeClaims(claims, nombreFallback);
+            }
+            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Token de Supabase Google OAuth inválido o expirado");
+            }
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (IOException | InterruptedException | ParseException | IllegalArgumentException ignored) {
+            if (ignored instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return null;
+    }
+
+    private IdentidadGoogle extraerIdentidadJwt(String jwt, String nombreFallback) {
+        String[] partes = jwt.split("\\.");
+        if (partes.length != 3 || partes[0].isBlank() || partes[1].isBlank() || partes[2].isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Credencial de Google no válida");
+        }
+        try {
+            Base64.getUrlDecoder().decode(partes[0]);
+            String payload = new String(
+                    Base64.getUrlDecoder().decode(partes[1]),
+                    StandardCharsets.UTF_8);
+            JWTClaimsSet claims = JWTClaimsSet.parse(payload);
+            Date exp = claims.getExpirationTime();
+            if (exp != null && exp.toInstant().isBefore(Instant.now())) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "El token de Google ha expirado");
+            }
+            String issuer = claims.getIssuer();
+            if (issuer != null && !issuer.isBlank() && !esEmisorValido(issuer)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Emisor del token OAuth no autorizado");
+            }
+            SignedJWT signedJwt = SignedJWT.parse(jwt);
+            String kid = signedJwt.getHeader().getKeyID();
+            if (kid != null && !kid.isBlank()) {
+                verificarFirmaJwks(signedJwt, kid);
+            }
+            return construirIdentidadDesdeClaims(claims, nombreFallback);
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (IllegalArgumentException | ParseException | JOSEException ignored) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Token de Google inválido");
+        }
+    }
+
+    private boolean esEmisorValido(String issuer) {
+        String limpio = issuer.trim().replaceAll("/+$", "");
+        return limpio.equalsIgnoreCase(supabaseUrl + "/auth/v1")
+                || limpio.equalsIgnoreCase("https://accounts.google.com")
+                || limpio.equalsIgnoreCase("accounts.google.com");
+    }
+
+    private void verificarFirmaJwks(SignedJWT signedJwt, String kid) throws JOSEException {
+        JWK jwk = buscarJwk(kid);
+        if (jwk == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Clave de firma JWK no reconocida para el token OAuth");
+        }
+        JWSVerifier verifier;
+        if (jwk instanceof ECKey ecKey) {
+            verifier = new ECDSAVerifier(ecKey.toECPublicKey());
+        } else if (jwk instanceof RSAKey rsaKey) {
+            verifier = new RSASSAVerifier(rsaKey.toRSAPublicKey());
+        } else {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Algoritmo de firma JWK no soportado");
+        }
+        if (!signedJwt.verify(verifier)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Firma criptográfica del token OAuth inválida");
+        }
+    }
+
+    private JWK buscarJwk(String kid) {
+        JWKSet actual = cachedJwkSet;
+        if (actual != null) {
+            JWK encontrada = actual.getKeyByKeyId(kid);
+            if (encontrada != null) {
+                return encontrada;
+            }
+        }
+        JWKSet descargado = cargarJwksRemoto();
+        if (descargado != null) {
+            cachedJwkSet = descargado;
+            return descargado.getKeyByKeyId(kid);
+        }
+        return null;
+    }
+
+    private JWKSet cargarJwksRemoto() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(supabaseUrl + "/auth/v1/.well-known/jwks.json"))
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = httpClient.send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() == 200 && response.body() != null) {
+                return JWKSet.parse(response.body());
+            }
+        } catch (IOException | InterruptedException | ParseException | IllegalArgumentException ignored) {
+            if (ignored instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return null;
+    }
+
+    private IdentidadGoogle construirIdentidadDesdeClaims(
+            JWTClaimsSet claims, String nombreFallback) throws ParseException {
+        Map<String, Object> userMetadata = claims.getJSONObjectClaim("user_metadata");
+        String correo = claims.getStringClaim("email");
+        if ((correo == null || correo.isBlank()) && userMetadata != null
+                && userMetadata.get("email") instanceof String metaEmail) {
+            correo = metaEmail;
+        }
+        if (correo == null || correo.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Token de Google sin correo verificado");
+        }
+
+        String nombre = nombreFallback;
+        if (nombre == null || nombre.isBlank()) {
+            nombre = extraerNombreDeClaims(claims, userMetadata);
+        }
+        return new IdentidadGoogle(correo, nombre);
+    }
+
+    private String extraerNombreDeClaims(
+            JWTClaimsSet claims, Map<String, Object> userMetadata) throws ParseException {
+        if (userMetadata != null) {
+            if (userMetadata.get("full_name") instanceof String fullName && !fullName.isBlank()) {
+                return fullName;
+            }
+            if (userMetadata.get("name") instanceof String metaName && !metaName.isBlank()) {
+                return metaName;
+            }
+        }
+        String claimFullName = claims.getStringClaim("full_name");
+        if (claimFullName != null && !claimFullName.isBlank()) {
+            return claimFullName;
+        }
+        String claimName = claims.getStringClaim("name");
+        if (claimName != null && !claimName.isBlank()) {
+            return claimName;
+        }
+        return null;
+    }
+
     private String[] separarNombre(String nombreCompleto, String correo) {
         if (nombreCompleto != null && !nombreCompleto.isBlank()) {
             String[] partes = nombreCompleto.trim().split("\\s+", 2);
@@ -140,4 +388,6 @@ public class GoogleAuthService {
                 : Character.toUpperCase(alias.charAt(0)) + alias.substring(1);
         return new String[] {capitalizado, "Google"};
     }
+
+    private record IdentidadGoogle(String correo, String nombre) { }
 }

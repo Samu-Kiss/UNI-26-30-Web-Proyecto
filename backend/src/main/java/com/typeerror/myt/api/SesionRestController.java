@@ -1,5 +1,6 @@
 package com.typeerror.myt.api;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -62,6 +64,8 @@ public class SesionRestController {
 
     public record CredencialesGoogle(String correo, String nombre, String credencial) { }
 
+    public record UrlOAuthGoogle(String url, String supabaseUrl, String provider) { }
+
     public record SolicitudRecuperacion(@NotBlank @Email String correo) { }
 
     public record RestablecerContrasena(
@@ -90,9 +94,37 @@ public class SesionRestController {
                 seleccion ? opciones : List.of());
     }
 
+    @GetMapping("/google/url")
+    @Operation(summary = "Obtener URL de autorización OAuth2 con Google vía Supabase")
+    @ApiResponse(responseCode = "200", description = "URL de redirección hacia Supabase Auth Google")
+    public UrlOAuthGoogle urlGoogle(
+            @RequestParam(required = false) String redirectTo) {
+        if (googleAuth == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Autenticación con Google no disponible");
+        }
+        return new UrlOAuthGoogle(
+                googleAuth.construirUrlAutorizacionGoogle(redirectTo),
+                googleAuth.resolverSupabaseUrl(),
+                "google");
+    }
+
+    @GetMapping("/oauth2/google")
+    @Operation(summary = "Redirigir al flujo OAuth2 de Google en Supabase Auth")
+    @ApiResponse(responseCode = "302", description = "Redirección hacia Supabase Auth")
+    public void redirigirGoogle(
+            @RequestParam(required = false) String redirectTo,
+            HttpServletResponse response) throws IOException {
+        if (googleAuth == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Autenticación con Google no disponible");
+        }
+        response.sendRedirect(googleAuth.construirUrlAutorizacionGoogle(redirectTo));
+    }
+
     @PostMapping("/google")
     @Operation(summary = "Iniciar sesión con Google",
-            description = "Autentica con Google Identity Services o correo verificado de Google.")
+            description = "Autentica con el access_token JWT emitido por Supabase OAuth con Google.")
     @ApiResponse(responseCode = "200", description = "Sesión autenticada con Google")
     public Estado loginGoogle(@RequestBody CredencialesGoogle datos, HttpServletResponse response) {
         if (googleAuth == null) {

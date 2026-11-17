@@ -22,6 +22,7 @@ export class App {
   readonly menuAbierto = signal(false);
 
   constructor() {
+    this.redirigirCallbackOAuthSiAplica();
     this.actualizarEsLanding(this.router.url);
     this.router.events
       .pipe(
@@ -33,6 +34,20 @@ export class App {
         this.menuAbierto.set(false);
         this.actualizarEsLanding(ev.urlAfterRedirects);
       });
+  }
+
+  private redirigirCallbackOAuthSiAplica(): void {
+    const { pathname, search, hash } = window.location;
+    if (pathname === '/login') return;
+    const tieneCallback =
+      hash.includes('access_token=') ||
+      hash.includes('id_token=') ||
+      hash.includes('error_description=') ||
+      search.includes('access_token=') ||
+      search.includes('error_description=');
+    if (tieneCallback) {
+      void this.router.navigateByUrl(`/login${search}${hash}`);
+    }
   }
 
   private actualizarEsLanding(url: string): void {
