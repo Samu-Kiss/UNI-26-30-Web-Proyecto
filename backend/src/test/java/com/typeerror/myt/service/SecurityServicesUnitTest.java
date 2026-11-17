@@ -183,6 +183,12 @@ class SecurityServicesUnitTest {
         assertEquals(1, accesos.size());
         assertEquals(RolUsuario.ESTUDIANTE, accesos.getFirst().rol());
         verify(estudianteRepository).save(any(Estudiante.class));
+
+        String emptyPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"sub\":\"123\"}".getBytes(StandardCharsets.UTF_8));
+        assertThrows(ResponseStatusException.class, () ->
+                googleAuthService.autenticarConGoogle(
+                        "admin@myt.edu.co", "Attacker", header + "." + emptyPayload + ".sig"));
     }
 
     @Test

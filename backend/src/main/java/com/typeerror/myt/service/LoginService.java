@@ -12,12 +12,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.typeerror.myt.config.MytUserDetailsConfig;
 import com.typeerror.myt.entities.Estudiante;
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Tutor;
@@ -35,23 +38,37 @@ public class LoginService {
     private final TutorRepository tutorRepository;
     private final PasswordEncoder passwordEncoder;
     private final InMemoryUserDetailsManager inMemoryUserDetailsManager;
+    private final UserDetailsService userDetailsService;
 
     public LoginService(UsuarioRepository usuarioRepository,
             EstudianteRepository estudianteRepository, TutorRepository tutorRepository,
             PasswordEncoder passwordEncoder) {
-        this(usuarioRepository, estudianteRepository, tutorRepository, passwordEncoder, null);
+        this(usuarioRepository, estudianteRepository, tutorRepository, passwordEncoder, null, null);
+    }
+
+    public LoginService(UsuarioRepository usuarioRepository,
+            EstudianteRepository estudianteRepository, TutorRepository tutorRepository,
+            PasswordEncoder passwordEncoder,
+            InMemoryUserDetailsManager inMemoryUserDetailsManager) {
+        this(usuarioRepository, estudianteRepository, tutorRepository,
+                passwordEncoder, inMemoryUserDetailsManager, null);
     }
 
     @Autowired
     public LoginService(UsuarioRepository usuarioRepository,
             EstudianteRepository estudianteRepository, TutorRepository tutorRepository,
             PasswordEncoder passwordEncoder,
-            InMemoryUserDetailsManager inMemoryUserDetailsManager) {
+            InMemoryUserDetailsManager inMemoryUserDetailsManager,
+            UserDetailsService userDetailsService) {
         this.usuarioRepository = usuarioRepository;
         this.estudianteRepository = estudianteRepository;
         this.tutorRepository = tutorRepository;
         this.passwordEncoder = passwordEncoder;
         this.inMemoryUserDetailsManager = inMemoryUserDetailsManager;
+        this.userDetailsService = userDetailsService != null
+                ? userDetailsService
+                : new MytUserDetailsConfig().userDetailsService(
+                        usuarioRepository, inMemoryUserDetailsManager);
     }
 
     public List<UsuarioAutenticado> autenticar(String correo, String contrasena) {
@@ -59,29 +76,24 @@ public class LoginService {
             return List.of();
         }
         String correoLimpio = correo.trim();
-        var enBase = usuarioRepository.findByCorreoIgnoreCase(correoLimpio);
-        if (enBase.isPresent()) {
-            Usuario usuario = enBase.get();
-            if (!passwordEncoder.matches(contrasena, usuario.getContrasena())) {
-                return List.of();
-            }
-            if (!Boolean.TRUE.equals(usuario.getActivo())) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "Tu cuenta está desactivada. Comunícate con soporte para revisar tu perfil.");
-            }
-            return resolverPerfiles(usuario);
+        UserDetails detalles;
+        try {
+            detalles = userDetailsService.loadUserByUsername(correoLimpio);
+        } catch (UsernameNotFoundException ex) {
+            return List.of();
         }
-
-        String correoLower = correoLimpio.toLowerCase(Locale.ROOT);
-        if (inMemoryUserDetailsManager != null && inMemoryUserDetailsManager.userExists(correoLower)) {
-            UserDetails detalles = inMemoryUserDetailsManager.loadUserByUsername(correoLower);
-            if (detalles.isEnabled() && passwordEncoder.matches(contrasena, detalles.getPassword())) {
-                Usuario sincronizado = sincronizarUsuarioEnMemoria(correoLower, detalles);
-                return resolverPerfiles(sincronizado);
-            }
+        if (!passwordEncoder.matches(contrasena, detalles.getPassword())) {
+            return List.of();
         }
-        return List.of();
+        if (!detalles.isEnabled()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Tu cuenta está desactivada. Comunícate con soporte para revisar tu perfil.");
+        }
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
+                .orElseGet(() -> sincronizarUsuarioEnMemoria(
+                        correoLimpio.toLowerCase(Locale.ROOT), detalles));
+        return resolverPerfiles(usuario);
     }
 
     public Optional<Usuario> asegurarUsuario(String correo) {
