@@ -177,6 +177,15 @@ export class ApiService {
   estudiante(id: number) {
     return this.http.get<EstudianteApi>(`/api/estudiantes/${id}`);
   }
+  estadisticasPublicas() {
+    return this.http.get<{
+      plataforma: string;
+      estado: string;
+      tutoresDisponibles: number;
+      materiasActivas: number;
+      materias: Materia[];
+    }>('/api/public/estadisticas');
+  }
 }
 
 export interface AgendaApi {
