@@ -1,0 +1,133 @@
+<main class="myt-page-shell" aria-label="Directorio de estudiantes">
+  <header class="myt-page-header">
+    <div>
+      <span class="myt-eyebrow">Directorio académico</span>
+      <h1>Estudiantes</h1>
+      <p class="myt-subtitle">Consulta la información institucional y académica de los estudiantes registrados.</p>
+    </div>
+    <div class="myt-header-actions">
+      <button
+        type="button"
+        class="myt-btn myt-btn--secondary myt-btn--sm"
+        (click)="cargarEstudiantes()"
+        [disabled]="cargando()"
+      >
+        <app-lucide-icon name="arrow-up-down" [size]="14" />
+        <span>Actualizar</span>
+      </button>
+    </div>
+  </header>
+
+  @if (!cargando() && !error()) {
+    <section class="myt-kpi-row" aria-label="Resumen de estudiantes">
+      <article class="myt-kpi-card">
+        <strong>{{ registros().length }}</strong>
+        <span>Total registrados</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalActivos() }}</strong>
+        <span>Estudiantes activos</span>
+      </article>
+      <article class="myt-kpi-card">
+        <strong>{{ totalInactivos() }}</strong>
+        <span>Estudiantes inactivos</span>
+      </article>
+    </section>
+  }
+
+  <div class="myt-filter-bar">
+    <label class="myt-search-wrap" aria-label="Filtrar estudiantes">
+      <app-lucide-icon name="search" [size]="16" class="myt-search-icon" />
+      <input
+        type="search"
+        [ngModel]="filtro()"
+        (ngModelChange)="filtro.set($event)"
+        placeholder="Buscar por nombre, código, universidad o programa…"
+        aria-label="Filtrar estudiantes"
+      />
+    </label>
+    @if (filtro().trim()) {
+      <button
+        type="button"
+        class="myt-btn myt-btn--secondary myt-btn--sm"
+        (click)="filtro.set('')"
+      >
+        Limpiar filtro
+      </button>
+    }
+  </div>
+
+  @if (cargando()) {
+    <p role="status" class="myt-status-message">Cargando estudiantes…</p>
+  }
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargarEstudiantes()">
+        Reintentar
+      </button>
+    </div>
+  }
+
+  @if (!cargando() && !error()) {
+    <div class="myt-surface-card myt-table-card">
+      <div class="myt-table-scroll" role="region" aria-label="Tabla de estudiantes" tabindex="0">
+        <table class="myt-table">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Estudiante</th>
+              <th scope="col">Código</th>
+              <th scope="col">Universidad</th>
+              <th scope="col">Programa</th>
+              <th scope="col">Semestre</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (estudiante of estudiantesFiltrados(); track estudiante.id) {
+              <tr>
+                <td class="myt-table__id">#{{ estudiante.id }}</td>
+                <td>
+                  <div class="myt-table__person">
+                    <app-avatar
+                      [name]="estudiante.nombreCompleto"
+                      [initials]="estudiante.nombreCompleto ? estudiante.nombreCompleto.charAt(0) : 'E'"
+                      size="sm"
+                    />
+                    <div>
+                      <strong>{{ estudiante.nombreCompleto }}</strong>
+                      <div class="myt-subtle-text">{{ estudiante.correo }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ estudiante.codigoEstudiantil || '—' }}</td>
+                <td>{{ estudiante.universidad || '—' }}</td>
+                <td>{{ estudiante.programaAcademico || '—' }}</td>
+                <td class="myt-table__center">{{ estudiante.semestre || '—' }}</td>
+                <td>
+                  <span
+                    class="myt-status-pill"
+                    [class.myt-status-pill--active]="estudiante.activo"
+                    [class.myt-status-pill--inactive]="!estudiante.activo"
+                  >
+                    {{ estudiante.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="myt-table__empty">
+                  <div class="myt-table__empty-content">
+                    <app-lucide-icon name="users" [size]="32" />
+                    <p>No se encontraron estudiantes para este criterio de búsqueda.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</main>

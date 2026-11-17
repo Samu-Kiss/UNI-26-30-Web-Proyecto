@@ -8,5 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.typeerror.myt.entities.BloqueoAgenda;
 
 public interface BloqueoAgendaRepository extends JpaRepository<BloqueoAgenda, Integer> {
+    List<BloqueoAgenda> findByTutorId(Integer tutorId);
+
     List<BloqueoAgenda> findByTutorIdAndFecha(Integer tutorId, LocalDate fecha);
 }

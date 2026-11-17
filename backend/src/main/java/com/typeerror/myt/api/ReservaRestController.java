@@ -51,6 +51,14 @@ public class ReservaRestController {
                 .map(ApiDtos::reserva).toList();
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiDtos.ReservaDto> consultar(@PathVariable Integer id,
+            @RequestAttribute("apiSesion") ContextoSesion sesion) {
+        var reserva = obtener(id);
+        autorizar(sesion, reserva);
+        return ResponseEntity.ok(ApiDtos.reserva(reserva));
+    }
+
     @PostMapping
     @Transactional
     public ResponseEntity<ApiDtos.ReservaDto> crear(@Valid @RequestBody ApiDtos.ReservaAlta datos,
@@ -62,11 +70,16 @@ public class ReservaRestController {
         var tutor = tutores.bloquearPorId(datos.tutorId()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tutor no encontrado"));
         if (tutor.getMaterias().stream().noneMatch(m -> m.getId().equals(datos.materiaId()))
-                || !Boolean.TRUE.equals(tutor.getUsuario().getActivo())) {
+                || !Boolean.TRUE.equals(tutor.getUsuario().getActivo())
+                || !Boolean.TRUE.equals(tutor.getDisponible())) {
             return ResponseEntity.badRequest().build();
         }
         var reserva = reservas.crearReserva(datos.tutorId(), sesion.perfilId(), datos.materiaId(),
                 datos.fecha(), datos.horaInicio(), datos.duracionMinutos(), datos.tema(), datos.modalidad());
+        if (datos.objetivo() == null || datos.objetivo().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Especifica el objetivo de la sesión");
+        }
+        reserva.setObjetivo(datos.objetivo().trim());
         return ResponseEntity.created(URI.create("/api/reservas/" + reserva.getId())).body(ApiDtos.reserva(reserva));
     }
 
@@ -86,11 +99,15 @@ public class ReservaRestController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<Void> cancelar(@PathVariable Integer id,
-            @RequestAttribute("apiSesion") ContextoSesion sesion) {
+            @RequestAttribute("apiSesion") ContextoSesion sesion,
+            @RequestParam String motivo) {
         var reserva = obtener(id);
         autorizar(sesion, reserva);
+        if (motivo.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indica el motivo de cancelación");
+        }
         if (reserva.getEstado() != EstadoReserva.CANCELADA) {
-            reservas.cambiarEstado(id, EstadoReserva.CANCELADA, "Cancelada desde la gestión de reservas");
+            reservas.cambiarEstado(id, EstadoReserva.CANCELADA, motivo);
         }
         return ResponseEntity.noContent().build();
     }

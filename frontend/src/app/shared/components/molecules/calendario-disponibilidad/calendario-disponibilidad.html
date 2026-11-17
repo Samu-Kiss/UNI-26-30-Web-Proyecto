@@ -1,0 +1,57 @@
+<div class="calendar-picker" aria-label="Selector de fecha con disponibilidad">
+  <div class="calendar-picker__header">
+    <strong class="calendar-picker__month">{{ mesTexto() | titlecase }}</strong>
+    <div class="calendar-picker__nav">
+      <button
+        type="button"
+        class="calendar-picker__nav-btn"
+        (click)="cambiarMes(-1)"
+        aria-label="Mes anterior"
+      >
+        <app-lucide-icon name="chevron-left" [size]="16" />
+      </button>
+      <button
+        type="button"
+        class="calendar-picker__nav-btn"
+        (click)="cambiarMes(1)"
+        aria-label="Mes siguiente"
+      >
+        <app-lucide-icon name="chevron-right" [size]="16" />
+      </button>
+    </div>
+  </div>
+
+  <div class="calendar-picker__grid" role="grid">
+    @for (dia of diasSemana; track dia) {
+      <span role="columnheader" class="calendar-picker__weekday">{{ dia }}</span>
+    }
+
+    @for (celda of diasMes(); track $index) {
+      @if (celda) {
+        <button
+          type="button"
+          class="calendar-picker__day"
+          [class.is-available]="celda.disponible"
+          [class.is-selected]="celda.seleccionado"
+          [class.is-today]="celda.esHoy"
+          [disabled]="!celda.disponible"
+          [attr.aria-pressed]="celda.seleccionado"
+          [attr.aria-label]="celda.fecha + (celda.disponible ? ' (Disponible)' : ' (No disponible)')"
+          (click)="seleccionar(celda)"
+        >
+          <span class="calendar-picker__day-num">{{ celda.numero }}</span>
+          @if (celda.disponible) {
+            <span class="calendar-picker__dot" aria-hidden="true"></span>
+          }
+        </button>
+      } @else {
+        <div class="calendar-picker__day calendar-picker__day--empty" aria-hidden="true"></div>
+      }
+    }
+  </div>
+
+  <div class="calendar-picker__legend">
+    <span class="calendar-picker__legend-dot" aria-hidden="true"></span>
+    <small>Fechas disponibles para tutoría</small>
+  </div>
+</div>

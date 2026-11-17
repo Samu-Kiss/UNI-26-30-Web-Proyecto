@@ -36,9 +36,15 @@ public class LoginService {
             return List.of();
         }
         return usuarioRepository.findByCorreoIgnoreCase(correo.trim())
-                .filter(usuario -> Boolean.TRUE.equals(usuario.getActivo()))
                 .filter(usuario -> passwordEncoder.matches(contrasena, usuario.getContrasena()))
-                .map(this::resolverPerfiles)
+                .map(usuario -> {
+                    if (!Boolean.TRUE.equals(usuario.getActivo())) {
+                        throw new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.FORBIDDEN,
+                                "Tu cuenta está desactivada. Comunícate con soporte para revisar tu perfil.");
+                    }
+                    return resolverPerfiles(usuario);
+                })
                 .orElseGet(List::of);
     }
 

@@ -1,0 +1,136 @@
+<main class="myt-page-shell reservation-detail">
+  <a routerLink="/reservas" class="detail-back"
+    ><app-lucide-icon name="arrow-left" [size]="16" />Volver a mis reservas</a
+  >
+  @if (cargando()) {
+    <p role="status">Cargando reserva…</p>
+  }
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      {{ error() }}<button class="myt-btn myt-btn--secondary" (click)="cargar()">Reintentar</button>
+    </div>
+  }
+  @if (reserva(); as r) {
+    <header class="myt-page-header">
+      <div>
+        <h1>{{ creada ? '¡Solicitud enviada!' : 'Detalle de la tutoría' }}</h1>
+        <p class="myt-subtitle">Reserva #{{ r.id }}</p>
+      </div>
+      <span class="session-state" [attr.data-state]="r.estado">{{
+        r.estado.replace('_', ' ') | titlecase
+      }}</span>
+    </header>
+    @if (creada && r.estado === 'PENDIENTE') {
+      <div class="detail-confirmation">
+        <app-lucide-icon name="check-circle" [size]="28" />
+        <div>
+          <strong>Tu solicitud ya está en manos del tutor</strong>
+          <p>El tutor debe confirmar tu solicitud. Consulta su estado en Mis reservas.</p>
+        </div>
+      </div>
+    }
+    <div class="detail-layout">
+      <section class="detail-main">
+        <div class="detail-person">
+          @if (auth.sesion()?.rol === 'TUTOR') {
+            <app-avatar [name]="r.estudiante" [initials]="r.estudiante.charAt(0)" size="lg" />
+            <div>
+              <h2>{{ r.estudiante }}</h2>
+              <p>Estudiante · Tutoría de {{ r.materia }}</p>
+            </div>
+          } @else {
+            <app-avatar [name]="r.tutor" [initials]="r.tutor.charAt(0)" size="lg" />
+            <div>
+              <h2>{{ r.tutor }}</h2>
+              <p>Tutor de {{ r.materia }}</p>
+            </div>
+            <a [routerLink]="['/tutores', r.tutorId]">Ver perfil</a>
+          }
+        </div>
+        <dl class="detail-data">
+          <div>
+            <dt>Tema</dt>
+            <dd>{{ r.tema }}</dd>
+          </div>
+          <div>
+            <dt>Fecha</dt>
+            <dd>{{ r.fecha + 'T12:00:00' | date: 'EEEE, d MMMM yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Hora</dt>
+            <dd>{{ r.horaInicio.slice(0, 5) }}</dd>
+          </div>
+          <div>
+            <dt>Duración</dt>
+            <dd>{{ r.duracionMinutos }} minutos</dd>
+          </div>
+          <div>
+            <dt>Modalidad</dt>
+            <dd>{{ r.modalidad === 'PRESENCIAL' ? 'Presencial' : 'En línea' }}</dd>
+          </div>
+          <div>
+            <dt>Estudiante</dt>
+            <dd>{{ r.estudiante }}</dd>
+          </div>
+          @if (auth.sesion()?.rol !== 'ESTUDIANTE') {
+            <div>
+              <dt>Correo</dt>
+              <dd>{{ r.estudianteCorreo || 'Sin registrar' }}</dd>
+            </div>
+            <div>
+              <dt>Teléfono</dt>
+              <dd>{{ r.estudianteTelefono || 'Sin registrar' }}</dd>
+            </div>
+          }
+        </dl>
+        <h3>Objetivo de la sesión</h3>
+        <p>{{ r.objetivo || 'Sin registrar' }}</p>
+        @if (r.motivoCancelacion) {
+          <div class="detail-cancellation">
+            <h3>Motivo de cancelación</h3>
+            <p>{{ r.motivoCancelacion }}</p>
+          </div>
+        }
+        <div class="myt-toolbar-actions">
+          <a routerLink="/calendario" class="myt-btn myt-btn--secondary"
+            ><app-lucide-icon name="calendar" [size]="16" />Ver calendario</a
+          >
+          @if (auth.sesion()?.rol !== 'ADMINISTRADOR') {
+            <a
+              routerLink="/mensajes"
+              [queryParams]="{ reserva: r.id }"
+              class="myt-btn myt-btn--primary"
+              ><app-lucide-icon name="message-square" [size]="16" />Abrir chat</a
+            >
+          }
+        </div>
+      </section>
+      <aside class="detail-aside">
+        <h2>Resumen de tu tutoría</h2>
+        <div class="detail-total">
+          <span>Valor total</span
+          ><strong>{{ r.costoTotal | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} COP</strong>
+        </div>
+        <p>
+          <strong>Estado de la reserva</strong><br />{{ r.estado.replace('_', ' ') | titlecase }}
+        </p>
+        @if (auth.sesion()?.rol !== 'ADMINISTRADOR') {
+          <div class="detail-coordination">
+            <app-lucide-icon name="message-square" [size]="24" />
+            <h3>Coordina los detalles</h3>
+            <p>
+              Si necesitas acordar un cambio de horario o preparar material, conversa con
+              {{ auth.sesion()?.rol === 'TUTOR' ? r.estudiante : r.tutor }}.
+            </p>
+            <a
+              routerLink="/mensajes"
+              [queryParams]="{ reserva: r.id }"
+              class="myt-btn myt-btn--secondary"
+              >Enviar mensaje</a
+            >
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</main>

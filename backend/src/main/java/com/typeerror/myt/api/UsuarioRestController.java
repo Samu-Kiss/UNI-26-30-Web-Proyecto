@@ -25,6 +25,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.typeerror.myt.service.UsuarioService;
+import jakarta.validation.constraints.Email;
+import org.springframework.web.bind.annotation.PutMapping;
+
 @RestController
 @Tag(name = "Usuarios", description = "Consulta y registro de usuarios. Requiere sesión de administrador.")
 @ApiResponse(responseCode = "401", description = "Sesión ausente o vencida",
@@ -36,10 +40,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class UsuarioRestController {
     private final UsuarioRepository usuarios;
     private final RegistroUsuarioService registro;
+    private final UsuarioService usuarioService;
 
-    public UsuarioRestController(UsuarioRepository usuarios, RegistroUsuarioService registro) {
+    public UsuarioRestController(UsuarioRepository usuarios, RegistroUsuarioService registro,
+            UsuarioService usuarioService) {
         this.usuarios = usuarios;
         this.registro = registro;
+        this.usuarioService = usuarioService;
     }
 
     @Getter
@@ -98,6 +105,102 @@ public class UsuarioRestController {
             case "TUTOR" -> registro.registrarTutor(usuario, datos.getBiografia(),
                     Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
                             .filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
+            default -> {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        return ResponseEntity.status(201).build();
+    }
+
+    public record EdicionUsuario(
+            @NotBlank @Size(max = 100) String nombre,
+            @NotBlank @Size(max = 100) String apellido,
+            @NotBlank @Email @Size(max = 150) String correo,
+            @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+                    message = "Ingresa 10 dígitos, opcionalmente precedidos por +57") String telefono) { }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar datos de usuario")
+    @Transactional
+    public ResponseEntity<ApiDtos.UsuarioDto> actualizar(
+            @PathVariable Integer id,
+            @Valid @RequestBody EdicionUsuario datos) {
+        return usuarios.findById(id).map(u -> {
+            u.setNombre(datos.nombre());
+            u.setApellido(datos.apellido());
+            u.setCorreo(datos.correo());
+            u.setTelefono(datos.telefono());
+            return ResponseEntity.ok(ApiDtos.usuario(usuarios.save(u)));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    public record EstadoUsuarioDto(Boolean activo) { }
+
+    @PutMapping("/{id}/activo")
+    @Operation(summary = "Activar o desactivar usuario")
+    @Transactional
+    public ResponseEntity<Void> cambiarEstado(
+            @PathVariable Integer id,
+            @RequestBody EstadoUsuarioDto datos) {
+        if (Boolean.TRUE.equals(datos.activo())) {
+            usuarioService.activar(id);
+        } else {
+            usuarioService.desactivar(id);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar usuario por identificador")
+    @Transactional
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        if (!usuarios.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            usuarios.deleteById(id);
+        } catch (Exception e) {
+            usuarioService.desactivar(id);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @Getter
+    @Setter
+    public static class PerfilAlta {
+        @NotBlank
+        private String rol;
+        private String codigoEstudiantil;
+        private String universidad;
+        private String programaAcademico;
+        private Integer semestre;
+        @Size(max = 2000)
+        private String biografia;
+        private String materias;
+        private java.math.BigDecimal tarifaPorHora;
+    }
+
+    @PostMapping("/{id}/perfiles")
+    @Operation(summary = "Asociar nuevo perfil a usuario existente")
+    @Transactional
+    public ResponseEntity<Void> agregarPerfil(
+            @PathVariable Integer id,
+            @Valid @RequestBody PerfilAlta datos) {
+        var usuario = usuarios.findById(id);
+        if (usuario.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        switch (datos.getRol()) {
+            case "ESTUDIANTE" -> registro.registrarEstudiante(usuario.get(), datos.getCodigoEstudiantil(),
+                    datos.getUniversidad(), datos.getProgramaAcademico(), datos.getSemestre());
+            case "TUTOR" -> registro.registrarTutor(usuario.get(), datos.getBiografia(),
+                    Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
+                            .map(String::trim).filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
+            case "ADMINISTRADOR" -> {
+                var u = usuario.get();
+                u.getRoles().add(com.typeerror.myt.entities.RolUsuario.ADMINISTRADOR);
+                usuarios.save(u);
+            }
             default -> {
                 return ResponseEntity.badRequest().build();
             }

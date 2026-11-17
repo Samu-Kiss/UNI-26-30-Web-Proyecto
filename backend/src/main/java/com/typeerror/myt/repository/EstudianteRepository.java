@@ -13,13 +13,13 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, Integer>
     boolean existsByUsuarioId(Integer usuarioId);
 
     @Override
-    @EntityGraph(attributePaths = "usuario")
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles"})
     List<Estudiante> findAll();
 
-    @EntityGraph(attributePaths = {"usuario", "reservas", "reservas.tutor", "reservas.tutor.usuario"})
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles"})
     Optional<Estudiante> findOneById(Integer id);
 
-    @EntityGraph(attributePaths = "usuario")
+    @EntityGraph(attributePaths = {"usuario", "usuario.roles"})
     Optional<Estudiante> findByUsuarioId(Integer usuarioId);
 
 }

@@ -1,0 +1,198 @@
+<section class="myt-surface-card agenda-card">
+  <div class="agenda-card__header">
+    <div>
+      <span class="myt-eyebrow">Gestión de disponibilidad</span>
+      <h2>Mi disponibilidad y bloqueos</h2>
+      <p class="myt-subtitle">
+        Configura tus horarios semanales para recibir reservas. Los cambios que afecten reservas activas se rechazarán.
+      </p>
+    </div>
+  </div>
+
+  @if (cargando()) {
+    <p role="status" class="agenda-status">Cargando agenda…</p>
+  }
+  @if (error()) {
+    <div class="myt-alert myt-alert--error" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargar()">Reintentar consulta</button>
+    </div>
+  }
+  @if (mensaje()) {
+    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+  }
+
+  @if (!cargando() && lista()) {
+    <form #form="ngForm" (ngSubmit)="form.valid && guardar()" class="agenda-form">
+      <fieldset [disabled]="guardando()" class="agenda-fieldset">
+        <!-- Disponibilidad semanal -->
+        <div class="agenda-section">
+          <div class="agenda-section__header">
+            <div>
+              <h3>Disponibilidad semanal</h3>
+              <p class="agenda-section__desc">Días y horas en los que estás disponible para dictar tutorías.</p>
+            </div>
+            <button
+              type="button"
+              class="myt-btn myt-btn--secondary myt-btn--sm"
+              (click)="agregarHorario()"
+            >
+              <app-lucide-icon name="plus" [size]="16" />
+              <span>Añadir horario</span>
+            </button>
+          </div>
+
+          <div class="agenda-items">
+            @for (h of agenda.horarios; track $index; let i = $index) {
+              <div class="agenda-row">
+                <div class="agenda-row__field agenda-row__field--day">
+                  <label [for]="'dia' + i">Día</label>
+                  <select [id]="'dia' + i" [name]="'dia' + i" [(ngModel)]="h.diaSemana" required>
+                    @for (d of dias; track d) {
+                      <option [value]="d">{{ d | titlecase }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="agenda-row__field">
+                  <label [for]="'inicio' + i">Hora inicio</label>
+                  <input
+                    type="time"
+                    [id]="'inicio' + i"
+                    [name]="'inicio' + i"
+                    [(ngModel)]="h.horaInicio"
+                    required
+                  />
+                </div>
+
+                <div class="agenda-row__field">
+                  <label [for]="'fin' + i">Hora fin</label>
+                  <input
+                    type="time"
+                    [id]="'fin' + i"
+                    [name]="'fin' + i"
+                    [(ngModel)]="h.horaFin"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  class="agenda-row__delete"
+                  title="Eliminar este horario"
+                  aria-label="Eliminar horario"
+                  (click)="agenda.horarios.splice(i, 1)"
+                >
+                  <app-lucide-icon name="trash-2" [size]="16" />
+                  <span>Eliminar horario</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="agenda-empty">
+                <app-lucide-icon name="clock" [size]="24" />
+                <p>No has configurado disponibilidad.</p>
+                <span>Añade los días y rangos horarios en los que puedes atender tutorías.</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Bloqueos de agenda -->
+        <div class="agenda-section">
+          <div class="agenda-section__header">
+            <div>
+              <h3>Bloqueos de agenda</h3>
+              <p class="agenda-section__desc">Fechas específicas en las que no podrás recibir reservas (feriados, compromisos, exámenes).</p>
+            </div>
+            <button
+              type="button"
+              class="myt-btn myt-btn--secondary myt-btn--sm"
+              (click)="agregarBloqueo()"
+            >
+              <app-lucide-icon name="plus" [size]="16" />
+              <span>Añadir bloqueo</span>
+            </button>
+          </div>
+
+          <div class="agenda-items">
+            @for (b of agenda.bloqueos; track $index; let i = $index) {
+              <div class="agenda-row agenda-row--block">
+                <div class="agenda-row__field">
+                  <label [for]="'fechaB' + i">Fecha</label>
+                  <input
+                    type="date"
+                    [id]="'fechaB' + i"
+                    [name]="'fechaB' + i"
+                    [(ngModel)]="b.fecha"
+                    required
+                  />
+                </div>
+
+                <div class="agenda-row__field">
+                  <label [for]="'inicioB' + i">Desde</label>
+                  <input
+                    type="time"
+                    [id]="'inicioB' + i"
+                    [name]="'inicioB' + i"
+                    [(ngModel)]="b.horaInicio"
+                    required
+                  />
+                </div>
+
+                <div class="agenda-row__field">
+                  <label [for]="'finB' + i">Hasta</label>
+                  <input
+                    type="time"
+                    [id]="'finB' + i"
+                    [name]="'finB' + i"
+                    [(ngModel)]="b.horaFin"
+                    required
+                  />
+                </div>
+
+                <div class="agenda-row__field agenda-row__field--grow">
+                  <label [for]="'motivoB' + i">Motivo (opcional)</label>
+                  <input
+                    type="text"
+                    [id]="'motivoB' + i"
+                    [name]="'motivoB' + i"
+                    [(ngModel)]="b.motivo"
+                    maxlength="300"
+                    placeholder="Ej. Examen final, viaje académico…"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  class="agenda-row__delete"
+                  title="Eliminar este bloqueo"
+                  aria-label="Eliminar bloqueo"
+                  (click)="agenda.bloqueos.splice(i, 1)"
+                >
+                  <app-lucide-icon name="trash-2" [size]="16" />
+                  <span>Eliminar bloqueo</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="agenda-empty">
+                <app-lucide-icon name="calendar" [size]="24" />
+                <p>No tienes bloqueos registrados.</p>
+                <span>Si tienes compromisos puntuales, puedes bloquear fechas y horas para evitar reservas.</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="agenda-actions">
+          <button
+            type="submit"
+            class="myt-btn myt-btn--primary"
+            [disabled]="form.invalid || guardando()"
+          >
+            {{ guardando() ? 'Guardando…' : 'Guardar agenda' }}
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  }
+</section>

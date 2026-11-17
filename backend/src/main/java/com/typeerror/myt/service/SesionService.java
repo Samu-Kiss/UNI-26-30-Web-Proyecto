@@ -57,7 +57,7 @@ public class SesionService {
                     .filter(estudiante -> estudiante.getUsuario().getRoles()
                             .contains(RolUsuario.ESTUDIANTE))
                     .map(estudiante -> crearContexto(rol, perfilId, estudiante.getUsuario()));
-            case TUTOR -> tutorRepository.findOneById(perfilId)
+            case TUTOR -> tutorRepository.findById(perfilId)
                     .filter(tutor -> estaActivo(tutor.getUsuario()))
                     .filter(tutor -> tutor.getUsuario().getRoles().contains(RolUsuario.TUTOR))
                     .map(tutor -> crearContexto(rol, perfilId, tutor.getUsuario()));

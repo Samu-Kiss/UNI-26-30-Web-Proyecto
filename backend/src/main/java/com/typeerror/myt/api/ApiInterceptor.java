@@ -38,14 +38,21 @@ public class ApiInterceptor implements HandlerInterceptor {
         var perfiles = jwt.perfiles(request, false);
         var contexto = perfiles.size() == 1 ? sesiones.resolver(perfiles.getFirst()) : java.util.Optional
                 .<com.typeerror.myt.service.ContextoSesion>empty();
+        contexto.ifPresent(c -> request.setAttribute("apiSesion", c));
+
+        // Permitir autoregistro de usuarios con cabecera CSRF
+        if (request.getRequestURI().equals("/api/usuarios") && "POST".equals(method)) {
+            return true;
+        }
+
         if (contexto.isEmpty()) {
             return error(response, 401, "Inicia sesión de nuevo");
         }
-        if (request.getRequestURI().startsWith("/api/usuarios")
+        if ((request.getRequestURI().startsWith("/api/usuarios")
+                || request.getRequestURI().startsWith("/api/estudiantes"))
                 && contexto.get().rol() != RolUsuario.ADMINISTRADOR) {
             return error(response, 403, "Se requiere perfil administrador");
         }
-        request.setAttribute("apiSesion", contexto.get());
         return true;
     }
 

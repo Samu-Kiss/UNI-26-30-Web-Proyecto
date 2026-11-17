@@ -1,124 +1,80 @@
-<main class="app-container gestion-page">
-  <section class="card card__body">
-    <h1>Tutores</h1>
-    <p>Encuentra una tutoría por materia y presupuesto.</p>
-    <form class="laboratorio-form" (ngSubmit)="filtrar()">
-      <label class="form-field"
-        >Materia
-        <select class="text-input" name="materia" [(ngModel)]="materiaId">
-          <option value="">Todas</option>
-          @for (m of materias(); track m.id) {
-            <option [value]="m.id">{{ m.nombre }}</option>
-          }
-        </select>
-      </label>
-      <label class="form-field"
-        >Tarifa máxima
-        <input class="text-input" name="tarifaMax" type="number" min="0" [(ngModel)]="tarifaMax" />
-      </label>
-      <button class="btn btn--primary btn--md" [disabled]="cargando()">Aplicar filtros</button>
-    </form>
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-      <button (click)="cargar()">Reintentar consulta</button>
-    }
-    @switch (cargando()) {
-      @case (true) {
-        <output>Cargando tutores…</output>
-      }
-      @case (false) {
-        @if (pagina(); as p) {
-          <p>
-            Página {{ p.number + 1 }} de {{ p.totalPages || 1 }} · {{ p.totalElements }} tutores
-          </p>
-        }
-      }
-    }
-    @if (guardando()) {
-      <output>Procesando cambios…</output>
-    }
-    <p aria-live="polite">Operaciones completadas: {{ cambios() }}</p>
-    <div class="tabla-contenedor">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Materias</th>
-            <th>Tarifa / hora</th>
-            <th>Calificación</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (t of pagina()?.content ?? []; track t.id) {
-            <tr>
-              <td>
-                {{ t.nombre }}
-                @if (!t.disponible) {
-                  (No disponible)
-                }
-              </td>
-              <td>
-                @for (m of t.materias; track m.id) {
-                  <span>{{ m.nombre }} </span>
-                }
-              </td>
-              <td>{{ t.tarifaPorHora }} COP</td>
-              <td>{{ t.calificacion ?? 'Sin reseñas' }}</td>
-              <td>
-                @if (auth.sesion()?.rol === 'ESTUDIANTE' && t.disponible) {
-                  <a
-                    class="btn btn--primary btn--sm"
-                    routerLink="/reservas"
-                    [queryParams]="{ tutor: t.id }"
-                    >Reservar</a
-                  >
-                }
-                @if (editable(t)) {
-                  <button
-                    class="btn btn--secondary btn--sm"
-                    [disabled]="guardando()"
-                    (click)="seleccionar(t.id)"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    class="btn btn--danger btn--sm"
-                    [disabled]="guardando() || !t.disponible"
-                    (click)="desactivar(t)"
-                  >
-                    Desactivar
-                  </button>
-                }
-              </td>
-            </tr>
-          } @empty {
-            @if (!cargando() && !error()) {
-              <tr>
-                <td colspan="5">No hay tutores para estos filtros.</td>
-              </tr>
-            }
-          }
-        </tbody>
-      </table>
+<main class="myt-page-shell gestion-page">
+  <!-- Header directo sobre el lienzo sin contenedor envolvente -->
+  <header class="myt-explore-header">
+    <div>
+      <span class="myt-eyebrow">Explora y aprende</span>
+      <h1>Encuentra al tutor ideal</h1>
+      <p class="myt-subtitle">Compara experiencia, horarios y tarifas antes de reservar.</p>
     </div>
-    <button
-      class="btn btn--secondary btn--md"
-      [disabled]="page === 0 || cargando()"
-      (click)="navegar(-1)"
-    >
-      Anterior
-    </button>
-    <button
-      class="btn btn--secondary btn--md"
-      [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
-      (click)="navegar(1)"
-    >
-      Siguiente
-    </button>
-  </section>
+  </header>
+
+  <!-- Barra de búsqueda y filtros intuitiva -->
+  <form class="myt-search-toolbar" (ngSubmit)="filtrar()">
+    <label class="myt-search-input-wrap" aria-label="Buscar por materia o nombre">
+      <app-lucide-icon name="search" [size]="16" class="myt-search-icon" />
+      <input
+        type="search"
+        name="busquedaTexto"
+        [(ngModel)]="busquedaTexto"
+        (ngModelChange)="filtrar()"
+        placeholder="Buscar por nombre o tema…"
+      />
+    </label>
+
+    <label class="myt-filter-inline">
+      <span>Materia</span>
+      <select class="text-input" name="materia" [(ngModel)]="materiaId" (ngModelChange)="onMateriaChange()">
+        <option value="">Todas</option>
+        @for (m of materias(); track m.id) {
+          <option [value]="m.id">{{ m.nombre }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="myt-filter-inline">
+      <span>Tarifa máx.</span>
+      <input
+        class="text-input"
+        name="tarifaMax"
+        type="number"
+        min="0"
+        placeholder="$ / h"
+        [(ngModel)]="tarifaMax"
+      />
+    </label>
+
+    <button class="myt-btn myt-btn--primary" [disabled]="cargando()">Filtrar</button>
+  </form>
+
+  <div class="myt-category-pills" role="tablist" aria-label="Categorías de materias">
+    @for (chip of categoriaChips; track chip) {
+      <button
+        type="button"
+        class="myt-pill-chip"
+        [class.myt-pill-chip--active]="categoriaActiva() === chip"
+        (click)="seleccionarCategoriaChip(chip)"
+      >
+        {{ chip }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="myt-alert myt-alert--error">
+      <p role="alert">{{ error() }}</p>
+      <button type="button" class="myt-btn myt-btn--secondary myt-btn--sm" (click)="cargar()">
+        Reintentar consulta
+      </button>
+    </div>
+  }
+
+  @if (guardando()) {
+    <output class="myt-status-output">Procesando cambios…</output>
+  }
+
+  <!-- Editor contextual de tutor ubicado en la parte superior para visibilidad inmediata -->
   @if (seleccionado(); as tutor) {
-    <section class="card card__body">
+    <section class="myt-surface-card" aria-label="Editor de perfil de tutor">
       <app-tutor-editor
         [tutor]="tutor"
         [ocupado]="guardando()"
@@ -127,39 +83,42 @@
       />
     </section>
   }
+
+  <!-- Formulario rápido de administración arriba del listado -->
   @if (auth.sesion()?.rol === 'ADMINISTRADOR') {
-    <section class="card card__body">
-      <h2>Asignar perfil tutor a una cuenta existente</h2>
-      <p>Consulta el ID de la cuenta en <a routerLink="/usuarios">Usuarios</a>.</p>
-      <form #alta="ngForm" class="laboratorio-form" (ngSubmit)="alta.valid && crear()">
+    <details class="myt-surface-card">
+      <summary>
+        + Asignar perfil tutor a una cuenta existente
+      </summary>
+      <p>
+        Consulta el ID de la cuenta en <a routerLink="/usuarios">Usuarios</a>.
+      </p>
+      <form
+        #alta="ngForm"
+        class="laboratorio-form myt-admin-tutor-form"
+        (ngSubmit)="alta.valid && crear()"
+      >
         <fieldset [disabled]="guardando()">
-          <label class="form-field"
-            >ID de usuario<input
-              class="text-input"
-              type="number"
-              name="usuarioId"
-              [(ngModel)]="usuarioId"
-              required
-              min="1"
-          /></label>
-          <label class="form-field"
-            >Biografía<textarea
-              class="text-input"
-              name="biografia"
-              [(ngModel)]="biografia"
-              required
-              maxlength="2000"
-            ></textarea>
-          </label>
-          <label class="form-field"
-            >Tarifa<input
-              class="text-input"
-              type="number"
-              name="tarifa"
-              [(ngModel)]="tarifa"
-              required
-              min="1"
-          /></label>
+          <div class="myt-form-row-2">
+            <label class="form-field"
+              >ID de usuario<input
+                class="text-input"
+                type="number"
+                name="usuarioId"
+                [(ngModel)]="usuarioId"
+                required
+                min="1"
+            /></label>
+            <label class="form-field"
+              >Tarifa por hora<input
+                class="text-input"
+                type="number"
+                name="tarifa"
+                [(ngModel)]="tarifa"
+                required
+                min="1"
+            /></label>
+          </div>
           <label class="form-field"
             >Materia<select
               class="text-input"
@@ -173,14 +132,218 @@
               }
             </select></label
           >
+          <label class="form-field"
+            >Biografía<textarea
+              class="text-input"
+              name="biografia"
+              [(ngModel)]="biografia"
+              required
+              maxlength="2000"
+            ></textarea>
+          </label>
           <button
-            class="btn btn--primary btn--md"
+            class="btn btn--primary btn--md myt-btn myt-btn--primary"
             [disabled]="alta.invalid || !nuevaMateria || guardando()"
           >
             Crear perfil tutor
           </button>
         </fieldset>
       </form>
-    </section>
+    </details>
+  }
+
+  <div class="myt-results-meta">
+    @switch (cargando()) {
+      @case (true) {
+        <output class="myt-status-output">Cargando tutores…</output>
+      }
+      @case (false) {
+        @if (pagina(); as p) {
+          <p class="myt-results-count">
+            <strong>{{ p.totalElements }} tutores disponibles</strong>
+            @if (p.totalPages > 1) {
+              <span> · Página {{ p.number + 1 }} de {{ p.totalPages }}</span>
+            }
+            @if (busquedaTexto.trim()) {
+              <span> · para "{{ busquedaTexto.trim() }}"</span>
+            }
+            @if (cambios() > 0) {
+              <span class="myt-cambios-badge">
+                ⚡ Acciones exitosas: {{ cambios() }}
+              </span>
+            }
+          </p>
+        }
+      }
+    }
+
+    <button type="button" class="myt-sort-btn" (click)="alternarOrden()">
+      <app-lucide-icon name="arrow-up-down" [size]="14" />
+      <span
+        >Ordenar:
+        {{ ordenActivo() === 'calificacion' ? 'Mejor calificados' : 'Menor tarifa' }}</span
+      >
+    </button>
+  </div>
+
+  <!-- Solo tarjetas limpias y desaturadas -->
+  <div class="myt-tutor-grid" aria-label="Tarjetas de tutores">
+    @for (t of tutoresMostrados(); track t.id) {
+      <article class="myt-tutor-card" [class.myt-tutor-card--disabled]="!t.disponible">
+        <div class="myt-tutor-card__header">
+          <div class="myt-tutor-card__identity">
+            <app-avatar
+              [name]="t.nombre"
+              [initials]="inicialTutor(t.nombre)"
+              size="md"
+              tone="primary"
+            />
+            <div>
+              <h3>
+                <a [routerLink]="['/tutores', t.id]" class="myt-tutor-card__name">
+                  {{ t.nombre }}
+                </a>
+              </h3>
+              <p class="myt-tutor-card__specialty">
+                @for (m of t.materias; track m.id; let last = $last) {
+                  <span>{{ m.nombre }}{{ !last ? ' · ' : '' }}</span>
+                } @empty {
+                  <span>Tutoría académica</span>
+                }
+              </p>
+            </div>
+          </div>
+
+          @if (t.calificacion !== null) {
+            <span class="myt-rating-pill">
+              <app-lucide-icon name="star" [size]="13" [filled]="true" />
+              {{ t.calificacion | number: '1.0-1' }}
+            </span>
+          } @else {
+            <span class="myt-no-reviews-pill">Sin reseñas</span>
+          }
+        </div>
+
+        <p class="myt-tutor-card__bio">
+          {{ t.biografia || 'Biografía no registrada.' }}
+        </p>
+
+        <div class="myt-tutor-card__footer">
+          <div class="myt-tutor-card__price">
+            <strong>${{ t.tarifaPorHora | number }}</strong>
+            <span>/ hora</span>
+          </div>
+
+          <div class="myt-tutor-card__actions">
+            @if (!t.disponible) {
+              <span class="myt-unavailable-tag">No disponible</span>
+            }
+            <a [routerLink]="['/tutores', t.id]" class="myt-btn myt-btn--secondary myt-btn--sm">
+              Ver perfil
+            </a>
+            @if (t.disponible) {
+              <a
+                class="myt-btn myt-btn--primary myt-btn--sm"
+                routerLink="/reservas"
+                [queryParams]="{ tutor: t.id }"
+              >
+                Reservar
+              </a>
+            }
+            @if (editable(t)) {
+              <button
+                type="button"
+                class="myt-btn myt-btn--secondary myt-btn--sm"
+                [disabled]="guardando()"
+                (click)="seleccionar(t.id)"
+              >
+                Editar
+              </button>
+              @if (t.disponible) {
+                <button
+                  type="button"
+                  class="myt-btn myt-btn--danger myt-btn--sm"
+                  [disabled]="guardando()"
+                  (click)="desactivar(t)"
+                >
+                  Desactivar
+                </button>
+              }
+            }
+          </div>
+        </div>
+      </article>
+    } @empty {
+      @if (!cargando() && !error()) {
+        <div class="myt-empty-state">
+          <p class="myt-empty-inline">
+            @if (busquedaTexto.trim()) {
+              No hay tutores que coincidan con "{{ busquedaTexto.trim() }}".
+            } @else {
+              No hay tutores para estos filtros.
+            }
+          </p>
+          @if (busquedaTexto.trim()) {
+            <button
+              type="button"
+              class="myt-btn myt-btn--secondary myt-btn--sm"
+              (click)="limpiarBusqueda()"
+            >
+              Limpiar búsqueda
+            </button>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  @if ((pagina()?.totalPages ?? 0) > 1) {
+    <nav class="myt-pagination-bar" aria-label="Navegación de páginas">
+      <div class="myt-pagination-pages">
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          [disabled]="page === 0 || cargando()"
+          (click)="navegar(-1)"
+          aria-label="Página anterior"
+        >
+          <app-lucide-icon name="chevron-left" [size]="16" />
+          <span>Anterior</span>
+        </button>
+
+        @for (item of paginasDisponibles(); track $index) {
+          @if (esNumero(item)) {
+            <button
+              type="button"
+              class="myt-page-number-btn"
+              [class.myt-page-number-btn--active]="page === item"
+              [disabled]="cargando()"
+              (click)="irAPagina(item)"
+              [attr.aria-label]="'Ir a la página ' + (item + 1)"
+              [attr.aria-current]="page === item ? 'page' : null"
+            >
+              {{ item + 1 }}
+            </button>
+          } @else {
+            <span class="myt-page-ellipsis" aria-hidden="true">…</span>
+          }
+        }
+
+        <button
+          type="button"
+          class="btn btn--secondary btn--md myt-btn myt-btn--secondary"
+          [disabled]="!pagina() || page + 1 >= (pagina()?.totalPages ?? 0) || cargando()"
+          (click)="navegar(1)"
+          aria-label="Página siguiente"
+        >
+          <span>Siguiente</span>
+          <app-lucide-icon name="chevron-right" [size]="16" />
+        </button>
+      </div>
+
+      <span class="myt-pagination-info">
+        Página {{ (pagina()?.number ?? page) + 1 }} de {{ pagina()?.totalPages }}
+      </span>
+    </nav>
   }
 </main>
