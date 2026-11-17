@@ -18,6 +18,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.typeerror.myt.service.JwtSesionService;
+import com.typeerror.myt.service.SesionService;
+
 import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
@@ -25,14 +28,19 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtSesionService jwtSesionService;
+    private final SesionService sesionService;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(JwtSesionService jwtSesionService, SesionService sesionService) {
+        this.jwtSesionService = jwtSesionService;
+        this.sesionService = sesionService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationFilter jwtAuthenticationFilter =
+                new JwtAuthenticationFilter(jwtSesionService, sesionService);
+
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
