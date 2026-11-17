@@ -53,33 +53,36 @@ public class GoogleAuthService {
             String correo,
             String nombreCompleto,
             String credencialJwt) {
-        String correoResuelto = correo;
+        String correoResuelto = null;
         String nombreResuelto = nombreCompleto;
 
         if (credencialJwt != null && !credencialJwt.isBlank()) {
             String[] partes = credencialJwt.trim().split("\\.");
-            if (partes.length == 3) {
-                try {
-                    String payload = new String(
-                            Base64.getUrlDecoder().decode(partes[1]),
-                            StandardCharsets.UTF_8);
-                    Matcher emailMatcher = EMAIL_CLAIM.matcher(payload);
-                    if (emailMatcher.find()) {
-                        correoResuelto = emailMatcher.group(1);
-                    }
-                    Matcher nameMatcher = NAME_CLAIM.matcher(payload);
-                    if (nameMatcher.find() && (nombreResuelto == null || nombreResuelto.isBlank())) {
-                        nombreResuelto = nameMatcher.group(1);
-                    }
-                } catch (IllegalArgumentException ignored) {
-                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                            "Token de Google inválido");
-                }
-            } else if (!demoEnabled) {
+            if (partes.length != 3) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "Credencial de Google no válida");
             }
-        } else if (!demoEnabled) {
+            try {
+                String payload = new String(
+                        Base64.getUrlDecoder().decode(partes[1]),
+                        StandardCharsets.UTF_8);
+                Matcher emailMatcher = EMAIL_CLAIM.matcher(payload);
+                if (!emailMatcher.find()) {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                            "Token de Google sin correo verificado");
+                }
+                correoResuelto = emailMatcher.group(1);
+                Matcher nameMatcher = NAME_CLAIM.matcher(payload);
+                if (nameMatcher.find() && (nombreResuelto == null || nombreResuelto.isBlank())) {
+                    nombreResuelto = nameMatcher.group(1);
+                }
+            } catch (IllegalArgumentException ignored) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Token de Google inválido");
+            }
+        } else if (demoEnabled) {
+            correoResuelto = correo;
+        } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                     "Se requiere credencial de Google Identity Services");
         }

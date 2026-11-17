@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,6 +65,21 @@ class SecurityIntegrationTest extends PostgreSqlIntegrationTest {
 
     @Autowired
     private MateriaRepository materiaRepository;
+
+    @BeforeEach
+    void restaurarClavesEnMemoria() {
+        String hash = passwordEncoder.encode(MytUserDetailsConfig.CLAVE_PRUEBA_INMEMORY);
+        for (String correo : new String[] {
+            MytUserDetailsConfig.USER_ESTUDIANTE_EMAIL,
+            MytUserDetailsConfig.USER_TUTOR_EMAIL,
+            MytUserDetailsConfig.ADMIN_EMAIL
+        }) {
+            if (inMemoryUserDetailsManager.userExists(correo)) {
+                UserDetails actual = inMemoryUserDetailsManager.loadUserByUsername(correo);
+                inMemoryUserDetailsManager.updatePassword(actual, hash);
+            }
+        }
+    }
 
     @Test
     void escenario1AccesoAEndpointPublicoSinAutenticacion() throws Exception {
@@ -322,6 +338,7 @@ class SecurityIntegrationTest extends PostgreSqlIntegrationTest {
                                 """.formatted(correo, contrasena)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.actual.rol").value(rolDominio))
+                .andExpect(jsonPath("$.actual.rolSeguridad").value(rolSeguridad))
                 .andReturn();
         Cookie cookie = result.getResponse().getCookie(JwtSesionService.COOKIE);
         assertNotNull(cookie);

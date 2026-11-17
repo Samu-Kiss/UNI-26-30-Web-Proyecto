@@ -64,7 +64,8 @@ public class MytUserDetailsConfig {
                     .map(this::mapearUsuarioJpa)
                     .orElseGet(() -> {
                         String normalizado = correoLimpio.toLowerCase(Locale.ROOT);
-                        if (inMemoryUserDetailsManager.userExists(normalizado)) {
+                        if (inMemoryUserDetailsManager != null
+                                && inMemoryUserDetailsManager.userExists(normalizado)) {
                             return inMemoryUserDetailsManager.loadUserByUsername(normalizado);
                         }
                         throw new UsernameNotFoundException(
