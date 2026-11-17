@@ -123,7 +123,7 @@
             </span>
             <div class="myt-sidebar__user-info">
               <strong>{{ sesion.nombreUsuario || 'Usuario' }}</strong>
-              <span>{{ sesion.rol }}</span>
+              <span>{{ sesion.rol === 'ADMINISTRADOR' ? 'ADMIN' : 'USER' }} · {{ sesion.rol }}</span>
             </div>
           </div>
           <button type="button" class="myt-sidebar__logout" (click)="cerrarSesion()">

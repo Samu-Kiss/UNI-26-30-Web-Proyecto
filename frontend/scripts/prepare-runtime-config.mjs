@@ -34,8 +34,20 @@ const tracesSampleRate = Number.parseFloat(
   process.env.SENTRY_FRONTEND_TRACES_SAMPLE_RATE ?? process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0'
 );
 
+const dbUsername =
+  process.env.SUPABASE_DEV_DB_USERNAME ??
+  process.env.SUPABASE_PROD_DB_USERNAME ??
+  process.env.DB_USERNAME ??
+  '';
+const derivedProjectRef = dbUsername.startsWith('postgres.')
+  ? dbUsername.slice('postgres.'.length).trim()
+  : '';
+const defaultSupabaseUrl = derivedProjectRef ? `https://${derivedProjectRef}.supabase.co` : '';
+
 const config = {
   backendUrl: process.env.MYT_BACKEND_URL ?? 'http://localhost:8080',
+  supabaseUrl: (process.env.SUPABASE_URL || defaultSupabaseUrl).replace(/\/+$/, ''),
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? '',
   sentryDsn: process.env.SENTRY_FRONTEND_DSN ?? process.env.SENTRY_DSN ?? '',
   environment: process.env.SENTRY_FRONTEND_ENVIRONMENT ?? process.env.SENTRY_ENVIRONMENT ?? 'local',
   release: process.env.SENTRY_FRONTEND_RELEASE ?? process.env.SENTRY_RELEASE ?? 'myt-frontend@dev',

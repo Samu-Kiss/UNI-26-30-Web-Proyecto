@@ -76,4 +76,75 @@ describe('Login y elección de perfil', () => {
     expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
     f.destroy();
   });
+  it('permite iniciar sesión con Google y ejecutar el flujo completo de recuperación de contraseña', () => {
+    const f = TestBed.createComponent(LoginPageComponent);
+    f.detectChanges();
+    http.expectOne('/api/sesion').flush({}, { status: 401, statusText: 'Unauthorized' });
+    const c = f.componentInstance;
+
+    c.alternarRecuperacion(true);
+    c.correoRecuperacion = 'user1@myt.edu.co';
+    c.solicitarCodigoRecuperacion();
+    http.expectOne('/api/sesion/recuperar').flush({
+      mensaje: 'Código generado',
+      tokenRecuperacion: 'MYT-ABC123',
+      expiraEnMinutos: 15,
+    });
+    expect(c.tokenGenerado()).toBe('MYT-ABC123');
+    expect(c.tokenRestablecimiento).toBe('MYT-ABC123');
+
+    c.nuevaContrasena = 'NuevaClaveSegura99!';
+    c.confirmarRestablecimiento();
+    http.expectOne('/api/sesion/restablecer').flush({
+      mensaje: 'Contraseña actualizada correctamente.',
+    });
+    expect(c.modoRecuperacion()).toBe(false);
+    expect(c.mensajeExito()).toContain('Contraseña actualizada');
+
+    c.procesarLoginGoogle();
+    const googleUrlReq = http.expectOne((req) => req.url === '/api/sesion/google/url');
+    expect(googleUrlReq.request.params.get('redirectTo')).toContain('/login');
+    googleUrlReq.flush({
+      url: 'https://rrxvxcufuwmjbqiwhgmt.supabase.co/auth/v1/authorize?provider=google&redirect_to=http%3A%2F%2Flocalhost%3A4200%2Flogin',
+      supabaseUrl: 'https://rrxvxcufuwmjbqiwhgmt.supabase.co',
+      provider: 'google',
+    });
+    expect(c.urlRedireccionGoogle()).toContain(
+      'https://rrxvxcufuwmjbqiwhgmt.supabase.co/auth/v1/authorize?provider=google',
+    );
+
+    c.autenticarConTokenGoogle('eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImNhbWlsYUBqYXZlcmlhbmEuZWR1LmNvIn0.sig');
+    const googlePostReq = http.expectOne('/api/sesion/google');
+    expect(googlePostReq.request.body).toEqual({
+      credencial: 'eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImNhbWlsYUBqYXZlcmlhbmEuZWR1LmNvIn0.sig',
+      correo: undefined,
+      nombre: undefined,
+    });
+    googlePostReq.flush({
+      actual: { rol: 'ESTUDIANTE', perfilId: 5, nombreUsuario: 'Camila Google' },
+      opciones: [],
+    });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
+    f.destroy();
+  });
+
+  it('procesa automáticamente el access_token del hash devuelto por Supabase OAuth en /login', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/login#access_token=supabase.jwt.token&token_type=bearer&expires_in=3600',
+    );
+    const f = TestBed.createComponent(LoginPageComponent);
+    f.detectChanges();
+    http.expectNone('/api/sesion');
+    const googlePostReq = http.expectOne('/api/sesion/google');
+    expect(googlePostReq.request.body.credencial).toBe('supabase.jwt.token');
+    googlePostReq.flush({
+      actual: { rol: 'ESTUDIANTE', perfilId: 9, nombreUsuario: 'Estudiante Supabase' },
+      opciones: [],
+    });
+    expect(window.location.hash).toBe('');
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
+    f.destroy();
+  });
 });

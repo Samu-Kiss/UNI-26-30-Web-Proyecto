@@ -2,16 +2,21 @@ package com.typeerror.myt.api;
 
 import java.io.IOException;
 import java.util.Set;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.service.ContextoSesion;
 import com.typeerror.myt.service.JwtSesionService;
 import com.typeerror.myt.service.SesionService;
-import com.typeerror.myt.entities.RolUsuario;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class ApiInterceptor implements HandlerInterceptor {
+
     private final JwtSesionService jwt;
     private final SesionService sesiones;
 
@@ -34,25 +39,30 @@ public class ApiInterceptor implements HandlerInterceptor {
                 && !"1".equals(request.getHeader("X-MYT-Request"))) {
             return error(response, 403, "Falta protección CSRF");
         }
-        if (request.getRequestURI().startsWith("/api/sesion")) {
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/api/sesion") || uri.startsWith("/api/public")) {
             return true;
         }
-        var perfiles = jwt.perfiles(request, false);
-        var contexto = perfiles.size() == 1 ? sesiones.resolver(perfiles.getFirst()) : java.util.Optional
-                .<com.typeerror.myt.service.ContextoSesion>empty();
-        contexto.ifPresent(c -> request.setAttribute("apiSesion", c));
-
+        ContextoSesion existente = (ContextoSesion) request.getAttribute("apiSesion");
+        if (existente == null) {
+            var perfiles = jwt.perfiles(request, false);
+            var contexto = perfiles.size() == 1
+                    ? sesiones.resolver(perfiles.getFirst())
+                    : java.util.Optional.<ContextoSesion>empty();
+            if (contexto.isPresent()) {
+                existente = contexto.get();
+                request.setAttribute("apiSesion", existente);
+            }
+        }
         // Permitir autoregistro de usuarios con cabecera CSRF
-        if (request.getRequestURI().equals("/api/usuarios") && "POST".equals(method)) {
+        if (uri.equals("/api/usuarios") && "POST".equals(method)) {
             return true;
         }
-
-        if (contexto.isEmpty()) {
+        if (existente == null) {
             return error(response, 401, "Inicia sesión de nuevo");
         }
-        if ((request.getRequestURI().startsWith("/api/usuarios")
-                || request.getRequestURI().startsWith("/api/estudiantes"))
-                && contexto.get().rol() != RolUsuario.ADMINISTRADOR) {
+        if ((uri.startsWith("/api/usuarios") || uri.startsWith("/api/estudiantes"))
+                && existente.rol() != RolUsuario.ADMINISTRADOR) {
             return error(response, 403, "Se requiere perfil administrador");
         }
         return true;

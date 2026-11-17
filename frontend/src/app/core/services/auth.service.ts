@@ -1,6 +1,6 @@
 import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { Credenciales } from '../models/usuario.model';
@@ -9,10 +9,21 @@ export interface Sesion {
   rol: 'ADMINISTRADOR' | 'ESTUDIANTE' | 'TUTOR';
   perfilId: number;
   nombreUsuario: string;
+  rolSeguridad?: 'ADMIN' | 'USER';
 }
 export interface EstadoSesion {
   actual: Sesion | null;
   opciones: string[];
+}
+export interface SolicitudRecuperacionRespuesta {
+  mensaje: string;
+  tokenRecuperacion: string;
+  expiraEnMinutos: number;
+}
+export interface UrlOAuthGoogleRespuesta {
+  url: string;
+  supabaseUrl?: string;
+  provider?: string;
 }
 
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
@@ -34,6 +45,12 @@ export class AuthService {
   readonly sesion = signal<Sesion | null>(null);
   readonly opciones = signal<string[]>([]);
   readonly cargando = signal(true);
+  readonly esAdmin = computed(() => this.sesion()?.rol === 'ADMINISTRADOR');
+  readonly rolSistema = computed<'ADMIN' | 'USER' | null>(() => {
+    const actual = this.sesion();
+    if (!actual) return null;
+    return actual.rol === 'ADMINISTRADOR' ? 'ADMIN' : 'USER';
+  });
   private restauracion?: ReturnType<AuthService['consultarSesion']>;
   private consultarSesion() {
     return this.http.get<EstadoSesion>('/api/sesion').pipe(
@@ -56,6 +73,24 @@ export class AuthService {
   };
   iniciarSesion(datos: Credenciales) {
     return this.http.post<EstadoSesion>('/api/sesion/login', datos).pipe(tap(this.aplicar));
+  }
+  obtenerUrlGoogle(redirectTo?: string) {
+    const params = redirectTo ? { params: { redirectTo } } : {};
+    return this.http.get<UrlOAuthGoogleRespuesta>('/api/sesion/google/url', params);
+  }
+  iniciarSesionGoogle(credencial: string, correo?: string, nombre?: string) {
+    return this.http
+      .post<EstadoSesion>('/api/sesion/google', { credencial, correo, nombre })
+      .pipe(tap(this.aplicar));
+  }
+  solicitarRecuperacion(correo: string) {
+    return this.http.post<SolicitudRecuperacionRespuesta>('/api/sesion/recuperar', { correo });
+  }
+  restablecerContrasena(token: string, nuevaContrasena: string) {
+    return this.http.post<{ mensaje: string }>('/api/sesion/restablecer', {
+      token,
+      nuevaContrasena,
+    });
   }
   restaurar() {
     this.cargando.set(true);
