@@ -12,9 +12,12 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -34,6 +37,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.typeerror.myt.api.PublicRestController;
 import com.typeerror.myt.config.JwtAuthenticationFilter;
 import com.typeerror.myt.config.MytUserDetailsConfig;
@@ -136,7 +148,7 @@ class SecurityServicesUnitTest {
     }
 
     @Test
-    void flujoDeRecuperacionDeContrasenaYGoogleLogin() {
+    void flujoDeRecuperacionDeContrasenaYGoogleLogin() throws Exception {
         Usuario u = new Usuario(10, "Sofía", "Estudiante", "user1@myt.edu.co",
                 passwordEncoder.encode("1ManzanaGrande!"), null, true,
                 new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null);
@@ -189,6 +201,70 @@ class SecurityServicesUnitTest {
         assertThrows(ResponseStatusException.class, () ->
                 googleAuthService.autenticarConGoogle(
                         "admin@myt.edu.co", "Attacker", header + "." + emptyPayload + ".sig"));
+
+        GoogleAuthService supabaseGoogleAuth = new GoogleAuthService(
+                usuarioRepository, estudianteRepository, loginService, passwordEncoder,
+                false, "", "", "postgres.iozaniwbftbrslqzqfxk");
+        assertEquals("https://iozaniwbftbrslqzqfxk.supabase.co",
+                supabaseGoogleAuth.resolverSupabaseUrl());
+        assertTrue(supabaseGoogleAuth.construirUrlAutorizacionGoogle("http://localhost:4200/login")
+                .startsWith("https://iozaniwbftbrslqzqfxk.supabase.co/auth/v1/authorize?provider=google"));
+
+        String supabasePayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"sub\":\"d0c8e8a0-1234\",\"email\":\"supabase.user@javeriana.edu.co\","
+                        + "\"user_metadata\":{\"full_name\":\"Laura Supabase\"}}")
+                        .getBytes(StandardCharsets.UTF_8));
+        var accesosSupabase = supabaseGoogleAuth.autenticarConGoogle(
+                null, null, header + "." + supabasePayload + ".sig");
+        assertEquals(1, accesosSupabase.size());
+
+        String expiredPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"email\":\"exp@javeriana.edu.co\",\"exp\":1000}")
+                        .getBytes(StandardCharsets.UTF_8));
+        assertThrows(ResponseStatusException.class, () ->
+                supabaseGoogleAuth.autenticarConGoogle(
+                        null, null, header + "." + expiredPayload + ".sig"));
+
+        String invalidIssuerPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"iss\":\"https://evil.example.com/auth/v1\","
+                        + "\"email\":\"attacker@javeriana.edu.co\"}")
+                        .getBytes(StandardCharsets.UTF_8));
+        assertThrows(ResponseStatusException.class, () ->
+                supabaseGoogleAuth.autenticarConGoogle(
+                        null, null, header + "." + invalidIssuerPayload + ".sig"));
+
+        ECKey ecJwk = new ECKeyGenerator(Curve.P_256)
+                .keyID("supabase-es256-kid")
+                .generate();
+        supabaseGoogleAuth.establecerJwkSet(new JWKSet(ecJwk.toPublicJWK()));
+
+        SignedJWT validSignedJwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("supabase-es256-kid").build(),
+                new JWTClaimsSet.Builder()
+                        .issuer("https://iozaniwbftbrslqzqfxk.supabase.co/auth/v1")
+                        .subject("es256-sub-01")
+                        .expirationTime(Date.from(Instant.now().plusSeconds(3600)))
+                        .claim("email", "es256.supabase@javeriana.edu.co")
+                        .claim("user_metadata", Map.of("full_name", "Valeria ES256"))
+                        .build());
+        validSignedJwt.sign(new ECDSASigner(ecJwk));
+        var accesosEs256 = supabaseGoogleAuth.autenticarConGoogle(
+                null, null, validSignedJwt.serialize());
+        assertEquals(1, accesosEs256.size());
+
+        ECKey wrongKey = new ECKeyGenerator(Curve.P_256)
+                .keyID("supabase-es256-kid")
+                .generate();
+        SignedJWT forgedJwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("supabase-es256-kid").build(),
+                new JWTClaimsSet.Builder()
+                        .issuer("https://iozaniwbftbrslqzqfxk.supabase.co/auth/v1")
+                        .claim("email", "forged@javeriana.edu.co")
+                        .build());
+        forgedJwt.sign(new ECDSASigner(wrongKey));
+        assertThrows(ResponseStatusException.class, () ->
+                supabaseGoogleAuth.autenticarConGoogle(
+                        null, null, forgedJwt.serialize()));
     }
 
     @Test

@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -152,7 +153,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                   type="button"
                   class="myt-btn myt-btn--secondary myt-btn--sm myt-google-trigger"
                   [disabled]="cargando()"
-                  (click)="modoGoogle.set(!modoGoogle())"
+                  (click)="procesarLoginGoogle()"
                 >
                   Continuar con Google
                 </button>
@@ -165,45 +166,6 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
-
-              @if (modoGoogle()) {
-                <form
-                  class="myt-google-box laboratorio-form"
-                  (ngSubmit)="procesarLoginGoogle()"
-                  aria-label="Inicio de sesión con Google"
-                >
-                  <label class="form-field"
-                    >Cuenta de Google
-                    <input
-                      class="text-input"
-                      type="email"
-                      name="correoGoogle"
-                      [(ngModel)]="correoGoogle"
-                      required
-                      autocomplete="email"
-                      placeholder="tu.correo@javeriana.edu.co"
-                    />
-                  </label>
-                  <label class="form-field"
-                    >Nombre completo (opcional)
-                    <input
-                      class="text-input"
-                      type="text"
-                      name="nombreGoogle"
-                      [(ngModel)]="nombreGoogle"
-                      autocomplete="name"
-                      placeholder="Estudiante Google"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    class="btn btn--primary btn--md myt-btn myt-btn--primary"
-                    [disabled]="cargando() || !correoGoogle.trim()"
-                  >
-                    Autenticar con Google
-                  </button>
-                </form>
-              }
 
               <div class="myt-demo-accounts" aria-label="Cuentas de prueba Spring Security">
                 <span class="myt-demo-accounts__label"
@@ -310,8 +272,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         color: var(--color-text-main);
       }
       .myt-role-picker,
-      .myt-recovery-panel,
-      .myt-google-box {
+      .myt-recovery-panel {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -423,20 +384,28 @@ export class LoginPageComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
   readonly error = signal('');
   readonly mensajeExito = signal('');
   readonly cargando = signal(false);
-  readonly modoGoogle = signal(false);
   readonly modoRecuperacion = signal(false);
   readonly tokenGenerado = signal('');
+  readonly urlRedireccionGoogle = signal('');
 
-  correoGoogle = 'estudiante.google@javeriana.edu.co';
-  nombreGoogle = 'Camila Google';
   correoRecuperacion = '';
   tokenRestablecimiento = '';
   nuevaContrasena = '';
 
   ngOnInit() {
+    const callback = this.extraerCallbackOAuth();
+    if (callback?.error) {
+      this.error.set(callback.error);
+      return;
+    }
+    if (callback?.token) {
+      this.autenticarConTokenGoogle(callback.token);
+      return;
+    }
     this.cargando.set(true);
     this.auth
       .restaurar()
@@ -459,15 +428,88 @@ export class LoginPageComponent implements OnInit {
     this.procesarLogin({ correo, contrasena: '1ManzanaGrande!' });
   }
 
-  procesarLoginGoogle() {
-    if (this.cargando() || !this.correoGoogle.trim()) return;
+  procesarLoginGoogle(credencialOpcional?: string) {
+    if (this.cargando()) return;
+    if (credencialOpcional?.trim()) {
+      this.autenticarConTokenGoogle(credencialOpcional.trim());
+      return;
+    }
+    this.cargando.set(true);
+    this.error.set('');
+    this.mensajeExito.set('');
+    const origin = this.document.defaultView?.location?.origin ?? 'http://localhost:4200';
+    const redirectTo = `${origin}/login`;
+    this.auth
+      .obtenerUrlGoogle(redirectTo)
+      .pipe(finalize(() => this.cargando.set(false)))
+      .subscribe({
+        next: (res) => this.redirigirAGoogle(res.url),
+        error: (e) => this.error.set(mensajeHttp(e)),
+      });
+  }
+
+  autenticarConTokenGoogle(token: string) {
+    if (this.cargando() || !token.trim()) return;
     this.cargando.set(true);
     this.error.set('');
     this.mensajeExito.set('');
     this.auth
-      .iniciarSesionGoogle(this.correoGoogle.trim(), this.nombreGoogle.trim() || undefined)
+      .iniciarSesionGoogle(token.trim())
       .pipe(finalize(() => this.cargando.set(false)))
       .subscribe({ next: (e) => this.navegar(e), error: (e) => this.error.set(mensajeHttp(e)) });
+  }
+
+  redirigirAGoogle(url: string) {
+    this.urlRedireccionGoogle.set(url);
+    const win = this.document.defaultView;
+    if (win && !win.navigator?.userAgent?.includes('jsdom')) {
+      win.location.assign(url);
+    }
+  }
+
+  private extraerCallbackOAuth(): { token?: string; error?: string } | null {
+    const win = this.document.defaultView;
+    if (!win) return null;
+    const routerHashIdx = this.router.url.indexOf('#');
+    const routerHash = routerHashIdx !== -1 ? this.router.url.slice(routerHashIdx + 1) : '';
+    const rawHash = win.location.hash.startsWith('#')
+      ? win.location.hash.slice(1)
+      : win.location.hash;
+    const hash = rawHash || routerHash;
+    const search = win.location.search.startsWith('?')
+      ? win.location.search.slice(1)
+      : win.location.search;
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(search);
+
+    const errorDesc =
+      hashParams.get('error_description') ??
+      queryParams.get('error_description') ??
+      hashParams.get('error') ??
+      queryParams.get('error');
+    if (errorDesc) {
+      this.limpiarUrlOAuth(win);
+      return { error: errorDesc };
+    }
+
+    const token =
+      hashParams.get('access_token') ??
+      queryParams.get('access_token') ??
+      hashParams.get('id_token') ??
+      queryParams.get('code');
+    if (token) {
+      this.limpiarUrlOAuth(win);
+      return { token };
+    }
+    return null;
+  }
+
+  private limpiarUrlOAuth(win: Window) {
+    try {
+      win.history.replaceState(null, '', win.location.pathname);
+    } catch {
+      // Ignorar si el entorno no soporta history.replaceState
+    }
   }
 
   alternarRecuperacion(activo: boolean) {

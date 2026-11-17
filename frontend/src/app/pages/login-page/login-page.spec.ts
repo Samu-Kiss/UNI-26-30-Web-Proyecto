@@ -101,13 +101,49 @@ describe('Login y elección de perfil', () => {
     expect(c.modoRecuperacion()).toBe(false);
     expect(c.mensajeExito()).toContain('Contraseña actualizada');
 
-    c.correoGoogle = 'camila@javeriana.edu.co';
-    c.nombreGoogle = 'Camila Google';
     c.procesarLoginGoogle();
-    http.expectOne('/api/sesion/google').flush({
+    const googleUrlReq = http.expectOne((req) => req.url === '/api/sesion/google/url');
+    expect(googleUrlReq.request.params.get('redirectTo')).toContain('/login');
+    googleUrlReq.flush({
+      url: 'https://rrxvxcufuwmjbqiwhgmt.supabase.co/auth/v1/authorize?provider=google&redirect_to=http%3A%2F%2Flocalhost%3A4200%2Flogin',
+      supabaseUrl: 'https://rrxvxcufuwmjbqiwhgmt.supabase.co',
+      provider: 'google',
+    });
+    expect(c.urlRedireccionGoogle()).toContain(
+      'https://rrxvxcufuwmjbqiwhgmt.supabase.co/auth/v1/authorize?provider=google',
+    );
+
+    c.autenticarConTokenGoogle('eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImNhbWlsYUBqYXZlcmlhbmEuZWR1LmNvIn0.sig');
+    const googlePostReq = http.expectOne('/api/sesion/google');
+    expect(googlePostReq.request.body).toEqual({
+      credencial: 'eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImNhbWlsYUBqYXZlcmlhbmEuZWR1LmNvIn0.sig',
+      correo: undefined,
+      nombre: undefined,
+    });
+    googlePostReq.flush({
       actual: { rol: 'ESTUDIANTE', perfilId: 5, nombreUsuario: 'Camila Google' },
       opciones: [],
     });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
+    f.destroy();
+  });
+
+  it('procesa automáticamente el access_token del hash devuelto por Supabase OAuth en /login', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/login#access_token=supabase.jwt.token&token_type=bearer&expires_in=3600',
+    );
+    const f = TestBed.createComponent(LoginPageComponent);
+    f.detectChanges();
+    http.expectNone('/api/sesion');
+    const googlePostReq = http.expectOne('/api/sesion/google');
+    expect(googlePostReq.request.body.credencial).toBe('supabase.jwt.token');
+    googlePostReq.flush({
+      actual: { rol: 'ESTUDIANTE', perfilId: 9, nombreUsuario: 'Estudiante Supabase' },
+      opciones: [],
+    });
+    expect(window.location.hash).toBe('');
     expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
     f.destroy();
   });
