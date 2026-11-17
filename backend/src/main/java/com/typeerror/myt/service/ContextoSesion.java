@@ -21,6 +21,10 @@ public record ContextoSesion(RolUsuario rol, Integer perfilId, String nombreUsua
         return ruta;
     }
 
+    public String rolSeguridad() {
+        return rol == RolUsuario.ADMINISTRADOR ? "ADMIN" : "USER";
+    }
+
     public static String redireccion(String ruta) {
         return "redirect:" + ruta;
     }
