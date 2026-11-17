@@ -76,4 +76,39 @@ describe('Login y elección de perfil', () => {
     expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
     f.destroy();
   });
+  it('permite iniciar sesión con Google y ejecutar el flujo completo de recuperación de contraseña', () => {
+    const f = TestBed.createComponent(LoginPageComponent);
+    f.detectChanges();
+    http.expectOne('/api/sesion').flush({}, { status: 401, statusText: 'Unauthorized' });
+    const c = f.componentInstance;
+
+    c.alternarRecuperacion(true);
+    c.correoRecuperacion = 'user1@myt.edu.co';
+    c.solicitarCodigoRecuperacion();
+    http.expectOne('/api/sesion/recuperar').flush({
+      mensaje: 'Código generado',
+      tokenRecuperacion: 'MYT-ABC123',
+      expiraEnMinutos: 15,
+    });
+    expect(c.tokenGenerado()).toBe('MYT-ABC123');
+    expect(c.tokenRestablecimiento).toBe('MYT-ABC123');
+
+    c.nuevaContrasena = 'NuevaClaveSegura99!';
+    c.confirmarRestablecimiento();
+    http.expectOne('/api/sesion/restablecer').flush({
+      mensaje: 'Contraseña actualizada correctamente.',
+    });
+    expect(c.modoRecuperacion()).toBe(false);
+    expect(c.mensajeExito()).toContain('Contraseña actualizada');
+
+    c.correoGoogle = 'camila@javeriana.edu.co';
+    c.nombreGoogle = 'Camila Google';
+    c.procesarLoginGoogle();
+    http.expectOne('/api/sesion/google').flush({
+      actual: { rol: 'ESTUDIANTE', perfilId: 5, nombreUsuario: 'Camila Google' },
+      opciones: [],
+    });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
+    f.destroy();
+  });
 });
