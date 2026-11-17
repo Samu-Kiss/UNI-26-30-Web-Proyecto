@@ -166,6 +166,7 @@ class SecurityFilterChainTest {
                         .content("{\"correo\":\"user1@myt.edu.co\",\"contrasena\":\"1ManzanaGrande!\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.actual.rol").value("ESTUDIANTE"))
+                .andExpect(jsonPath("$.actual.rolSeguridad").value("USER"))
                 .andReturn();
 
         Cookie cookieUser = loginOk.getResponse().getCookie(JwtSesionService.COOKIE);

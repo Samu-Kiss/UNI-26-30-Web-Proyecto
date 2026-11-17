@@ -1,5 +1,6 @@
 package com.typeerror.myt.service;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.typeerror.myt.entities.RolUsuario;
 
 /** Contexto de navegación obtenido exclusivamente de un JWT validado. */
@@ -21,6 +22,7 @@ public record ContextoSesion(RolUsuario rol, Integer perfilId, String nombreUsua
         return ruta;
     }
 
+    @JsonProperty("rolSeguridad")
     public String rolSeguridad() {
         return rol == RolUsuario.ADMINISTRADOR ? "ADMIN" : "USER";
     }
