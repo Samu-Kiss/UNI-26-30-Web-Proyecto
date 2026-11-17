@@ -252,6 +252,35 @@ class SecurityServicesUnitTest {
                 null, null, validSignedJwt.serialize());
         assertEquals(1, accesosEs256.size());
 
+        // Usuario existente con nombre placeholder ("Camila Google") se sincroniza con el nombre real del JWT
+        Usuario placeholderUser = new Usuario();
+        placeholderUser.setId(55);
+        placeholderUser.setNombre("Camila");
+        placeholderUser.setApellido("Google");
+        placeholderUser.setCorreo("sammy.pico.duran@gmail.com");
+        placeholderUser.setActivo(true);
+        placeholderUser.setRoles(new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)));
+        when(usuarioRepository.findByCorreoIgnoreCase("sammy.pico.duran@gmail.com"))
+                .thenReturn(Optional.of(placeholderUser));
+        when(estudianteRepository.findByUsuarioId(55))
+                .thenReturn(Optional.of(new Estudiante(21, placeholderUser, "GOOGLE-55", "Javeriana", "Ing", 1)));
+
+        SignedJWT samuelJwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID("supabase-es256-kid").build(),
+                new JWTClaimsSet.Builder()
+                        .issuer("https://iozaniwbftbrslqzqfxk.supabase.co/auth/v1")
+                        .subject("23757e99-7f9f-43ae-85f2-261b0ba8c085")
+                        .expirationTime(Date.from(Instant.now().plusSeconds(3600)))
+                        .claim("email", "sammy.pico.duran@gmail.com")
+                        .claim("user_metadata", Map.of("full_name", "Samuel Pico", "name", "Samuel Pico"))
+                        .build());
+        samuelJwt.sign(new ECDSASigner(ecJwk));
+        var accesosSamuel = supabaseGoogleAuth.autenticarConGoogle(
+                null, null, samuelJwt.serialize());
+        assertEquals(1, accesosSamuel.size());
+        assertEquals("Samuel", placeholderUser.getNombre());
+        assertEquals("Pico", placeholderUser.getApellido());
+
         ECKey wrongKey = new ECKeyGenerator(Curve.P_256)
                 .keyID("supabase-es256-kid")
                 .generate();
