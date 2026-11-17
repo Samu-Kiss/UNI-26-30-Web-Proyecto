@@ -303,12 +303,24 @@ class SecurityIntegrationTest extends PostgreSqlIntegrationTest {
                 actualizado,
                 passwordEncoder.encode(MytUserDetailsConfig.CLAVE_PRUEBA_INMEMORY));
 
-        // 3. Inicio de sesión con Google (modo demo y token JWT simulado de GIS)
+        // 3. Inicio de sesión con Google vía Supabase OAuth (URL de autorización + verificación JWT)
+        mvc.perform(get("/api/sesion/google/url")
+                        .param("redirectTo", "http://localhost:4200/login"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.provider").value("google"))
+                .andExpect(jsonPath("$.url").isString());
+
+        mvc.perform(get("/api/sesion/oauth2/google")
+                        .param("redirectTo", "http://localhost:4200/login"))
+                .andExpect(status().is3xxRedirection());
+
         String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"RS256\"}".getBytes(StandardCharsets.UTF_8));
+                .encodeToString("{\"alg\":\"HS256\"}".getBytes(StandardCharsets.UTF_8));
         String payload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(("{\"email\":\"camila.google@javeriana.edu.co\","
-                        + "\"name\":\"Camila Google\"}").getBytes(StandardCharsets.UTF_8));
+                .encodeToString(("{\"sub\":\"9d8f7a6b-0001\","
+                        + "\"email\":\"camila.google@javeriana.edu.co\","
+                        + "\"user_metadata\":{\"full_name\":\"Camila Google\"}}")
+                        .getBytes(StandardCharsets.UTF_8));
         String fakeGoogleJwt = header + "." + payload + ".signature";
 
         var googleRes = mvc.perform(post("/api/sesion/google")
