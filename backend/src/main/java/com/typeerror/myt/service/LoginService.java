@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,14 +84,31 @@ public class LoginService {
         return List.of();
     }
 
+    public Optional<Usuario> asegurarUsuario(String correo) {
+        if (correo == null || correo.isBlank()) {
+            return Optional.empty();
+        }
+        String correoLimpio = correo.trim();
+        var existente = usuarioRepository.findByCorreoIgnoreCase(correoLimpio);
+        if (existente.isPresent()) {
+            return existente;
+        }
+        String correoLower = correoLimpio.toLowerCase(Locale.ROOT);
+        if (inMemoryUserDetailsManager != null && inMemoryUserDetailsManager.userExists(correoLower)) {
+            UserDetails detalles = inMemoryUserDetailsManager.loadUserByUsername(correoLower);
+            return Optional.of(sincronizarUsuarioEnMemoria(correoLower, detalles));
+        }
+        return Optional.empty();
+    }
+
     private Usuario sincronizarUsuarioEnMemoria(String correoLower, UserDetails detalles) {
         Set<String> autoridades = detalles.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(java.util.stream.Collectors.toSet());
 
         Set<RolUsuario> roles = new HashSet<>();
-        String nombre = "Usuario";
-        String apellido = "Prueba";
+        String nombre;
+        String apellido;
         if (autoridades.contains("ROLE_ADMIN") || autoridades.contains("ROLE_ADMINISTRADOR")) {
             roles.add(RolUsuario.ADMINISTRADOR);
             nombre = "Administrador";
@@ -101,7 +119,7 @@ public class LoginService {
             apellido = "Tutor";
         } else {
             roles.add(RolUsuario.ESTUDIANTE);
-            nombre = " Sofía".trim();
+            nombre = "Sofía";
             apellido = "Estudiante";
         }
 
@@ -128,7 +146,7 @@ public class LoginService {
         return guardado;
     }
 
-    private List<UsuarioAutenticado> resolverPerfiles(Usuario usuario) {
+    public List<UsuarioAutenticado> resolverPerfiles(Usuario usuario) {
         List<UsuarioAutenticado> accesos = new ArrayList<>();
         if (usuario.getRoles().contains(RolUsuario.ADMINISTRADOR)) {
             accesos.add(new UsuarioAutenticado(RolUsuario.ADMINISTRADOR, usuario.getId()));
