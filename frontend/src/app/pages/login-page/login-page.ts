@@ -576,18 +576,16 @@ export class LoginPageComponent implements OnInit {
     if (estado.actual) {
       if (estado.actual.rol === 'ADMINISTRADOR') {
         void this.router.navigateByUrl('/usuarios');
+      } else if (estado.actual.rol === 'TUTOR') {
+        this.api.agenda(estado.actual.perfilId).subscribe({
+          next: (a) =>
+            void this.router.navigateByUrl(
+              a.horarios.length ? '/reservas' : '/mi-perfil?setup=1',
+            ),
+          error: () => void this.router.navigateByUrl('/reservas'),
+        });
       } else {
-        if (estado.actual.rol === 'TUTOR') {
-          this.api.agenda(estado.actual.perfilId).subscribe({
-            next: (a) =>
-              void this.router.navigateByUrl(
-                a.horarios.length ? '/reservas' : '/mi-perfil?setup=1',
-              ),
-            error: () => void this.router.navigateByUrl('/reservas'),
-          });
-        } else {
-          void this.router.navigateByUrl('/tutores');
-        }
+        void this.router.navigateByUrl('/tutores');
       }
     }
   }

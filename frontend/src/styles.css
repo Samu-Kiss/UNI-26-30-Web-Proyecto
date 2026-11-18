@@ -224,8 +224,8 @@ textarea:user-valid {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
+    scroll-behavior: auto;
+    transition: none;
   }
 }
 
@@ -271,6 +271,7 @@ textarea:user-valid {
   background: var(--color-primary-light);
 }
 
+.myt-page-shell > output,
 .myt-page-shell > p[role='status'],
 .myt-page-shell > p[role='alert'] {
   padding: 1rem 1.25rem;
@@ -486,7 +487,7 @@ tbody tr:last-child td {
   background: #f8eedb;
 }
 .session-state[data-state='COMPLETADA'] {
-  color: #147d6c;
+  color: #0f6b5c;
   background: #e3eeea;
 }
 .session-state[data-state='CANCELADA'],
@@ -910,7 +911,7 @@ textarea {
   border-radius: 999px;
   background: #f5f5f3;
   border: 1px solid #dcdcdd;
-  color: #6f7479;
+  color: #595e63;
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -1023,7 +1024,10 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .myt-page-number-btn:hover:not(:disabled) {
@@ -1031,10 +1035,11 @@ textarea {
   border-color: var(--color-primary, #0e7490);
 }
 
-.myt-page-number-btn--active {
-  background: var(--color-primary, #0e7490) !important;
-  color: #ffffff !important;
-  border-color: var(--color-primary, #0e7490) !important;
+.myt-page-number-btn.myt-page-number-btn--active,
+.myt-page-number-btn.myt-page-number-btn--active:hover:not(:disabled) {
+  background: var(--color-primary, #0e7490);
+  color: #ffffff;
+  border-color: var(--color-primary, #0e7490);
 }
 
 .myt-pagination-info {
@@ -1208,8 +1213,8 @@ textarea {
   display: inline-block;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  background: rgba(240, 167, 38, 0.16);
-  color: #a96d00;
+  background: #f8eedb;
+  color: #7c5000;
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -1315,9 +1320,9 @@ textarea {
 }
 
 .myt-alert--success {
-  background: rgba(17, 129, 111, 0.12);
+  background: #e3eeea;
   border: 1px solid rgba(17, 129, 111, 0.3);
-  color: #11816f;
+  color: #0f6b5c;
   font-weight: 600;
 }
 

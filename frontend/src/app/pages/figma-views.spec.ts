@@ -243,8 +243,8 @@ describe('Vistas con datos reales', () => {
     c.agregarHorario();
     c.agregarBloqueo();
     f.detectChanges();
-    expect(c.agenda.horarios.length).toBe(2);
-    expect(c.agenda.bloqueos.length).toBe(2);
+    expect(c.agenda.horarios).toHaveLength(2);
+    expect(c.agenda.bloqueos).toHaveLength(2);
     c.guardar();
     expect(c.mensaje()).toBe('Agenda guardada.');
 

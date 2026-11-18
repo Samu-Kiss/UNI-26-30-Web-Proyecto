@@ -130,8 +130,11 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional
     public Reserva crearReserva(Integer tutorId, Integer estudianteId, Integer materiaId,
-            LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
+            LocalDateTime inicio, Integer duracionMinutos,
             String tema, ModalidadReserva modalidad) {
+
+        LocalDate fecha = inicio != null ? inicio.toLocalDate() : null;
+        LocalTime horaInicio = inicio != null ? inicio.toLocalTime() : null;
 
         Tutor tutor = tutorRepository.bloquearPorId(tutorId)
                 .or(() -> tutorRepository.findOneById(tutorId))

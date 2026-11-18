@@ -286,7 +286,10 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 .booking-cancel:hover:not(:disabled) {
   background: var(--color-danger-subtle, #fef2f2);
@@ -295,6 +298,14 @@
 .booking-cancel:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .booking-session,
+  .booking-session:hover,
+  .booking-cancel {
+    transition: none;
+    transform: none;
+  }
 }
 @media (max-width: 1100px) {
   .booking-form .booking-grid {

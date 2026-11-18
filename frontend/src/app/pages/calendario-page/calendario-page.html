@@ -42,15 +42,14 @@
         </div>
       </header>
       @if (cargando()) {
-        <p role="status" class="calendar-loading">Cargando calendario…</p>
+        <output class="calendar-loading">Cargando calendario…</output>
       }
-      <div class="calendar-grid" role="grid" aria-label="Calendario mensual">
+      <section class="calendar-grid" aria-label="Calendario mensual">
         @for (dia of ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']; track dia) {
-          <span role="columnheader" class="calendar-weekday">{{ dia }}</span>
+          <span class="calendar-weekday">{{ dia }}</span>
         }
         @for (d of diasMes(); track $index) {
           <div
-            role="gridcell"
             class="calendar-day"
             [class.calendar-day--empty]="!d"
             [class.calendar-day--today]="d?.fecha === hoy"
@@ -78,7 +77,7 @@
             }
           </div>
         }
-      </div>
+      </section>
       @if (!cargando() && !error() && !eventos().length) {
         <p class="calendar-empty">No hay reservas en este mes.</p>
       }

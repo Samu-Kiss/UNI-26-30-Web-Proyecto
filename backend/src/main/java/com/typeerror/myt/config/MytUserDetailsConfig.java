@@ -27,6 +27,7 @@ public class MytUserDetailsConfig {
     public static final String USER_ESTUDIANTE_EMAIL = "user1@myt.edu.co";
     public static final String USER_TUTOR_EMAIL = "user2@myt.edu.co";
     public static final String ADMIN_EMAIL = "admin@myt.edu.co";
+    private static final String ROLE_USER = "ROLE_USER";
 
     @Bean
     public InMemoryUserDetailsManager inMemoryUserDetailsManager(PasswordEncoder passwordEncoder) {
@@ -81,15 +82,15 @@ public class MytUserDetailsConfig {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"));
         }
         if (usuario.getRoles().contains(RolUsuario.ESTUDIANTE)) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities.add(new SimpleGrantedAuthority(ROLE_USER));
             authorities.add(new SimpleGrantedAuthority("ROLE_ESTUDIANTE"));
         }
         if (usuario.getRoles().contains(RolUsuario.TUTOR)) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities.add(new SimpleGrantedAuthority(ROLE_USER));
             authorities.add(new SimpleGrantedAuthority("ROLE_TUTOR"));
         }
         if (authorities.isEmpty()) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities.add(new SimpleGrantedAuthority(ROLE_USER));
         }
         return User.withUsername(usuario.getCorreo())
                 .password(usuario.getContrasena())

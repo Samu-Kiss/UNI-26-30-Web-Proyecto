@@ -21,9 +21,9 @@
     </div>
   </div>
 
-  <div class="calendar-picker__grid" role="grid">
+  <div class="calendar-picker__grid">
     @for (dia of diasSemana; track dia) {
-      <span role="columnheader" class="calendar-picker__weekday">{{ dia }}</span>
+      <span class="calendar-picker__weekday">{{ dia }}</span>
     }
 
     @for (celda of diasMes(); track $index) {

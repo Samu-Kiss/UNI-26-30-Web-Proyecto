@@ -67,7 +67,7 @@ public class Usuario {
 
     @Size(max = 30)
     @Column(length = 30)
-    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?\\d{10}$",
             message = "Ingresa 10 dígitos, opcionalmente precedidos por +57")
     private String telefono;
 

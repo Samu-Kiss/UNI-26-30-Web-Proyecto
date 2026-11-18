@@ -13,7 +13,7 @@
         (ngModelChange)="busqueda.set($event)"
     /></label>
     @if (cargando()) {
-      <p role="status">Cargando conversaciones…</p>
+      <output>Cargando conversaciones…</output>
     }
     <div class="chat-threads">
       @for (r of conversaciones(); track r.id) {
@@ -85,7 +85,7 @@
       >
       <div class="chat-history" aria-live="polite" aria-label="Mensajes de la tutoría">
         @if (cargandoMensajes()) {
-          <p role="status">Cargando mensajes…</p>
+          <output>Cargando mensajes…</output>
         } @else {
           @for (m of mensajes(); track m.id) {
             <article class="chat-bubble" [class.chat-bubble--own]="esPropio(m)">

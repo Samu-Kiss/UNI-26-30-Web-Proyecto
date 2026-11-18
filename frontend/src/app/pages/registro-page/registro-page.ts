@@ -457,7 +457,7 @@ export class RegistroPageComponent implements OnInit {
       return;
     }
 
-    if (this.datos.telefono && !/^(\+57)?[0-9]{10}$/.test(this.datos.telefono)) {
+    if (this.datos.telefono && !/^(\+57)?\d{10}$/.test(this.datos.telefono)) {
       this.error.set('Ingresa un teléfono de 10 dígitos, opcionalmente precedido por +57.');
       return;
     }

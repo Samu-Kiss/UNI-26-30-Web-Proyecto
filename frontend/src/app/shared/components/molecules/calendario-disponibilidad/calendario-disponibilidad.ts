@@ -89,7 +89,7 @@ export class CalendarioDisponibilidadComponent implements OnInit {
 
       let disponible = false;
       if (fechaStr >= min) {
-        if (ag && ag.horarios && ag.horarios.length > 0) {
+        if (ag?.horarios?.length) {
           const atiende = ag.horarios.some((h) => h.diaSemana === diaSemanaNombre);
           const bloqueado = ag.bloqueos?.some((b) => b.fecha === fechaStr) ?? false;
           disponible = atiende && !bloqueado;
@@ -116,7 +116,7 @@ export class CalendarioDisponibilidadComponent implements OnInit {
       const f = this.fecha();
       if (/^\d{4}-\d{2}-\d{2}$/.test(f)) {
         const d = new Date(f + 'T12:00:00');
-        if (!isNaN(d.getTime())) {
+        if (!Number.isNaN(d.getTime())) {
           const cur = untracked(() => this.mesVisual());
           if (cur.getFullYear() !== d.getFullYear() || cur.getMonth() !== d.getMonth()) {
             this.mesVisual.set(d);
@@ -145,7 +145,7 @@ export class CalendarioDisponibilidadComponent implements OnInit {
     const f = this.fecha();
     if (/^\d{4}-\d{2}-\d{2}$/.test(f)) {
       const d = new Date(f + 'T12:00:00');
-      if (!isNaN(d.getTime())) {
+      if (!Number.isNaN(d.getTime())) {
         this.mesVisual.set(d);
       }
     }
@@ -159,7 +159,7 @@ export class CalendarioDisponibilidadComponent implements OnInit {
   }
 
   seleccionar(celda: DiaCelda | null) {
-    if (!celda || !celda.disponible) return;
+    if (!celda?.disponible) return;
     this.fechaChange.emit(celda.fecha);
   }
 }

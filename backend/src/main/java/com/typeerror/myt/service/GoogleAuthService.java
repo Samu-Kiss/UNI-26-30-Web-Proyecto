@@ -11,7 +11,6 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -50,6 +49,7 @@ public class GoogleAuthService {
 
     private static final String DEFAULT_SUPABASE_PROJECT_REF = "rrxvxcufuwmjbqiwhgmt";
     private static final String DEFAULT_REDIRECT_TO = "http://localhost:4200/login";
+    private static final String APELLIDO_GOOGLE_DEFAULT = "Google";
 
     private final UsuarioRepository usuarioRepository;
     private final EstudianteRepository estudianteRepository;
@@ -99,7 +99,7 @@ public class GoogleAuthService {
 
     static String determinarSupabaseUrl(String configuredSupabaseUrl, String datasourceUsername) {
         if (configuredSupabaseUrl != null && !configuredSupabaseUrl.isBlank()) {
-            return configuredSupabaseUrl.trim().replaceAll("/+$", "");
+            return quitarBarrasFinales(configuredSupabaseUrl.trim());
         }
         if (datasourceUsername != null && datasourceUsername.startsWith("postgres.")) {
             String ref = datasourceUsername.substring("postgres.".length()).trim();
@@ -108,6 +108,14 @@ public class GoogleAuthService {
             }
         }
         return "https://" + DEFAULT_SUPABASE_PROJECT_REF + ".supabase.co";
+    }
+
+    private static String quitarBarrasFinales(String valor) {
+        int fin = valor.length();
+        while (fin > 0 && valor.charAt(fin - 1) == '/') {
+            fin--;
+        }
+        return valor.substring(0, fin);
     }
 
     public String resolverSupabaseUrl() {
@@ -225,10 +233,10 @@ public class GoogleAuthService {
             }
         } catch (ResponseStatusException ex) {
             throw ex;
-        } catch (IOException | InterruptedException | ParseException | IllegalArgumentException ignored) {
-            if (ignored instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (IOException | ParseException | IllegalArgumentException ignored) {
+            // Se intenta verificación local como respaldo
         }
         return null;
     }
@@ -245,8 +253,9 @@ public class GoogleAuthService {
                     Base64.getUrlDecoder().decode(partes[1]),
                     StandardCharsets.UTF_8);
             JWTClaimsSet claims = JWTClaimsSet.parse(payload);
-            Date exp = claims.getExpirationTime();
-            if (exp != null && exp.toInstant().isBefore(Instant.now())) {
+            Object expClaim = claims.toJSONObject().get("exp");
+            if (expClaim instanceof Number expSeconds
+                    && Instant.ofEpochSecond(expSeconds.longValue()).isBefore(Instant.now())) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "El token de Google ha expirado");
             }
@@ -270,7 +279,7 @@ public class GoogleAuthService {
     }
 
     private boolean esEmisorValido(String issuer) {
-        String limpio = issuer.trim().replaceAll("/+$", "");
+        String limpio = quitarBarrasFinales(issuer.trim());
         return limpio.equalsIgnoreCase(supabaseUrl + "/auth/v1")
                 || limpio.equalsIgnoreCase("https://accounts.google.com")
                 || limpio.equalsIgnoreCase("accounts.google.com");
@@ -325,10 +334,10 @@ public class GoogleAuthService {
             if (response.statusCode() == 200 && response.body() != null) {
                 return JWKSet.parse(response.body());
             }
-        } catch (IOException | InterruptedException | ParseException | IllegalArgumentException ignored) {
-            if (ignored instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (IOException | ParseException | IllegalArgumentException ignored) {
+            // Se retorna null si no es posible obtener el JWKSet remoto
         }
         return null;
     }
@@ -358,35 +367,39 @@ public class GoogleAuthService {
 
     private String extraerNombreDeClaims(
             JWTClaimsSet claims, Map<String, Object> userMetadata) throws ParseException {
-        if (userMetadata != null) {
-            if (userMetadata.get("full_name") instanceof String fullName && !fullName.isBlank()) {
-                return fullName;
-            }
-            if (userMetadata.get("name") instanceof String metaName && !metaName.isBlank()) {
-                return metaName;
-            }
-            String given = userMetadata.get("given_name") instanceof String g ? g.trim() : "";
-            String family = userMetadata.get("family_name") instanceof String f ? f.trim() : "";
-            if (!given.isEmpty() || !family.isEmpty()) {
-                return (given + " " + family).trim();
-            }
+        String desdeMetadata = extraerNombreDeMetadata(userMetadata);
+        if (desdeMetadata != null) {
+            return desdeMetadata;
         }
         String claimFullName = claims.getStringClaim("full_name");
         if (claimFullName != null && !claimFullName.isBlank()) {
             return claimFullName;
         }
         String claimName = claims.getStringClaim("name");
-        if (claimName != null && !claimName.isBlank()) {
-            return claimName;
+        return (claimName != null && !claimName.isBlank()) ? claimName : null;
+    }
+
+    private String extraerNombreDeMetadata(Map<String, Object> userMetadata) {
+        if (userMetadata == null) {
+            return null;
         }
-        return null;
+        if (userMetadata.get("full_name") instanceof String fullName && !fullName.isBlank()) {
+            return fullName;
+        }
+        if (userMetadata.get("name") instanceof String metaName && !metaName.isBlank()) {
+            return metaName;
+        }
+        String given = userMetadata.get("given_name") instanceof String g ? g.trim() : "";
+        String family = userMetadata.get("family_name") instanceof String f ? f.trim() : "";
+        String combinado = (given + " " + family).trim();
+        return combinado.isEmpty() ? null : combinado;
     }
 
     private Usuario sincronizarNombreUsuario(
             Usuario usuario, String nombreResuelto, String correoLimpio) {
         boolean tieneNombreVerificado = nombreResuelto != null && !nombreResuelto.isBlank();
         boolean tieneNombrePlaceholder = "Camila".equalsIgnoreCase(usuario.getNombre())
-                && "Google".equalsIgnoreCase(usuario.getApellido());
+                && APELLIDO_GOOGLE_DEFAULT.equalsIgnoreCase(usuario.getApellido());
         if (!tieneNombreVerificado && !tieneNombrePlaceholder) {
             return usuario;
         }
@@ -407,7 +420,7 @@ public class GoogleAuthService {
             if (partes.length == 2) {
                 return new String[] {partes[0], partes[1]};
             }
-            return new String[] {partes[0], "Google"};
+            return new String[] {partes[0], APELLIDO_GOOGLE_DEFAULT};
         }
         String alias = correo.substring(0, correo.indexOf('@'))
                 .replace('.', ' ')
@@ -420,9 +433,9 @@ public class GoogleAuthService {
             if (partesAlias.length == 2 && !partesAlias[1].isBlank()) {
                 return new String[] {nombreAlias, capitalizarPalabras(partesAlias[1])};
             }
-            return new String[] {nombreAlias, "Google"};
+            return new String[] {nombreAlias, APELLIDO_GOOGLE_DEFAULT};
         }
-        return new String[] {"Usuario", "Google"};
+        return new String[] {"Usuario", APELLIDO_GOOGLE_DEFAULT};
     }
 
     private String capitalizarPalabras(String texto) {
