@@ -75,6 +75,10 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
         materia = materias.save(new Materia(null, "Materia API"));
         tutor = tutores.save(new Tutor(null, cuenta("tutor-api@test.edu", RolUsuario.TUTOR), "Biografia",
                 Set.of(materia), new BigDecimal("50000"), true));
+        for (var dia : com.typeerror.myt.entities.DiaSemana.values()) {
+            em.persist(new com.typeerror.myt.entities.DisponibilidadTutor(null, tutor, dia,
+                    java.time.LocalTime.of(8, 0), java.time.LocalTime.of(18, 0)));
+        }
         em.flush();
     }
 
@@ -205,7 +209,7 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
         assertEquals("Editada", tutores.findById(tutor.getId()).orElseThrow().getBiografia());
         String alta = """
                 {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"10:00",
-                 "duracionMinutos":60,"tema":"Prueba real","modalidad":"VIRTUAL"}
+                 "duracionMinutos":60,"tema":"Prueba real","modalidad":"VIRTUAL","objetivo":"Preparar examen"}
                 """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(7));
         mvc.perform(json(post("/api/reservas"), alta, estudiantePerfil()))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.costoTotal").value(40000));
@@ -214,7 +218,7 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
                 "{\"estado\":\"CONFIRMADA\"}", "TUTOR:" + tutor.getId())).andExpect(status().isOk());
         mvc.perform(get("/api/reservas?estado=CONFIRMADA").cookie(cookie(estudiantePerfil())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
-        mvc.perform(json(delete("/api/reservas/" + reserva.getId()), "", estudiantePerfil()))
+        mvc.perform(json(delete("/api/reservas/" + reserva.getId() + "?motivo=Conflicto"), "", estudiantePerfil()))
                 .andExpect(status().isNoContent());
         mvc.perform(json(delete("/api/tutores/" + tutor.getId()), "", adminPerfil()))
                 .andExpect(status().isNoContent());
@@ -248,14 +252,14 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
     void rechazaReservasAjenasYTransicionesInvalidasSinCambiarLaBase() throws Exception {
         String alta = """
                 {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"10:00",
-                 "duracionMinutos":60,"tema":"Reserva privada","modalidad":"VIRTUAL"}
+                 "duracionMinutos":60,"tema":"Reserva privada","modalidad":"VIRTUAL","objetivo":"Preparar examen"}
                 """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(8));
         mvc.perform(json(post("/api/reservas"), alta, estudiantePerfil())).andExpect(status().isCreated());
         var reserva = reservas.buscarPorEstudiante(estudiante.getId(), null).getFirst();
         var otro = estudiantes.save(new Estudiante(null, cuenta("otro@test.edu", RolUsuario.ESTUDIANTE),
                 "OTRO", "Universidad", "Sistemas", 2));
         String perfilAjeno = "ESTUDIANTE:" + otro.getId();
-        mvc.perform(json(delete("/api/reservas/" + reserva.getId()), "", perfilAjeno))
+        mvc.perform(json(delete("/api/reservas/" + reserva.getId() + "?motivo=Conflicto"), "", perfilAjeno))
                 .andExpect(status().isForbidden());
         mvc.perform(json(put("/api/reservas/" + reserva.getId() + "/estado"),
                 "{\"estado\":\"CONFIRMADA\"}", estudiantePerfil())).andExpect(status().isForbidden());
@@ -269,10 +273,78 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/tutores?page=-1").cookie(cookie(adminPerfil())))
                 .andExpect(status().isBadRequest());
-        mvc.perform(json(delete("/api/reservas/2147483647"), "", adminPerfil()))
+        mvc.perform(json(delete("/api/reservas/2147483647?motivo=Conflicto"), "", adminPerfil()))
                 .andExpect(status().isNotFound());
         em.flush();
         em.clear();
         assertEquals(EstadoReserva.PENDIENTE, reservas.findById(reserva.getId()).orElseThrow().getEstado());
+    }
+
+    @Test
+    void nuevosEndpointsEstudiantesUsuariosYConsultaReserva() throws Exception {
+        mvc.perform(get("/api/estudiantes").cookie(cookie(adminPerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoEstudiantil").value("API-123"))
+                .andExpect(jsonPath("$[0].universidad").value("Universidad"));
+
+        mvc.perform(get("/api/estudiantes/" + estudiante.getId()).cookie(cookie(adminPerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.codigoEstudiantil").value("API-123"));
+
+        mvc.perform(get("/api/estudiantes").cookie(cookie(estudiantePerfil())))
+                .andExpect(status().isForbidden());
+
+        String datosAdmin = "{\"nombre\":\"AdminNuevo\",\"apellido\":\"Prueba\","
+                + "\"correo\":\"admin-api@test.edu\",\"telefono\":\"3001234567\"}";
+        mvc.perform(json(put("/api/usuarios/" + admin.getId()), datosAdmin, adminPerfil()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("AdminNuevo"));
+
+        // Asignación de rol ADMINISTRADOR a usuario existente
+        mvc.perform(json(post("/api/usuarios/" + estudiante.getUsuario().getId() + "/perfiles"),
+                "{\"rol\":\"ADMINISTRADOR\"}", adminPerfil()))
+                .andExpect(status().isCreated());
+
+        mvc.perform(json(put("/api/usuarios/" + admin.getId() + "/activo"),
+                "{\"activo\":false}", adminPerfil()))
+                .andExpect(status().isNoContent());
+
+        // Sesión de admin desactivada ya no permite consultar recursos privados
+        mvc.perform(get("/api/usuarios").cookie(cookie(adminPerfil())))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/usuarios")
+                .header("X-MYT-Request", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                {"nombre":"Publico","apellido":"Usuario","correo":"publico@test.edu",
+                 "contrasena":"ClaveSegura123!","rol":"ESTUDIANTE","codigoEstudiantil":"PUB-1",
+                 "universidad":"U","programaAcademico":"Sistemas","semestre":1}
+                """))
+                .andExpect(status().isCreated());
+
+        String alta = """
+                {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"10:00",
+                 "duracionMinutos":60,"tema":"Consulta detalle","modalidad":"VIRTUAL","objetivo":"Preparar examen"}
+                """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(10));
+        mvc.perform(json(post("/api/reservas"), alta, estudiantePerfil()))
+                .andExpect(status().isCreated());
+        var res = reservas.buscarPorEstudiante(estudiante.getId(), null).getFirst();
+
+        mvc.perform(get("/api/reservas/" + res.getId()).cookie(cookie(estudiantePerfil())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(res.getId()))
+                .andExpect(jsonPath("$.tema").value("Consulta detalle"));
+
+        // Tutor no disponible rechaza nuevas reservas
+        tutor.setDisponible(false);
+        tutores.save(tutor);
+        String altaTutorDesactivado = """
+                {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"11:00",
+                 "duracionMinutos":60,"tema":"Intento tutor inactivo","modalidad":"VIRTUAL",
+                 "objetivo":"Preparar examen"}
+                """.formatted(tutor.getId(), materia.getId(), LocalDate.now().plusDays(11));
+        mvc.perform(json(post("/api/reservas"), altaTutorDesactivado, estudiantePerfil()))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -2,16 +2,21 @@ package com.typeerror.myt.api;
 
 import java.io.IOException;
 import java.util.Set;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.service.ContextoSesion;
 import com.typeerror.myt.service.JwtSesionService;
 import com.typeerror.myt.service.SesionService;
-import com.typeerror.myt.entities.RolUsuario;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class ApiInterceptor implements HandlerInterceptor {
+
     private final JwtSesionService jwt;
     private final SesionService sesiones;
 
@@ -32,21 +37,39 @@ public class ApiInterceptor implements HandlerInterceptor {
                 && !"1".equals(request.getHeader("X-MYT-Request"))) {
             return error(response, 403, "Falta protección CSRF");
         }
-        if (request.getRequestURI().startsWith("/api/sesion")) {
+        String uri = request.getRequestURI();
+        if (uri.startsWith("/api/sesion") || uri.startsWith("/api/public")) {
             return true;
         }
-        var perfiles = jwt.perfiles(request, false);
-        var contexto = perfiles.size() == 1 ? sesiones.resolver(perfiles.getFirst()) : java.util.Optional
-                .<com.typeerror.myt.service.ContextoSesion>empty();
-        if (contexto.isEmpty()) {
+        ContextoSesion existente = resolverSesion(request);
+        // Permitir autoregistro de usuarios con cabecera CSRF
+        if (uri.equals("/api/usuarios") && "POST".equals(method)) {
+            return true;
+        }
+        if (existente == null) {
             return error(response, 401, "Inicia sesión de nuevo");
         }
-        if (request.getRequestURI().startsWith("/api/usuarios")
-                && contexto.get().rol() != RolUsuario.ADMINISTRADOR) {
+        if ((uri.startsWith("/api/usuarios") || uri.startsWith("/api/estudiantes"))
+                && existente.rol() != RolUsuario.ADMINISTRADOR) {
             return error(response, 403, "Se requiere perfil administrador");
         }
-        request.setAttribute("apiSesion", contexto.get());
         return true;
+    }
+
+    private ContextoSesion resolverSesion(HttpServletRequest request) {
+        ContextoSesion existente = (ContextoSesion) request.getAttribute("apiSesion");
+        if (existente != null) {
+            return existente;
+        }
+        var perfiles = jwt.perfiles(request, false);
+        if (perfiles.size() == 1) {
+            var contexto = sesiones.resolver(perfiles.getFirst());
+            if (contexto.isPresent()) {
+                request.setAttribute("apiSesion", contexto.get());
+                return contexto.get();
+            }
+        }
+        return null;
     }
 
     private boolean error(HttpServletResponse response, int status, String message) throws IOException {

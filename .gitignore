@@ -48,3 +48,5 @@ frontend/dist/
 frontend/coverage/
 .angular/
 
+
+.ai/

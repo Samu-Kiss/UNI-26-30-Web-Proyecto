@@ -1,22 +1,34 @@
 import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { catchError, map, of, tap } from 'rxjs';
+import { catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { Credenciales } from '../models/usuario.model';
 
 export interface Sesion {
   rol: 'ADMINISTRADOR' | 'ESTUDIANTE' | 'TUTOR';
   perfilId: number;
   nombreUsuario: string;
+  rolSeguridad?: 'ADMIN' | 'USER';
 }
 export interface EstadoSesion {
   actual: Sesion | null;
   opciones: string[];
 }
+export interface SolicitudRecuperacionRespuesta {
+  mensaje: string;
+  tokenRecuperacion: string;
+  expiraEnMinutos: number;
+}
+export interface UrlOAuthGoogleRespuesta {
+  url: string;
+  supabaseUrl?: string;
+  provider?: string;
+}
 
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
-  const base = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl?.replace(/\/+$/, '') ?? '';
+  const rawBase = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl ?? '';
+  const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
   return next(
     req.url.startsWith('/api/')
       ? req.clone({
@@ -33,14 +45,15 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   readonly sesion = signal<Sesion | null>(null);
   readonly opciones = signal<string[]>([]);
-  private readonly aplicar = (estado: EstadoSesion) => {
-    this.sesion.set(estado.actual);
-    this.opciones.set(estado.opciones);
-  };
-  iniciarSesion(datos: Credenciales) {
-    return this.http.post<EstadoSesion>('/api/sesion/login', datos).pipe(tap(this.aplicar));
-  }
-  restaurar() {
+  readonly cargando = signal(true);
+  readonly esAdmin = computed(() => this.sesion()?.rol === 'ADMINISTRADOR');
+  readonly rolSistema = computed<'ADMIN' | 'USER' | null>(() => {
+    const actual = this.sesion();
+    if (!actual) return null;
+    return actual.rol === 'ADMINISTRADOR' ? 'ADMIN' : 'USER';
+  });
+  private restauracion?: ReturnType<AuthService['consultarSesion']>;
+  private consultarSesion() {
     return this.http.get<EstadoSesion>('/api/sesion').pipe(
       tap(this.aplicar),
       catchError((error) => {
@@ -48,7 +61,42 @@ export class AuthService {
         this.opciones.set([]);
         throw error;
       }),
+      finalize(() => {
+        this.cargando.set(false);
+        this.restauracion = undefined;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+  }
+  private readonly aplicar = (estado: EstadoSesion) => {
+    this.sesion.set(estado.actual);
+    this.opciones.set(estado.opciones);
+  };
+  iniciarSesion(datos: Credenciales) {
+    return this.http.post<EstadoSesion>('/api/sesion/login', datos).pipe(tap(this.aplicar));
+  }
+  obtenerUrlGoogle(redirectTo?: string) {
+    const params = redirectTo ? { params: { redirectTo } } : {};
+    return this.http.get<UrlOAuthGoogleRespuesta>('/api/sesion/google/url', params);
+  }
+  iniciarSesionGoogle(credencial: string, correo?: string, nombre?: string) {
+    return this.http
+      .post<EstadoSesion>('/api/sesion/google', { credencial, correo, nombre })
+      .pipe(tap(this.aplicar));
+  }
+  solicitarRecuperacion(correo: string) {
+    return this.http.post<SolicitudRecuperacionRespuesta>('/api/sesion/recuperar', { correo });
+  }
+  restablecerContrasena(token: string, nuevaContrasena: string) {
+    return this.http.post<{ mensaje: string }>('/api/sesion/restablecer', {
+      token,
+      nuevaContrasena,
+    });
+  }
+  restaurar() {
+    this.cargando.set(true);
+    this.restauracion ??= this.consultarSesion();
+    return this.restauracion;
   }
   elegir(perfil: string) {
     return this.http.post<EstadoSesion>('/api/sesion/perfil', { perfil }).pipe(tap(this.aplicar));
@@ -65,6 +113,12 @@ export class AuthService {
 export const sessionGuard: CanActivateFn = (route) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  const actual = auth.sesion();
+  if (actual) {
+    return route.data['admin'] && actual.rol !== 'ADMINISTRADOR'
+      ? router.createUrlTree(['/tutores'])
+      : true;
+  }
   return auth.restaurar().pipe(
     map((estado) => {
       if (!estado.actual) return router.createUrlTree(['/login']);

@@ -22,6 +22,8 @@ public abstract class PostgreSqlIntegrationTest {
         aplicarMigracion("/db/supabase/20260903120000_add_domain_constraints_and_indexes.sql");
         aplicarMigracion("/db/supabase/20260917160000_refactor_domain_model.sql");
         aplicarMigracion("/db/supabase/20260917170000_add_chat.sql");
+        aplicarMigracion("/db/supabase/20261029010000_reserva_objetivo.sql");
+        aplicarMigracion("/db/supabase/20261117120000_add_password_reset_tokens.sql");
     }
 
     private static void aplicarMigracion(String recurso) {

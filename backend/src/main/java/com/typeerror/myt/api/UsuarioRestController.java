@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.typeerror.myt.controller.RegistroUsuarioForm;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.service.RegistroUsuarioService;
 import jakarta.validation.Valid;
@@ -25,6 +27,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.typeerror.myt.service.UsuarioService;
+import jakarta.validation.constraints.Email;
+import org.springframework.web.bind.annotation.PutMapping;
+
 @RestController
 @Tag(name = "Usuarios", description = "Consulta y registro de usuarios. Requiere sesión de administrador.")
 @ApiResponse(responseCode = "401", description = "Sesión ausente o vencida",
@@ -36,18 +42,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class UsuarioRestController {
     private final UsuarioRepository usuarios;
     private final RegistroUsuarioService registro;
+    private final UsuarioService usuarioService;
 
-    public UsuarioRestController(UsuarioRepository usuarios, RegistroUsuarioService registro) {
+    public UsuarioRestController(UsuarioRepository usuarios, RegistroUsuarioService registro,
+            UsuarioService usuarioService) {
         this.usuarios = usuarios;
         this.registro = registro;
+        this.usuarioService = usuarioService;
     }
 
     @Getter
     @Setter
-    public static class Registro extends RegistroUsuarioForm {
-        @NotBlank
-        @Size(min = 8, max = 72)
-        private String contrasena;
+    public static class PerfilAlta extends RegistroUsuarioForm {
         @NotBlank
         private String rol;
         private String codigoEstudiantil;
@@ -58,9 +64,17 @@ public class UsuarioRestController {
         private String biografia;
         private String materias;
         private java.math.BigDecimal tarifaPorHora;
+    }
+
+    @Getter
+    @Setter
+    public static class Registro extends PerfilAlta {
+        @NotBlank
+        @Size(min = 8, max = 72)
+        private String contrasena;
 
         @Override
-        public com.typeerror.myt.entities.Usuario toEntity() {
+        public Usuario toEntity() {
             var usuario = super.toEntity();
             usuario.setContrasena(contrasena);
             return usuario;
@@ -91,17 +105,100 @@ public class UsuarioRestController {
     @ApiResponse(responseCode = "400", description = "Datos de registro inválidos")
     @Transactional
     public ResponseEntity<Void> registrar(@Valid @RequestBody Registro datos) {
-        var usuario = datos.toEntity();
+        if (!registrarPerfilBasico(datos.toEntity(), datos)) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.status(201).build();
+    }
+
+    public record EdicionUsuario(
+            @NotBlank @Size(max = 100) String nombre,
+            @NotBlank @Size(max = 100) String apellido,
+            @NotBlank @Email @Size(max = 150) String correo,
+            @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?\\d{10}$",
+                    message = "Ingresa 10 dígitos, opcionalmente precedidos por +57") String telefono) { }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar datos de usuario")
+    @Transactional
+    public ResponseEntity<ApiDtos.UsuarioDto> actualizar(
+            @PathVariable Integer id,
+            @Valid @RequestBody EdicionUsuario datos) {
+        return usuarios.findById(id).map(u -> {
+            u.setNombre(datos.nombre());
+            u.setApellido(datos.apellido());
+            u.setCorreo(datos.correo());
+            u.setTelefono(datos.telefono());
+            return ResponseEntity.ok(ApiDtos.usuario(usuarios.save(u)));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    public record EstadoUsuarioDto(Boolean activo) { }
+
+    @PutMapping("/{id}/activo")
+    @Operation(summary = "Activar o desactivar usuario")
+    @Transactional
+    public ResponseEntity<Void> cambiarEstado(
+            @PathVariable Integer id,
+            @RequestBody EstadoUsuarioDto datos) {
+        if (Boolean.TRUE.equals(datos.activo())) {
+            usuarioService.activar(id);
+        } else {
+            usuarioService.desactivar(id);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar usuario por identificador")
+    @Transactional
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        if (!usuarios.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            usuarios.deleteById(id);
+        } catch (Exception e) {
+            usuarioService.desactivar(id);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/perfiles")
+    @Operation(summary = "Asociar nuevo perfil a usuario existente")
+    @Transactional
+    public ResponseEntity<Void> agregarPerfil(
+            @PathVariable Integer id,
+            @RequestBody PerfilAlta datos) {
+        if (datos.getRol() == null || datos.getRol().isBlank()
+                || (datos.getBiografia() != null && datos.getBiografia().length() > 2000)) {
+            return ResponseEntity.badRequest().build();
+        }
+        var usuario = usuarios.findById(id);
+        if (usuario.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if ("ADMINISTRADOR".equals(datos.getRol())) {
+            var u = usuario.get();
+            u.getRoles().add(RolUsuario.ADMINISTRADOR);
+            usuarios.save(u);
+        } else if (!registrarPerfilBasico(usuario.get(), datos)) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.status(201).build();
+    }
+
+    private boolean registrarPerfilBasico(Usuario usuario, PerfilAlta datos) {
         switch (datos.getRol()) {
             case "ESTUDIANTE" -> registro.registrarEstudiante(usuario, datos.getCodigoEstudiantil(),
                     datos.getUniversidad(), datos.getProgramaAcademico(), datos.getSemestre());
             case "TUTOR" -> registro.registrarTutor(usuario, datos.getBiografia(),
                     Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
-                            .filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
+                            .map(String::trim).filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
             default -> {
-                return ResponseEntity.badRequest().build();
+                return false;
             }
         }
-        return ResponseEntity.status(201).build();
+        return true;
     }
 }

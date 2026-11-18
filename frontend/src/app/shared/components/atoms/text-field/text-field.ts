@@ -10,7 +10,7 @@ let nextTextFieldId = 0;
         <label [for]="id()" class="form-label">
           {{ label() }}
           @if (required()) {
-            <span aria-hidden="true" style="color: var(--color-danger)"> *</span>
+            <span aria-hidden="true" class="form-field__required"> *</span>
           }
         </label>
       }
