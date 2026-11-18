@@ -120,7 +120,7 @@
   background: #f8eedb;
 }
 .calendar-event[data-state='COMPLETADA'] {
-  color: #147d6c;
+  color: #0f6b5c;
   background: #e3eeea;
 }
 .calendar-event[data-state='CANCELADA'],

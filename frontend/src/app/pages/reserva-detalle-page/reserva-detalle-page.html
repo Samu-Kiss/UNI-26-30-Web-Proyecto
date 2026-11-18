@@ -3,7 +3,7 @@
     ><app-lucide-icon name="arrow-left" [size]="16" />Volver a mis reservas</a
   >
   @if (cargando()) {
-    <p role="status">Cargando reserva…</p>
+    <output>Cargando reserva…</output>
   }
   @if (error()) {
     <div class="myt-alert myt-alert--error" role="alert">

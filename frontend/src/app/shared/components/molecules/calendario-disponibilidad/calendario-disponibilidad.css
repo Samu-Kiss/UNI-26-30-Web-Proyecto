@@ -48,7 +48,10 @@
   background: var(--color-surface-pure, #ffffff);
   color: var(--color-text-main, #1e293b);
   cursor: pointer;
-  transition: all 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .calendar-picker__nav-btn:hover {
@@ -88,7 +91,10 @@
   font-size: 0.82rem;
   font-weight: 500;
   padding: 0;
-  transition: all 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .calendar-picker__day--empty {
@@ -115,10 +121,11 @@
   text-underline-offset: 2px;
 }
 
-.calendar-picker__day.is-selected {
-  background: var(--color-primary, #0f766e) !important;
-  color: #ffffff !important;
-  border-color: var(--color-primary, #0f766e) !important;
+.calendar-picker__day.is-selected,
+.calendar-picker__day.is-available.is-selected {
+  background: var(--color-primary, #0f766e);
+  color: #ffffff;
+  border-color: var(--color-primary, #0f766e);
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(15, 118, 110, 0.25);
 }

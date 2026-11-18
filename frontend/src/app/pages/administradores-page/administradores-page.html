@@ -58,7 +58,7 @@
   </div>
 
   @if (cargando()) {
-    <p role="status" class="myt-status-message">Cargando administradores…</p>
+    <output class="myt-status-message">Cargando administradores…</output>
   }
   @if (error()) {
     <div class="myt-alert myt-alert--error" role="alert">
@@ -71,12 +71,7 @@
 
   @if (!cargando() && !error()) {
     <div class="myt-surface-card myt-table-card">
-      <div
-        class="myt-table-scroll"
-        role="region"
-        aria-label="Tabla de administradores"
-        tabindex="0"
-      >
+      <section class="myt-table-scroll" aria-label="Tabla de administradores">
         <table class="myt-table">
           <thead>
             <tr>
@@ -128,7 +123,7 @@
             }
           </tbody>
         </table>
-      </div>
+      </section>
     </div>
   }
 </main>

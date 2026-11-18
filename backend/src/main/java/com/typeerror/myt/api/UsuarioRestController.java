@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.typeerror.myt.controller.RegistroUsuarioForm;
+import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.service.RegistroUsuarioService;
 import jakarta.validation.Valid;
@@ -51,10 +53,7 @@ public class UsuarioRestController {
 
     @Getter
     @Setter
-    public static class Registro extends RegistroUsuarioForm {
-        @NotBlank
-        @Size(min = 8, max = 72)
-        private String contrasena;
+    public static class PerfilAlta extends RegistroUsuarioForm {
         @NotBlank
         private String rol;
         private String codigoEstudiantil;
@@ -65,9 +64,17 @@ public class UsuarioRestController {
         private String biografia;
         private String materias;
         private java.math.BigDecimal tarifaPorHora;
+    }
+
+    @Getter
+    @Setter
+    public static class Registro extends PerfilAlta {
+        @NotBlank
+        @Size(min = 8, max = 72)
+        private String contrasena;
 
         @Override
-        public com.typeerror.myt.entities.Usuario toEntity() {
+        public Usuario toEntity() {
             var usuario = super.toEntity();
             usuario.setContrasena(contrasena);
             return usuario;
@@ -98,16 +105,8 @@ public class UsuarioRestController {
     @ApiResponse(responseCode = "400", description = "Datos de registro inválidos")
     @Transactional
     public ResponseEntity<Void> registrar(@Valid @RequestBody Registro datos) {
-        var usuario = datos.toEntity();
-        switch (datos.getRol()) {
-            case "ESTUDIANTE" -> registro.registrarEstudiante(usuario, datos.getCodigoEstudiantil(),
-                    datos.getUniversidad(), datos.getProgramaAcademico(), datos.getSemestre());
-            case "TUTOR" -> registro.registrarTutor(usuario, datos.getBiografia(),
-                    Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
-                            .filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
-            default -> {
-                return ResponseEntity.badRequest().build();
-            }
+        if (!registrarPerfilBasico(datos.toEntity(), datos)) {
+            return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.status(201).build();
     }
@@ -116,7 +115,7 @@ public class UsuarioRestController {
             @NotBlank @Size(max = 100) String nombre,
             @NotBlank @Size(max = 100) String apellido,
             @NotBlank @Email @Size(max = 150) String correo,
-            @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+            @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?\\d{10}$",
                     message = "Ingresa 10 dígitos, opcionalmente precedidos por +57") String telefono) { }
 
     @PutMapping("/{id}")
@@ -165,46 +164,41 @@ public class UsuarioRestController {
         return ResponseEntity.noContent().build();
     }
 
-    @Getter
-    @Setter
-    public static class PerfilAlta {
-        @NotBlank
-        private String rol;
-        private String codigoEstudiantil;
-        private String universidad;
-        private String programaAcademico;
-        private Integer semestre;
-        @Size(max = 2000)
-        private String biografia;
-        private String materias;
-        private java.math.BigDecimal tarifaPorHora;
-    }
-
     @PostMapping("/{id}/perfiles")
     @Operation(summary = "Asociar nuevo perfil a usuario existente")
     @Transactional
     public ResponseEntity<Void> agregarPerfil(
             @PathVariable Integer id,
-            @Valid @RequestBody PerfilAlta datos) {
+            @RequestBody PerfilAlta datos) {
+        if (datos.getRol() == null || datos.getRol().isBlank()
+                || (datos.getBiografia() != null && datos.getBiografia().length() > 2000)) {
+            return ResponseEntity.badRequest().build();
+        }
         var usuario = usuarios.findById(id);
         if (usuario.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        switch (datos.getRol()) {
-            case "ESTUDIANTE" -> registro.registrarEstudiante(usuario.get(), datos.getCodigoEstudiantil(),
-                    datos.getUniversidad(), datos.getProgramaAcademico(), datos.getSemestre());
-            case "TUTOR" -> registro.registrarTutor(usuario.get(), datos.getBiografia(),
-                    Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
-                            .map(String::trim).filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
-            case "ADMINISTRADOR" -> {
-                var u = usuario.get();
-                u.getRoles().add(com.typeerror.myt.entities.RolUsuario.ADMINISTRADOR);
-                usuarios.save(u);
-            }
-            default -> {
-                return ResponseEntity.badRequest().build();
-            }
+        if ("ADMINISTRADOR".equals(datos.getRol())) {
+            var u = usuario.get();
+            u.getRoles().add(RolUsuario.ADMINISTRADOR);
+            usuarios.save(u);
+        } else if (!registrarPerfilBasico(usuario.get(), datos)) {
+            return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.status(201).build();
+    }
+
+    private boolean registrarPerfilBasico(Usuario usuario, PerfilAlta datos) {
+        switch (datos.getRol()) {
+            case "ESTUDIANTE" -> registro.registrarEstudiante(usuario, datos.getCodigoEstudiantil(),
+                    datos.getUniversidad(), datos.getProgramaAcademico(), datos.getSemestre());
+            case "TUTOR" -> registro.registrarTutor(usuario, datos.getBiografia(),
+                    Arrays.stream((datos.getMaterias() == null ? "" : datos.getMaterias()).split(","))
+                            .map(String::trim).filter(m -> !m.isBlank()).toList(), datos.getTarifaPorHora());
+            default -> {
+                return false;
+            }
+        }
+        return true;
     }
 }

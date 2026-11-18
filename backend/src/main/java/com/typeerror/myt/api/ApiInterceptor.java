@@ -43,17 +43,7 @@ public class ApiInterceptor implements HandlerInterceptor {
         if (uri.startsWith("/api/sesion") || uri.startsWith("/api/public")) {
             return true;
         }
-        ContextoSesion existente = (ContextoSesion) request.getAttribute("apiSesion");
-        if (existente == null) {
-            var perfiles = jwt.perfiles(request, false);
-            var contexto = perfiles.size() == 1
-                    ? sesiones.resolver(perfiles.getFirst())
-                    : java.util.Optional.<ContextoSesion>empty();
-            if (contexto.isPresent()) {
-                existente = contexto.get();
-                request.setAttribute("apiSesion", existente);
-            }
-        }
+        ContextoSesion existente = resolverSesion(request);
         // Permitir autoregistro de usuarios con cabecera CSRF
         if (uri.equals("/api/usuarios") && "POST".equals(method)) {
             return true;
@@ -66,6 +56,22 @@ public class ApiInterceptor implements HandlerInterceptor {
             return error(response, 403, "Se requiere perfil administrador");
         }
         return true;
+    }
+
+    private ContextoSesion resolverSesion(HttpServletRequest request) {
+        ContextoSesion existente = (ContextoSesion) request.getAttribute("apiSesion");
+        if (existente != null) {
+            return existente;
+        }
+        var perfiles = jwt.perfiles(request, false);
+        if (perfiles.size() == 1) {
+            var contexto = sesiones.resolver(perfiles.getFirst());
+            if (contexto.isPresent()) {
+                request.setAttribute("apiSesion", contexto.get());
+                return contexto.get();
+            }
+        }
+        return null;
     }
 
     private boolean error(HttpServletResponse response, int status, String message) throws IOException {

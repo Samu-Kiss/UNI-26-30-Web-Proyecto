@@ -27,7 +27,8 @@ export interface UrlOAuthGoogleRespuesta {
 }
 
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
-  const base = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl?.replace(/\/+$/, '') ?? '';
+  const rawBase = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl ?? '';
+  const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
   return next(
     req.url.startsWith('/api/')
       ? req.clone({

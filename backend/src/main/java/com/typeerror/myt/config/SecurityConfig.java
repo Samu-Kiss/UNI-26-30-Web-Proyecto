@@ -28,6 +28,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+
     private final JwtSesionService jwtSesionService;
     private final SesionService sesionService;
 
@@ -55,13 +57,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                                 "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/tutores").hasRole("ADMIN")
-                        .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/estudiantes/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/tutores").hasRole(ROLE_ADMIN)
+                        .requestMatchers("/api/usuarios/**").hasRole(ROLE_ADMIN)
+                        .requestMatchers("/api/estudiantes/**").hasRole(ROLE_ADMIN)
                         .requestMatchers("/api/tutores/**", "/api/reservas/**",
+<<<<<<< HEAD
                                 "/api/perfil/**", "/api/resenas/**", "/api/chat/**",
                                 "/api/pagos/**")
                         .hasAnyRole("USER", "ADMIN")
+=======
+                                "/api/perfil/**", "/api/resenas/**", "/api/chat/**")
+                        .hasAnyRole("USER", ROLE_ADMIN)
+>>>>>>> main
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions

@@ -3,7 +3,7 @@
     ><app-lucide-icon name="arrow-left" [size]="16" />Volver a resultados</a
   >
   @if (cargando() && !tutorApi()) {
-    <p role="status">Cargando perfil…</p>
+    <output>Cargando perfil…</output>
   }
   @if (error()) {
     <div class="myt-alert myt-alert--error" role="alert">
@@ -86,7 +86,7 @@
       <aside class="profile-schedule">
         <h2>Próxima disponibilidad</h2>
         @if (cargandoDisponibilidad()) {
-          <p role="status">Consultando horarios…</p>
+          <output>Consultando horarios…</output>
         }
         @if (errorDisponibilidad()) {
           <p role="alert">{{ errorDisponibilidad() }}</p>

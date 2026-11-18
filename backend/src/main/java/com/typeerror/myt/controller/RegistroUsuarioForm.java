@@ -33,7 +33,7 @@ public class RegistroUsuarioForm {
     private String contrasena;
 
     @Size(max = 30, message = "El telefono no puede superar 30 caracteres")
-    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?[0-9]{10}$",
+    @jakarta.validation.constraints.Pattern(regexp = "^$|^(\\+57)?\\d{10}$",
             message = "Ingresa 10 dígitos, opcionalmente precedidos por +57")
     private String telefono;
 

@@ -246,8 +246,8 @@ describe('Catálogo y editor conectados', () => {
     expect(c.esNumero(0)).toBe(true);
     expect(c.esNumero('...')).toBe(false);
     expect(c.inicialTutor('')).toBe('T');
-    expect(c.modalidadTutor(7)).toBe('Modalidad a convenir');
-    expect(c.resenasCountTutor(7)).toBe(0);
+    expect(c.modalidadTutor()).toBe('Modalidad a convenir');
+    expect(c.resenasCountTutor()).toBe(0);
 
     c.irAPagina(2);
     http

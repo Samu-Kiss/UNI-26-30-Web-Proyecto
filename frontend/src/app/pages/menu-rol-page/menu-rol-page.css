@@ -137,3 +137,11 @@
   font-weight: 700;
   color: var(--color-primary);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .myt-menu-card,
+  .myt-menu-card:hover {
+    transition: none;
+    transform: none;
+  }
+}

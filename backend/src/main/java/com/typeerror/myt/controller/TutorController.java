@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.typeerror.myt.entities.DisponibilidadTutor;
 import com.typeerror.myt.entities.EstadoReserva;
 import com.typeerror.myt.entities.Reserva;
 import com.typeerror.myt.service.ContextoSesion;
@@ -32,6 +33,8 @@ import com.typeerror.myt.service.TutorService;
 @Controller
 @RequestMapping("/tutores")
 public class TutorController {
+
+    private static final String ATTR_TUTOR = "tutor";
 
     private final TutorService tutorService;
     private final ReservaService reservaService;
@@ -84,7 +87,7 @@ public class TutorController {
             throw new IllegalStateException("El tutor no está disponible");
         }
 
-        model.addAttribute("tutor", tutor);
+        model.addAttribute(ATTR_TUTOR, tutor);
         model.addAttribute("disponibilidades", obtenerDisponibilidadesDto(tutorId, tutor));
 
         return "reserva-form";
@@ -111,14 +114,15 @@ public class TutorController {
 
         try {
             reservaService.crearReserva(tutorId, idEstudiante, materiaId,
-                    fecha, horaInicio, duracionMinutos, tema, modalidad);
+                    fecha != null && horaInicio != null ? fecha.atTime(horaInicio) : null,
+                    duracionMinutos, tema, modalidad);
             String redireccion = ContextoSesion.redireccion(
                     "/estudiantes/" + idEstudiante + "/reservas");
             return redireccion + "?reservaExitosa=true";
         } catch (IllegalArgumentException | IllegalStateException exception) {
             Tutor tutor = tutorService.findById(tutorId).orElse(null);
             model.addAttribute("error", exception.getMessage());
-            model.addAttribute("tutor", tutor);
+            model.addAttribute(ATTR_TUTOR, tutor);
             model.addAttribute("disponibilidades", obtenerDisponibilidadesDto(tutorId, tutor));
             return "reserva-form";
         }
@@ -127,7 +131,7 @@ public class TutorController {
     @GetMapping("/{tutorId}/reservas")
     public String listarReservasDelTutor(@PathVariable Integer tutorId,
             Model model) {
-        model.addAttribute("tutor", tutorService.findById(tutorId)
+        model.addAttribute(ATTR_TUTOR, tutorService.findById(tutorId)
                 .orElseThrow(() -> new TutorNotFoundException(tutorId)));
         model.addAttribute("reservas", reservaService.findByTutorId(tutorId));
         return "reservas-tutor";
@@ -150,7 +154,7 @@ public class TutorController {
             reservaService.cambiarEstado(id, estado, motivo);
         } catch (IllegalArgumentException | IllegalStateException exception) {
             var tutorOpt = tutorService.findById(tutorId);
-            tutorOpt.ifPresent(t -> model.addAttribute("tutor", t));
+            tutorOpt.ifPresent(t -> model.addAttribute(ATTR_TUTOR, t));
             model.addAttribute("reservas", reservaService.findByTutorId(tutorId));
             model.addAttribute("error", exception.getMessage());
             return "reservas-tutor";
@@ -160,9 +164,12 @@ public class TutorController {
     }
 
     private List<Map<String, String>> obtenerDisponibilidadesDto(Integer tutorId, Tutor tutor) {
-        var disponibilidadesRaw = disponibilidadService != null
-                ? disponibilidadService.findByTutorId(tutorId)
-                : tutor != null ? tutor.getDisponibilidades() : null;
+        List<DisponibilidadTutor> disponibilidadesRaw = null;
+        if (disponibilidadService != null) {
+            disponibilidadesRaw = disponibilidadService.findByTutorId(tutorId);
+        } else if (tutor != null) {
+            disponibilidadesRaw = tutor.getDisponibilidades();
+        }
 
         if (disponibilidadesRaw == null) {
             return List.of();

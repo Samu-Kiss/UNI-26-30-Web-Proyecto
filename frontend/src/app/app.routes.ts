@@ -1,13 +1,33 @@
-import { Routes } from '@angular/router';
+import { Route, Routes } from '@angular/router';
 import { sessionGuard } from './core/services/auth.service';
 
+const loadMenuRol: NonNullable<Route['loadComponent']> = () =>
+  import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent);
+
+const loadUsuarios: NonNullable<Route['loadComponent']> = () =>
+  import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent);
+
+const rutaProtegida = (
+  path: string,
+  loadComponent: NonNullable<Route['loadComponent']>,
+  admin = false,
+): Route => ({
+  path,
+  canActivate: [sessionGuard],
+  ...(admin ? { data: { admin: true } } : {}),
+  loadComponent,
+});
+
+const rutaMenuRol = (path: string, rol?: string): Route => ({
+  path,
+  ...(rol ? { data: { rol } } : {}),
+  loadComponent: loadMenuRol,
+});
+
 export const routes: Routes = [
-  {
-    path: 'mi-perfil',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/perfil-page/perfil-page').then((m) => m.PerfilPageComponent),
-  },
+  rutaProtegida('mi-perfil', () =>
+    import('./pages/perfil-page/perfil-page').then((m) => m.PerfilPageComponent),
+  ),
   {
     path: '',
     pathMatch: 'full',
@@ -25,77 +45,41 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/tutor-perfil-page/tutor-perfil-page').then((m) => m.TutorPerfilPageComponent),
   },
-  {
-    path: 'reservas',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/reservas-page/reservas-page').then((m) => m.ReservasPageComponent),
-  },
-  {
-    path: 'reservas/:id',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/reserva-detalle-page/reserva-detalle-page').then(
-        (m) => m.ReservaDetallePageComponent,
-      ),
-  },
-  {
-    path: 'calendario',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/calendario-page/calendario-page').then((m) => m.CalendarioPageComponent),
-  },
-  {
-    path: 'mensajes',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/mensajes-page/mensajes-page').then((m) => m.MensajesPageComponent),
-  },
-  {
-    path: 'resenas',
-    canActivate: [sessionGuard],
-    loadComponent: () =>
-      import('./pages/resenas-page/resenas-page').then((m) => m.ResenasPageComponent),
-  },
-  {
-    path: 'menu',
-    loadComponent: () =>
-      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
-  },
-  {
-    path: 'estudiante',
-    data: { rol: 'ESTUDIANTE' },
-    loadComponent: () =>
-      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
-  },
-  {
-    path: 'tutor',
-    data: { rol: 'TUTOR' },
-    loadComponent: () =>
-      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
-  },
-  {
-    path: 'admin',
-    data: { rol: 'ADMINISTRADOR' },
-    loadComponent: () =>
-      import('./pages/menu-rol-page/menu-rol-page').then((m) => m.MenuRolPageComponent),
-  },
-  {
-    path: 'estudiantes',
-    canActivate: [sessionGuard],
-    data: { admin: true },
-    loadComponent: () =>
+  rutaProtegida('reservas', () =>
+    import('./pages/reservas-page/reservas-page').then((m) => m.ReservasPageComponent),
+  ),
+  rutaProtegida('reservas/:id', () =>
+    import('./pages/reserva-detalle-page/reserva-detalle-page').then(
+      (m) => m.ReservaDetallePageComponent,
+    ),
+  ),
+  rutaProtegida('calendario', () =>
+    import('./pages/calendario-page/calendario-page').then((m) => m.CalendarioPageComponent),
+  ),
+  rutaProtegida('mensajes', () =>
+    import('./pages/mensajes-page/mensajes-page').then((m) => m.MensajesPageComponent),
+  ),
+  rutaProtegida('resenas', () =>
+    import('./pages/resenas-page/resenas-page').then((m) => m.ResenasPageComponent),
+  ),
+  rutaMenuRol('menu'),
+  rutaMenuRol('estudiante', 'ESTUDIANTE'),
+  rutaMenuRol('tutor', 'TUTOR'),
+  rutaMenuRol('admin', 'ADMINISTRADOR'),
+  rutaProtegida(
+    'estudiantes',
+    () =>
       import('./pages/estudiantes-page/estudiantes-page').then((m) => m.EstudiantesPageComponent),
-  },
-  {
-    path: 'administradores',
-    canActivate: [sessionGuard],
-    data: { admin: true },
-    loadComponent: () =>
+    true,
+  ),
+  rutaProtegida(
+    'administradores',
+    () =>
       import('./pages/administradores-page/administradores-page').then(
         (m) => m.AdministradoresPageComponent,
       ),
-  },
+    true,
+  ),
   {
     path: 'login',
     loadComponent: () => import('./pages/login-page/login-page').then((m) => m.LoginPageComponent),
@@ -105,29 +89,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/registro-page/registro-page').then((m) => m.RegistroPageComponent),
   },
-  {
-    path: 'usuarios',
-    canActivate: [sessionGuard],
-    data: { admin: true },
-    loadComponent: () =>
-      import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
-  },
-  {
-    path: 'usuarios/nuevo',
-    canActivate: [sessionGuard],
-    data: { admin: true },
-    loadComponent: () =>
-      import('./pages/usuarios-page/usuarios-page').then((m) => m.UsuariosPageComponent),
-  },
-  {
-    path: 'pago',
-    canActivate: [sessionGuard],
-    loadComponent: () => import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent),
-  },
-  {
-    path: 'pago/resultado',
-    canActivate: [sessionGuard],
-    loadComponent: () => import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent),
-  },
+  rutaProtegida('usuarios', loadUsuarios, true),
+  rutaProtegida('usuarios/nuevo', loadUsuarios, true),
+  rutaProtegida('pago', () => import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent)),
+  rutaProtegida('pago/resultado', () =>
+    import('./pages/pago-page/pago-page').then((m) => m.PagoPageComponent),
+  ),
   { path: '**', redirectTo: '' },
 ];

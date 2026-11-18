@@ -239,13 +239,11 @@ export class TutoresPageComponent implements OnInit {
     return (nombre || 'T').trim().charAt(0).toUpperCase();
   }
 
-  modalidadTutor(id: number): string {
-    void id;
+  modalidadTutor(): string {
     return 'Modalidad a convenir';
   }
 
-  resenasCountTutor(id: number): number {
-    void id;
+  resenasCountTutor(): number {
     return 0;
   }
 

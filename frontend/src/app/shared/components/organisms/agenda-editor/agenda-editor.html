@@ -10,7 +10,7 @@
   </div>
 
   @if (cargando()) {
-    <p role="status" class="agenda-status">Cargando agenda…</p>
+    <output class="agenda-status">Cargando agenda…</output>
   }
   @if (error()) {
     <div class="myt-alert myt-alert--error" role="alert">
@@ -19,7 +19,7 @@
     </div>
   }
   @if (mensaje()) {
-    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+    <output class="myt-alert myt-alert--success">{{ mensaje() }}</output>
   }
 
   @if (!cargando() && lista()) {

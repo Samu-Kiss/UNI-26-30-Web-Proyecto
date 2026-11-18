@@ -313,7 +313,7 @@ class ListingControllersTest {
     void procesarReservaManejaExcepcionYRegresaFormulario() {
         Tutor tutor = mock(Tutor.class);
         when(tutorService.findById(5)).thenReturn(Optional.of(tutor));
-        when(reservaService.crearReserva(eq(5), eq(7), eq(1), any(), any(), eq(60), any(), any()))
+        when(reservaService.crearReserva(eq(5), eq(7), eq(1), any(), eq(60), any(), any()))
                 .thenThrow(new IllegalStateException("El tutor no está disponible"));
 
         TutorController controller = new TutorController(tutorService, reservaService,

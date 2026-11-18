@@ -27,7 +27,7 @@
     </div>
   }
   @if (mensaje()) {
-    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+    <output class="myt-alert myt-alert--success">{{ mensaje() }}</output>
   }
   @if (cancelando(); as reserva) {
     <section class="myt-surface-card" aria-labelledby="cancelacion-titulo">
@@ -149,7 +149,7 @@
             >
           </div>
           @if (cargandoHoras()) {
-            <p role="status">Consultando disponibilidad…</p>
+            <output>Consultando disponibilidad…</output>
           }
           @if (errorHoras()) {
             <p role="alert">{{ errorHoras() }}</p>
@@ -266,7 +266,7 @@
       >
     </div>
     @if (cargando()) {
-      <p role="status">Cargando reservas…</p>
+      <output>Cargando reservas…</output>
     } @else {
       <div class="booking-list">
         @for (r of reservas(); track r.id) {

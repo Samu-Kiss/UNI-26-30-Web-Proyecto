@@ -8,7 +8,7 @@
   </header>
 
   @if (cargando()) {
-    <p role="status" class="profile-settings__status">Cargando perfil…</p>
+    <output class="profile-settings__status">Cargando perfil…</output>
   }
   @if (error()) {
     <div class="myt-alert myt-alert--error" role="alert">
@@ -17,16 +17,16 @@
     </div>
   }
   @if (mensaje()) {
-    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+    <output class="myt-alert myt-alert--success">{{ mensaje() }}</output>
   }
   @if (esSetup()) {
-    <div class="myt-alert myt-alert--info profile-settings__setup-alert" role="status">
+    <output class="myt-alert myt-alert--info profile-settings__setup-alert">
       <app-lucide-icon name="clock" [size]="20" />
       <div>
         <strong>¡Te damos la bienvenida a MyT!</strong>
         <p>Para comenzar a recibir solicitudes de estudiantes, configura tu disponibilidad semanal en la sección inferior.</p>
       </div>
-    </div>
+    </output>
   }
 
   @if (usuario(); as u) {

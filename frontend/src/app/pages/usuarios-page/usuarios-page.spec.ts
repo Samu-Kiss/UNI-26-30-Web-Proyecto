@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { vi } from 'vitest';
 import { routes } from '../../app.routes';
 import { RegistroUsuario, Usuario } from '../../core/models/usuario.model';
+import { AuthService } from '../../core/services/auth.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { UsuariosPageComponent } from './usuarios-page';
 
@@ -98,6 +99,43 @@ describe('UsuariosPageComponent', () => {
     expect(c.usuarios()[0].activo).toBe(false);
     c.alternarEstadoUsuario(c.usuarios()[0]);
     expect(c.usuarios()[0].activo).toBe(true);
+
+    // Validación de teléfono inválido al editar
+    c.abrirEditarUsuario(c.usuarios()[0]);
+    c.usuarioEditando()!.telefono = '123';
+    c.guardarEdicionLocal();
+    expect(c.mensajeError()).toContain('Teléfono inválido');
+
+    // Con sesión activa sincroniza edición, perfil, estado y eliminación con el backend
+    TestBed.inject(AuthService).sesion.set({
+      rol: 'ADMINISTRADOR',
+      perfilId: 3,
+      nombreUsuario: 'Ana',
+    });
+    c.usuarioEditando()!.telefono = '3001112233';
+    c.guardarEdicionLocal();
+    httpMock.expectOne('/api/usuarios/1').flush(c.usuarios()[0]);
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+
+    c.abrirAgregarPerfil(c.usuarios()[0]);
+    c.nuevoPerfilRol = 'ADMINISTRADOR';
+    c.confirmarAgregarPerfil();
+    httpMock.expectOne('/api/usuarios/1/perfiles').flush(null);
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+
+    c.alternarEstadoUsuario(c.usuarios()[0]);
+    httpMock.expectOne('/api/usuarios/1/activo').flush(null);
+    httpMock.expectOne('/api/usuarios').flush(usuariosMock);
+
+    c.usuarioActual.set(c.usuarios()[0]);
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    c.eliminarUsuario(c.usuarios()[0]);
+    expect(c.usuarioActual()).not.toBeNull();
+
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    c.eliminarUsuario(c.usuarios()[0]);
+    httpMock.expectOne('/api/usuarios/1').flush(null);
+    expect(c.usuarioActual()).toBeNull();
     f.destroy();
   });
 
