@@ -49,14 +49,14 @@ export class CalendarioDisponibilidadComponent implements OnInit {
   readonly tutorId = input<number>(0);
   readonly fecha = input<string>('');
   readonly minFecha = input<string>('');
-  readonly agendaInput = input<AgendaApi | null>(null, { alias: 'agenda' });
+  readonly agenda = input<AgendaApi | null>(null);
 
   readonly fechaChange = output<string>();
 
   readonly hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
   readonly agendaInterna = signal<AgendaApi | null>(null);
 
-  readonly agendaActual = computed(() => this.agendaInput() ?? this.agendaInterna());
+  readonly agendaActual = computed(() => this.agenda() ?? this.agendaInterna());
 
   readonly mesVisual = signal<Date>(
     new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' }) + 'T12:00:00'),
@@ -127,7 +127,7 @@ export class CalendarioDisponibilidadComponent implements OnInit {
 
     effect(() => {
       const id = this.tutorId();
-      if (id > 0 && !this.agendaInput() && this.api?.agenda) {
+      if (id > 0 && !this.agenda() && this.api?.agenda) {
         this.api
           .agenda(id)
           .pipe(
