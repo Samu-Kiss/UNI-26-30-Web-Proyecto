@@ -61,14 +61,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**").hasRole(ROLE_ADMIN)
                         .requestMatchers("/api/estudiantes/**").hasRole(ROLE_ADMIN)
                         .requestMatchers("/api/tutores/**", "/api/reservas/**",
-<<<<<<< HEAD
                                 "/api/perfil/**", "/api/resenas/**", "/api/chat/**",
                                 "/api/pagos/**")
-                        .hasAnyRole("USER", "ADMIN")
-=======
-                                "/api/perfil/**", "/api/resenas/**", "/api/chat/**")
                         .hasAnyRole("USER", ROLE_ADMIN)
->>>>>>> main
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptions -> exceptions
