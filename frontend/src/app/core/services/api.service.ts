@@ -34,6 +34,13 @@ export interface Pagina<T> {
 }
 export type EstadoReserva =
   'PENDIENTE' | 'CONFIRMADA' | 'EN_CURSO' | 'COMPLETADA' | 'RECHAZADA' | 'CANCELADA';
+export type EstadoPagoWompi =
+  | 'SIN_PAGO'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'DECLINED'
+  | 'VOIDED'
+  | 'ERROR';
 export interface ReservaApi {
   id: number;
   tutorId: number;
@@ -52,6 +59,22 @@ export interface ReservaApi {
   motivoCancelacion?: string;
   estudianteCorreo?: string;
   estudianteTelefono?: string;
+  estadoPago?: EstadoPagoWompi;
+  referenciaPago?: string | null;
+}
+export interface OrdenPagoApi {
+  referencia: string;
+  reservaId?: number | null;
+  concepto: string;
+  montoEnCentavos: number;
+  montoCop: number;
+  estado: EstadoPagoWompi;
+  wompiTransaccionId?: string | null;
+  fechaCreacion?: string | null;
+  materia?: string | null;
+  tutor?: string | null;
+  estudiante?: string | null;
+  estadoReserva?: EstadoReserva | null;
 }
 export interface EstudianteApi {
   id: number;
@@ -185,6 +208,35 @@ export class ApiService {
       materiasActivas: number;
       materias: Materia[];
     }>('/api/public/estadisticas');
+  }
+  configuracionPagos() {
+    return this.http.get<{ habilitado: boolean; moneda?: string }>('/api/pagos/configuracion');
+  }
+  ordenesPago() {
+    return this.http.get<OrdenPagoApi[]>('/api/pagos/ordenes');
+  }
+  checkoutPago(reservaId?: number) {
+    return this.http
+      .post<{
+        url: string;
+        referencia: string;
+        montoEnCentavos?: number;
+        concepto?: string;
+        reservaId?: number;
+      }>('/api/pagos/checkout', reservaId ? { reservaId } : {})
+      .pipe(tap(() => this.cambios.next()));
+  }
+  estadoOrdenPago(referencia: string, transaccionId?: string | null) {
+    const params: Record<string, string> = {};
+    if (transaccionId) params['transaccionId'] = transaccionId;
+    return this.http.get<{
+      referencia?: string;
+      estado: string;
+      montoEnCentavos?: number;
+      concepto?: string;
+      reservaId?: number;
+      wompiTransaccionId?: string;
+    }>(`/api/pagos/orden/${encodeURIComponent(referencia)}`, { params });
   }
 }
 

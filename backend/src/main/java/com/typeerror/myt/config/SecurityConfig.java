@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/salud").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/sesion/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
@@ -57,7 +59,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers("/api/estudiantes/**").hasRole("ADMIN")
                         .requestMatchers("/api/tutores/**", "/api/reservas/**",
-                                "/api/perfil/**", "/api/resenas/**", "/api/chat/**")
+                                "/api/perfil/**", "/api/resenas/**", "/api/chat/**",
+                                "/api/pagos/**")
                         .hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())

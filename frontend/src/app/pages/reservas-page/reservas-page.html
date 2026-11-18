@@ -281,7 +281,15 @@
                 <span class="session-state" [attr.data-state]="r.estado">{{
                   r.estado.replace('_', ' ') | titlecase
                 }}</span
-                ><span class="booking-reference">#{{ r.id }}</span>
+                >@if (r.estadoPago === 'APPROVED') {
+                  <span class="session-state" data-state="CONFIRMADA">Pagada</span>
+                } @else if (r.estadoPago === 'PENDING') {
+                  <span class="session-state" data-state="PENDIENTE">Pago en proceso</span>
+                } @else if (r.estadoPago === 'DECLINED' || r.estadoPago === 'ERROR') {
+                  <span class="session-state" data-state="RECHAZADA">Pago rechazado</span>
+                } @else if (['PENDIENTE', 'CONFIRMADA'].includes(r.estado)) {
+                  <span class="session-state" data-state="PENDIENTE">Pendiente de pago</span>
+                }<span class="booking-reference">#{{ r.id }}</span>
               </div>
               <h2>{{ r.materia }}</h2>
               <p>{{ r.tema }}</p>
@@ -313,6 +321,20 @@
               </div>
               @if (['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.estado)) {
                 <div class="myt-toolbar-actions">
+                  @if (
+                    esEstudiante() &&
+                    ['PENDIENTE', 'CONFIRMADA'].includes(r.estado) &&
+                    r.estadoPago !== 'APPROVED'
+                  ) {
+                    <a
+                      routerLink="/pago"
+                      [queryParams]="{ reserva: r.id }"
+                      class="myt-btn myt-btn--primary myt-btn--sm"
+                    >
+                      <app-lucide-icon name="credit-card" [size]="15" />
+                      {{ r.estadoPago === 'PENDING' ? 'Continuar pago' : 'Pagar con Wompi' }}
+                    </a>
+                  }
                   @if (!esEstudiante()) {
                     @if (r.estado === 'PENDIENTE') {
                       <button

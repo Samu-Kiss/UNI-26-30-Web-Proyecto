@@ -2,6 +2,7 @@ package com.typeerror.myt.api;
 
 import java.net.URI;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.typeerror.myt.entities.EstadoReserva;
 import com.typeerror.myt.entities.Reserva;
 import com.typeerror.myt.entities.RolUsuario;
+import com.typeerror.myt.pagos.PagoController;
 import com.typeerror.myt.repository.ReservaRepository;
 import com.typeerror.myt.repository.TutorRepository;
 import com.typeerror.myt.service.ContextoSesion;
@@ -32,11 +34,22 @@ public class ReservaRestController {
     private final ReservaService reservas;
     private final ReservaRepository repository;
     private final TutorRepository tutores;
+    private final PagoController pagos;
 
     public ReservaRestController(ReservaService reservas, ReservaRepository repository, TutorRepository tutores) {
+        this(reservas, repository, tutores, null);
+    }
+
+    @Autowired
+    public ReservaRestController(
+            ReservaService reservas,
+            ReservaRepository repository,
+            TutorRepository tutores,
+            @Autowired(required = false) PagoController pagos) {
         this.reservas = reservas;
         this.repository = repository;
         this.tutores = tutores;
+        this.pagos = pagos;
     }
 
     @GetMapping
@@ -47,8 +60,16 @@ public class ReservaRestController {
             case TUTOR -> reservas.findByTutorId(sesion.perfilId());
             case ESTUDIANTE -> repository.buscarPorEstudiante(sesion.perfilId(), estado);
         };
-        return lista.stream().filter(r -> estado == null || r.getEstado() == estado)
-                .map(ApiDtos::reserva).toList();
+        var filtradas = lista.stream().filter(r -> estado == null || r.getEstado() == estado).toList();
+        var resumenes = pagos != null
+                ? pagos.pagosPorReservas(filtradas.stream().map(Reserva::getId).toList())
+                : java.util.Map.<Integer, PagoController.ResumenPagoReserva>of();
+        return filtradas.stream().map(r -> {
+            var pago = resumenes.get(r.getId());
+            return pago != null
+                    ? ApiDtos.reserva(r, pago.estadoPago(), pago.referenciaPago())
+                    : ApiDtos.reserva(r);
+        }).toList();
     }
 
     @GetMapping("/{id}")
@@ -56,7 +77,7 @@ public class ReservaRestController {
             @RequestAttribute("apiSesion") ContextoSesion sesion) {
         var reserva = obtener(id);
         autorizar(sesion, reserva);
-        return ResponseEntity.ok(ApiDtos.reserva(reserva));
+        return ResponseEntity.ok(mapearConPago(reserva));
     }
 
     @PostMapping
@@ -93,7 +114,15 @@ public class ReservaRestController {
         if (sesion.rol() == RolUsuario.ESTUDIANTE && datos.estado() != EstadoReserva.CANCELADA) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Un estudiante solo puede cancelar");
         }
-        return ResponseEntity.ok(ApiDtos.reserva(reservas.cambiarEstado(id, datos.estado(), datos.motivo())));
+        return ResponseEntity.ok(mapearConPago(reservas.cambiarEstado(id, datos.estado(), datos.motivo())));
+    }
+
+    private ApiDtos.ReservaDto mapearConPago(Reserva r) {
+        if (pagos == null || r.getId() == null) {
+            return ApiDtos.reserva(r);
+        }
+        var pago = pagos.pagoDeReserva(r.getId());
+        return ApiDtos.reserva(r, pago.estadoPago(), pago.referenciaPago());
     }
 
     @DeleteMapping("/{id}")

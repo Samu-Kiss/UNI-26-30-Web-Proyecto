@@ -54,7 +54,17 @@ public final class ApiDtos {
     public record ReservaDto(Integer id, Integer tutorId, Integer estudianteId, String tutor,
             String estudiante, String materia, LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
             String tema, EstadoReserva estado, BigDecimal costoTotal, ModalidadReserva modalidad,
-            String objetivo, String motivoCancelacion, String estudianteCorreo, String estudianteTelefono) { }
+            String objetivo, String motivoCancelacion, String estudianteCorreo, String estudianteTelefono,
+            String estadoPago, String referenciaPago) {
+        public ReservaDto(Integer id, Integer tutorId, Integer estudianteId, String tutor,
+                String estudiante, String materia, LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
+                String tema, EstadoReserva estado, BigDecimal costoTotal, ModalidadReserva modalidad,
+                String objetivo, String motivoCancelacion, String estudianteCorreo, String estudianteTelefono) {
+            this(id, tutorId, estudianteId, tutor, estudiante, materia, fecha, horaInicio, duracionMinutos,
+                    tema, estado, costoTotal, modalidad, objetivo, motivoCancelacion, estudianteCorreo,
+                    estudianteTelefono, "SIN_PAGO", null);
+        }
+    }
 
     public record UsuarioDto(Integer id, String nombre, String apellido, String correo, String telefono,
             Boolean activo, Set<RolUsuario> roles) { }
@@ -74,11 +84,16 @@ public final class ApiDtos {
     }
 
     public static ReservaDto reserva(Reserva r) {
+        return reserva(r, "SIN_PAGO", null);
+    }
+
+    public static ReservaDto reserva(Reserva r, String estadoPago, String referenciaPago) {
         return new ReservaDto(r.getId(), r.getTutor().getId(), r.getEstudiante().getId(),
                 r.getTutor().getUsuario().getNombre(), r.getEstudiante().getUsuario().getNombre(),
                 r.getMateria().getNombre(), r.getFecha(), r.getHoraInicio(), r.getDuracionMinutos(),
                 r.getTema(), r.getEstado(), r.getCostoTotal(), r.getModalidad(), r.getObjetivo(),
                 r.getMotivoCancelacion(), r.getEstudiante().getUsuario().getCorreo(),
-                r.getEstudiante().getUsuario().getTelefono());
+                r.getEstudiante().getUsuario().getTelefono(),
+                estadoPago != null ? estadoPago : "SIN_PAGO", referenciaPago);
     }
 }

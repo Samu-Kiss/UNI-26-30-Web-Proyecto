@@ -27,6 +27,7 @@ export type LucideIconName =
   | 'alert-triangle'
   | 'trash-2'
   | 'clock'
+  | 'credit-card'
   | 'x';
 
 @Component({
@@ -191,6 +192,10 @@ export type LucideIconName =
         @case ('clock') {
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
+        }
+        @case ('credit-card') {
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" x2="22" y1="10" y2="10" />
         }
         @case ('x') {
           <path d="M18 6 6 18" />
