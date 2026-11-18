@@ -20,17 +20,10 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
 import { AgendaEditorComponent } from '../../shared/components/organisms/agenda-editor/agenda-editor';
-import { CalendarioDisponibilidadComponent } from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
-
-const DIAS_MAP: Record<number, string> = {
-  0: 'DOMINGO',
-  1: 'LUNES',
-  2: 'MARTES',
-  3: 'MIERCOLES',
-  4: 'JUEVES',
-  5: 'VIERNES',
-  6: 'SABADO',
-};
+import {
+  CalendarioDisponibilidadComponent,
+  DIAS_MAP,
+} from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
 
 @Component({
   selector: 'app-tutor-perfil-page',

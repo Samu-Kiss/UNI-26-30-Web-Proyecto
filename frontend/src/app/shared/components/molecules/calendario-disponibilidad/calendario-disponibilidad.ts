@@ -25,7 +25,7 @@ export interface DiaCelda {
   esHoy: boolean;
 }
 
-const DIAS_MAP: Record<number, string> = {
+export const DIAS_MAP: Record<number, string> = {
   0: 'DOMINGO',
   1: 'LUNES',
   2: 'MARTES',
