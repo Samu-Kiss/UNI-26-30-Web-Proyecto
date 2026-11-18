@@ -211,4 +211,65 @@ describe('Reservas según disponibilidad real', () => {
     expect(f.nativeElement.querySelector('a[href="/perfil"]')).not.toBeNull();
     f.destroy();
   });
+  it('permite al tutor confirmar, iniciar y completar reservas y maneja errores de carga y creación', () => {
+    TestBed.inject(AuthService).sesion.set({
+      rol: 'TUTOR',
+      perfilId: 7,
+      nombreUsuario: 'Ana',
+    });
+    api.reservas.mockReturnValue(
+      of([
+        { ...reserva, id: 1, estado: 'PENDIENTE' },
+        { ...reserva, id: 2, estado: 'CONFIRMADA', modalidad: 'PRESENCIAL' },
+        { ...reserva, id: 3, estado: 'EN_CURSO' },
+      ]),
+    );
+    parametros.next(convertToParamMap({}));
+    const f = abrir();
+    f.detectChanges();
+    const c = f.componentInstance;
+    expect(f.nativeElement.textContent).toContain('Confirmar');
+    expect(f.nativeElement.textContent).toContain('Iniciar');
+    expect(f.nativeElement.textContent).toContain('Completar');
+    expect(f.nativeElement.textContent).toContain('Presencial');
+
+    c.cambiar(c.reservas()[0], 'CONFIRMADA');
+    expect(api.estadoReserva).toHaveBeenCalledWith(1, 'CONFIRMADA', '');
+
+    c.cambiar(c.reservas()[1], 'EN_CURSO');
+    expect(api.estadoReserva).toHaveBeenCalledWith(2, 'EN_CURSO', '');
+
+    c.cambiar(c.reservas()[2], 'COMPLETADA');
+    expect(api.estadoReserva).toHaveBeenCalledWith(3, 'COMPLETADA', '');
+
+    c.onFechaSeleccionada('2030-05-16');
+    expect(c.datos.fecha).toBe('2030-05-16');
+    expect(c.costoEstimado()).toBe(0);
+
+    TestBed.inject(AuthService).sesion.set({
+      rol: 'ESTUDIANTE',
+      perfilId: 2,
+      nombreUsuario: 'Juan',
+    });
+    parametros.next(convertToParamMap({ tutor: '7' }));
+    f.detectChanges();
+    expect(c.costoEstimado()).toBe(50000);
+    c.datos.fecha = '2030-05-16';
+    c.cargarHoras();
+    c.datos.horaInicio = '10:00';
+    c.objetivoSesion = 'Otro';
+    c.objetivoOtro = '   ';
+    c.crear();
+    expect(c.error()).toContain('Especifica el objetivo');
+
+    c.objetivoOtro = 'Preparar parcial';
+    api.crearReserva.mockReturnValueOnce(throwError(() => new Error('fallo')));
+    c.crear();
+    expect(c.error()).toBeTruthy();
+
+    api.reservas.mockReturnValueOnce(throwError(() => new Error('fallo')));
+    c.cargar();
+    expect(c.error()).toBeTruthy();
+    f.destroy();
+  });
 });

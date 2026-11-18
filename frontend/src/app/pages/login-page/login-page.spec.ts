@@ -147,4 +147,62 @@ describe('Login y elección de perfil', () => {
     expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tutores');
     f.destroy();
   });
+
+  it('maneja error_description en OAuth callback, cuenta de prueba rápida y navegación de administrador/tutor sin horarios', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/login?error_description=Acceso%20cancelado%20por%20el%20usuario',
+    );
+    const f = TestBed.createComponent(LoginPageComponent);
+    f.detectChanges();
+    http.expectNone('/api/sesion');
+    const c = f.componentInstance;
+    expect(c.error()).toContain('Acceso cancelado');
+
+    c.usarCuentaPrueba('admin@myt.edu.co');
+    http.expectOne('/api/sesion/login').flush({
+      actual: { rol: 'ADMINISTRADOR', perfilId: 1, nombreUsuario: 'Admin' },
+      opciones: [],
+    });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/usuarios');
+
+    c.procesarLoginGoogle('token.directo.123');
+    http.expectOne('/api/sesion/google').flush({
+      actual: { rol: 'TUTOR', perfilId: 4, nombreUsuario: 'Tutor Nuevo' },
+      opciones: [],
+    });
+    http.expectOne('/api/tutores/4/agenda').flush({ horarios: [], bloqueos: [] });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/mi-perfil?setup=1');
+
+    c.procesarLoginGoogle('token.directo.456');
+    http.expectOne('/api/sesion/google').flush({
+      actual: { rol: 'TUTOR', perfilId: 5, nombreUsuario: 'Tutor Error' },
+      opciones: [],
+    });
+    http.expectOne('/api/tutores/5/agenda').flush({}, { status: 500, statusText: 'Error' });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/reservas');
+
+    c.procesarLoginGoogle();
+    http
+      .expectOne((r) => r.url === '/api/sesion/google/url')
+      .flush({ mensaje: 'Error OAuth' }, { status: 500, statusText: 'Error' });
+    expect(c.error()).toBeTruthy();
+
+    c.correoRecuperacion = 'noexiste@myt.edu.co';
+    c.solicitarCodigoRecuperacion();
+    http
+      .expectOne('/api/sesion/recuperar')
+      .flush({ mensaje: 'No encontrado' }, { status: 400, statusText: 'Bad Request' });
+    expect(c.error()).toContain('No encontrado');
+
+    c.tokenRestablecimiento = 'MYT-INVALID';
+    c.nuevaContrasena = 'ClaveValida123!';
+    c.confirmarRestablecimiento();
+    http
+      .expectOne('/api/sesion/restablecer')
+      .flush({ mensaje: 'Código inválido' }, { status: 400, statusText: 'Bad Request' });
+    expect(c.error()).toContain('Código inválido');
+    f.destroy();
+  });
 });

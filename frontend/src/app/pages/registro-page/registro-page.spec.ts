@@ -50,6 +50,11 @@ describe('RegistroPageComponent', () => {
     comp.datos.contrasena = 'corta';
     comp.registrar();
     expect(comp.error()).toContain('al menos 8 caracteres');
+
+    comp.datos.contrasena = 'Password123!';
+    comp.datos.telefono = '123';
+    comp.registrar();
+    expect(comp.error()).toContain('teléfono de 10 dígitos');
   });
 
   it('inicializa con rol TUTOR cuando el queryParam rol es TUTOR', () => {
