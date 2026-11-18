@@ -168,8 +168,12 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                   @for (r of reservasPorPagar(); track r.id) {
                     <div
                       class="payment-option"
+                      role="button"
+                      tabindex="0"
                       [class.is-selected]="reservaSeleccionada()?.id === r.id"
                       (click)="seleccionarReserva(r)"
+                      (keydown.enter)="seleccionarReserva(r)"
+                      (keydown.space)="seleccionarReserva(r); $event.preventDefault()"
                     >
                       <div class="payment-option__meta">
                         <div class="order-item__title">
@@ -205,8 +209,12 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                   }
                   <div
                     class="payment-option"
+                    role="button"
+                    tabindex="0"
                     [class.is-selected]="reservaSeleccionada() === null"
                     (click)="seleccionarReserva(null)"
+                    (keydown.enter)="seleccionarReserva(null)"
+                    (keydown.space)="seleccionarReserva(null); $event.preventDefault()"
                   >
                     <div class="payment-option__meta">
                       <div class="order-item__title">
