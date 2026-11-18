@@ -187,7 +187,7 @@ export class UsuariosPageComponent implements OnInit, OnDestroy {
   guardarEdicionLocal(): void {
     const editado = this.usuarioEditando();
     if (!editado) return;
-    if (editado.telefono && !/^(\+57)?[0-9]{10}$/.test(editado.telefono)) {
+    if (editado.telefono && !/^(\+57)?\d{10}$/.test(editado.telefono)) {
       this.mensajeError.set('Teléfono inválido: usa 10 dígitos, opcionalmente precedidos por +57.');
       return;
     }

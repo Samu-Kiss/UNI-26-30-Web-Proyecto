@@ -20,7 +20,7 @@
   </header>
 
   @if (cargando()) {
-    <p role="status" class="reviews-status">Cargando reseñas…</p>
+    <output class="reviews-status">Cargando reseñas…</output>
   }
 
   @if (error()) {
@@ -31,7 +31,7 @@
   }
 
   @if (mensaje()) {
-    <p class="myt-alert myt-alert--success" role="status">{{ mensaje() }}</p>
+    <output class="myt-alert myt-alert--success">{{ mensaje() }}</output>
   }
 
   @if (!cargando() && !error()) {

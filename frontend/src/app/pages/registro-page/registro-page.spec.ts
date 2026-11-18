@@ -75,6 +75,7 @@ describe('RegistroPageComponent', () => {
     const comp = fixture.componentInstance;
     comp.guardando.set(true);
     comp.registrar();
+    expect(comp.guardando()).toBe(true);
     httpMock.expectNone('/api/usuarios');
   });
 

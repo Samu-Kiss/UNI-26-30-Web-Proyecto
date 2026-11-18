@@ -94,8 +94,8 @@
   text-align: center;
 }
 
-.myt-table__empty {
-  padding: 3rem 1.5rem !important;
+.myt-table td.myt-table__empty {
+  padding: 3rem 1.5rem;
   text-align: center;
 }
 

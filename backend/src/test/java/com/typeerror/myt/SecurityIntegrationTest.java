@@ -263,7 +263,8 @@ class SecurityIntegrationTest extends PostgreSqlIntegrationTest {
                 .andReturn();
 
         String body = solicitud.getResponse().getContentAsString();
-        String token = body.replaceAll(".*\"tokenRecuperacion\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+        int inicioToken = body.indexOf("MYT-");
+        String token = body.substring(inicioToken, body.indexOf('"', inicioToken));
         assertTrue(token.startsWith("MYT-"));
 
         // 2. Restablecer contraseña con BCrypt

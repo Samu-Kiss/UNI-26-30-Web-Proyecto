@@ -40,13 +40,19 @@ import org.springframework.web.server.ResponseStatusException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.typeerror.myt.api.PerfilRestController;
 import com.typeerror.myt.api.PublicRestController;
+import com.typeerror.myt.api.SesionRestController;
+import com.typeerror.myt.api.UsuarioRestController;
 import com.typeerror.myt.config.JwtAuthenticationFilter;
 import com.typeerror.myt.config.MytUserDetailsConfig;
 import com.typeerror.myt.entities.Estudiante;
@@ -312,6 +318,194 @@ class SecurityServicesUnitTest {
         assertEquals(1L, dto.tutoresDisponibles());
         assertEquals(1L, dto.materiasActivas());
         assertFalse(dto.materias().isEmpty());
+    }
+
+    @Test
+    void cubreRamasAdicionalesDeGoogleAuthYRecuperacion() throws Exception {
+        assertEquals("https://custom.supabase.co",
+                GoogleAuthService.determinarSupabaseUrl("https://custom.supabase.co///", ""));
+        assertEquals("https://rrxvxcufuwmjbqiwhgmt.supabase.co",
+                GoogleAuthService.determinarSupabaseUrl("", ""));
+
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(i -> {
+            Usuario u = i.getArgument(0);
+            if (u.getId() == null) {
+                u.setId(77);
+            }
+            return u;
+        });
+        when(estudianteRepository.save(any(Estudiante.class))).thenAnswer(i -> {
+            Estudiante e = i.getArgument(0);
+            e.setId(88);
+            return e;
+        });
+
+        GoogleAuthService demoAuth = new GoogleAuthService(
+                usuarioRepository, estudianteRepository, loginService, passwordEncoder,
+                true, "http://127.0.0.1:1///", "anon-key-test", "");
+        assertTrue(demoAuth.construirUrlAutorizacionGoogle("").contains("redirect_to="));
+
+        // Correo inválido en modo demo -> 400
+        assertThrows(ResponseStatusException.class,
+                () -> demoAuth.autenticarConGoogle("correo-invalido", "Nombre", ""));
+
+        // Alias de correo compuesto y simple sin nombre explícito
+        var accAlias = demoAuth.autenticarConGoogle("ana.maria@javeriana.edu.co", null, "");
+        assertEquals(1, accAlias.size());
+        var accSimple = demoAuth.autenticarConGoogle("pedro@javeriana.edu.co", "   ", "");
+        assertEquals(1, accSimple.size());
+        var accUnNombre = demoAuth.autenticarConGoogle("carlos@javeriana.edu.co", "Carlos", "");
+        assertEquals(1, accUnNombre.size());
+
+        // Usuario existente inactivo -> 403
+        Usuario inactivo = new Usuario(30, "Inactivo", "User", "inactivo@javeriana.edu.co",
+                "hash", null, false, new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null);
+        when(usuarioRepository.findByCorreoIgnoreCase("inactivo@javeriana.edu.co"))
+                .thenReturn(Optional.of(inactivo));
+        assertThrows(ResponseStatusException.class,
+                () -> demoAuth.autenticarConGoogle("inactivo@javeriana.edu.co", "Inactivo", ""));
+
+        // Usuario existente activo sin perfiles creados -> le asigna ESTUDIANTE y crea entidad
+        Usuario sinPerfil = new Usuario(31, "Sin", "Perfil", "sinperfil@javeriana.edu.co",
+                "hash", null, true, new HashSet<>(), null, null, null);
+        when(usuarioRepository.findByCorreoIgnoreCase("sinperfil@javeriana.edu.co"))
+                .thenReturn(Optional.of(sinPerfil));
+        var accSinPerfil = demoAuth.autenticarConGoogle("sinperfil@javeriana.edu.co", "Sin Perfil", "");
+        assertEquals(1, accSinPerfil.size());
+        assertTrue(sinPerfil.getRoles().contains(RolUsuario.ESTUDIANTE));
+
+        // Firma RSA (RS256) y metadatos con given_name / family_name / raw_user_meta_data
+        RSAKey rsaJwk = new RSAKeyGenerator(2048).keyID("rsa-kid-01").generate();
+        demoAuth.establecerJwkSet(new JWKSet(rsaJwk.toPublicJWK()));
+        SignedJWT rsaJwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("rsa-kid-01").build(),
+                new JWTClaimsSet.Builder()
+                        .issuer("https://accounts.google.com/")
+                        .expirationTime(Date.from(Instant.now().plusSeconds(3600)))
+                        .claim("raw_user_meta_data", Map.of(
+                                "email", "rsa.user@javeriana.edu.co",
+                                "given_name", "Lucía",
+                                "family_name", "Gómez"))
+                        .build());
+        rsaJwt.sign(new RSASSASigner(rsaJwk));
+        var accRsa = demoAuth.autenticarConGoogle(null, null, rsaJwt.serialize());
+        assertEquals(1, accRsa.size());
+
+        // Kid desconocido intenta cargar JWKS remoto y falla con 401
+        SignedJWT unknownKidJwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("kid-inexistente").build(),
+                new JWTClaimsSet.Builder()
+                        .issuer("accounts.google.com")
+                        .claim("email", "kid@javeriana.edu.co")
+                        .claim("full_name", "Kid Test")
+                        .build());
+        unknownKidJwt.sign(new RSASSASigner(rsaJwk));
+        assertThrows(ResponseStatusException.class,
+                () -> demoAuth.autenticarConGoogle(null, null, unknownKidJwt.serialize()));
+
+        // Tokens malformados y modo no-demo sin credencial
+        assertThrows(ResponseStatusException.class,
+                () -> demoAuth.autenticarConGoogle(null, null, "token.incompleto"));
+        assertThrows(ResponseStatusException.class,
+                () -> demoAuth.autenticarConGoogle(null, null, "a.@@@.c"));
+        GoogleAuthService prodAuth = new GoogleAuthService(
+                usuarioRepository, estudianteRepository, loginService, passwordEncoder, false);
+        assertThrows(ResponseStatusException.class,
+                () -> prodAuth.autenticarConGoogle("a@b.com", "A", ""));
+
+        // TokenRecuperacion PrePersist y validaciones de PasswordRecoveryService
+        TokenRecuperacion tr = new TokenRecuperacion();
+        tr.setUsado(null);
+        var m = TokenRecuperacion.class.getDeclaredMethod("prepararCreacion");
+        m.setAccessible(true);
+        m.invoke(tr);
+        assertFalse(tr.getUsado());
+        assertNotNull(tr.getFechaCreacion());
+
+        PasswordRecoveryService recoveryService = new PasswordRecoveryService(
+                usuarioRepository, tokenRepository, loginService, passwordEncoder, inMemoryManager);
+        assertThrows(ResponseStatusException.class, () -> recoveryService.solicitarRecuperacion("  "));
+        assertThrows(ResponseStatusException.class,
+                () -> recoveryService.solicitarRecuperacion("inactivo@javeriana.edu.co"));
+        assertThrows(ResponseStatusException.class,
+                () -> recoveryService.restablecerContrasena("  ", "ClaveValida123!"));
+        assertThrows(ResponseStatusException.class,
+                () -> recoveryService.restablecerContrasena("MYT-123", "corta"));
+    }
+
+    @Test
+    void cubreControladoresRestDeUsuariosSesionYPerfil() throws Exception {
+        RegistroUsuarioService registroService = mock(RegistroUsuarioService.class);
+        UsuarioService usuarioService = mock(UsuarioService.class);
+        UsuarioRestController usuarioCtrl = new UsuarioRestController(
+                usuarioRepository, registroService, usuarioService);
+
+        Usuario base = new Usuario(1, "Ana", "López", "ana@myt.edu.co", "hash", "3001234567",
+                true, new HashSet<>(Set.of(RolUsuario.ESTUDIANTE)), null, null, null);
+        when(usuarioRepository.findById(1)).thenReturn(Optional.of(base));
+        when(usuarioRepository.findById(99)).thenReturn(Optional.empty());
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+
+        assertEquals(200, usuarioCtrl.consultar(1).getStatusCode().value());
+        assertEquals(404, usuarioCtrl.consultar(99).getStatusCode().value());
+
+        var edicion = new UsuarioRestController.EdicionUsuario(
+                "Ana María", "López", "ana@myt.edu.co", "3001234567");
+        assertEquals(200, usuarioCtrl.actualizar(1, edicion).getStatusCode().value());
+        assertEquals(404, usuarioCtrl.actualizar(99, edicion).getStatusCode().value());
+
+        assertEquals(204, usuarioCtrl.cambiarEstado(
+                1, new UsuarioRestController.EstadoUsuarioDto(true)).getStatusCode().value());
+        verify(usuarioService).activar(1);
+        assertEquals(204, usuarioCtrl.cambiarEstado(
+                1, new UsuarioRestController.EstadoUsuarioDto(false)).getStatusCode().value());
+        verify(usuarioService).desactivar(1);
+
+        when(usuarioRepository.existsById(99)).thenReturn(false);
+        assertEquals(404, usuarioCtrl.eliminar(99).getStatusCode().value());
+        when(usuarioRepository.existsById(1)).thenReturn(true);
+        assertEquals(204, usuarioCtrl.eliminar(1).getStatusCode().value());
+
+        var perfilAlta = new UsuarioRestController.PerfilAlta();
+        perfilAlta.setRol("ESTUDIANTE");
+        assertEquals(404, usuarioCtrl.agregarPerfil(99, perfilAlta).getStatusCode().value());
+        assertEquals(201, usuarioCtrl.agregarPerfil(1, perfilAlta).getStatusCode().value());
+        perfilAlta.setRol("TUTOR");
+        perfilAlta.setMaterias("Cálculo, Física");
+        assertEquals(201, usuarioCtrl.agregarPerfil(1, perfilAlta).getStatusCode().value());
+        perfilAlta.setRol("ADMINISTRADOR");
+        assertEquals(201, usuarioCtrl.agregarPerfil(1, perfilAlta).getStatusCode().value());
+        perfilAlta.setRol("DESCONOCIDO");
+        assertEquals(400, usuarioCtrl.agregarPerfil(1, perfilAlta).getStatusCode().value());
+
+        // SesionRestController sin servicios opcionales -> 503
+        JwtSesionService jwt = new JwtSesionService(
+                "hXNYPluC5EuR7y/NA/VfoqKDbiMWUd5KrtTLa/hmDpA=", Duration.ofHours(8), false);
+        SesionService sesionService = mock(SesionService.class);
+        SesionRestController sesionCtrlSinOpcionales = new SesionRestController(jwt, loginService, sesionService);
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        assertThrows(ResponseStatusException.class, () -> sesionCtrlSinOpcionales.urlGoogle(null));
+        assertThrows(ResponseStatusException.class, () -> sesionCtrlSinOpcionales.redirigirGoogle(null, resp));
+        assertThrows(ResponseStatusException.class, () -> sesionCtrlSinOpcionales.loginGoogle(
+                new SesionRestController.CredencialesGoogle("a@b.c", "A", "tok"), resp));
+        assertThrows(ResponseStatusException.class, () -> sesionCtrlSinOpcionales.solicitarRecuperacion(
+                new SesionRestController.SolicitudRecuperacion("a@b.c")));
+        assertThrows(ResponseStatusException.class, () -> sesionCtrlSinOpcionales.restablecerContrasena(
+                new SesionRestController.RestablecerContrasena("tok", "Clave12345!")));
+
+        // PerfilRestController para ADMINISTRADOR, TUTOR y ESTUDIANTE
+        Tutor tutor = new Tutor(2, base, "Bio", Set.of(), null, true);
+        Estudiante est = new Estudiante(3, base, "COD", "Uni", "Prog", 1);
+        when(tutorRepository.findById(2)).thenReturn(Optional.of(tutor));
+        when(estudianteRepository.findOneById(3)).thenReturn(Optional.of(est));
+        PerfilRestController perfilCtrl = new PerfilRestController(
+                usuarioRepository, tutorRepository, estudianteRepository);
+        assertEquals("Ana María", perfilCtrl.consultar(
+                new ContextoSesion(RolUsuario.ADMINISTRADOR, 1, "Ana")).nombre());
+        assertEquals("Ana María", perfilCtrl.consultar(
+                new ContextoSesion(RolUsuario.TUTOR, 2, "Ana")).nombre());
+        assertEquals("Ana María", perfilCtrl.guardar(
+                new ContextoSesion(RolUsuario.ESTUDIANTE, 3, "Ana"), edicion).nombre());
     }
 
     private Set<String> autoridades(UserDetails detalles) {

@@ -10,6 +10,7 @@ import {
   finalize,
   forkJoin,
   merge,
+  of,
   Subject,
   switchMap,
   timer,
@@ -19,18 +20,10 @@ import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
 import { AgendaEditorComponent } from '../../shared/components/organisms/agenda-editor/agenda-editor';
-import { CalendarioDisponibilidadComponent } from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
-import { of } from 'rxjs';
-
-const DIAS_MAP: Record<number, string> = {
-  0: 'DOMINGO',
-  1: 'LUNES',
-  2: 'MARTES',
-  3: 'MIERCOLES',
-  4: 'JUEVES',
-  5: 'VIERNES',
-  6: 'SABADO',
-};
+import {
+  CalendarioDisponibilidadComponent,
+  DIAS_MAP,
+} from '../../shared/components/molecules/calendario-disponibilidad/calendario-disponibilidad';
 
 @Component({
   selector: 'app-tutor-perfil-page',
@@ -91,7 +84,7 @@ export class TutorPerfilPageComponent implements OnInit {
       const diaSemana = DIAS_MAP[d.getDay()];
       let atiende = true;
       let bloqueado = false;
-      if (ag && ag.horarios && ag.horarios.length > 0) {
+      if (ag?.horarios?.length) {
         atiende = ag.horarios.some((h) => h.diaSemana === diaSemana);
         bloqueado = ag.bloqueos?.some((b) => b.fecha === str) ?? false;
       }
@@ -176,12 +169,7 @@ export class TutorPerfilPageComponent implements OnInit {
         );
         d.setDate(d.getDate() + i);
         const fecha = d.toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
-        if (ag && ag.horarios && ag.horarios.length > 0) {
-          const diaSemana = DIAS_MAP[d.getDay()];
-          const atiende = ag.horarios.some((h) => h.diaSemana === diaSemana);
-          const bloqueado = ag.bloqueos?.some((b) => b.fecha === fecha);
-          if (!atiende || bloqueado) continue;
-        }
+        if (!this.esFechaAtendida(ag, d, fecha)) continue;
         const horas = await firstValueFrom(
           this.api.horas(id, fecha, 60).pipe(takeUntilDestroyed(this.destroyRef)),
         );
@@ -201,5 +189,13 @@ export class TutorPerfilPageComponent implements OnInit {
       if (consulta === this.consultaDisponibilidad && !this.destroyRef.destroyed)
         this.cargandoDisponibilidad.set(false);
     }
+  }
+
+  private esFechaAtendida(ag: AgendaApi | null, d: Date, fecha: string): boolean {
+    if (!ag?.horarios?.length) return true;
+    const diaSemana = DIAS_MAP[d.getDay()];
+    const atiende = ag.horarios.some((h) => h.diaSemana === diaSemana);
+    const bloqueado = ag.bloqueos?.some((b) => b.fecha === fecha) ?? false;
+    return atiende && !bloqueado;
   }
 }

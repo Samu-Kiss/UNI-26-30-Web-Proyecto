@@ -238,7 +238,7 @@ class ReservaServiceImplTest {
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(i -> i.getArgument(0));
 
         Reserva creada = servicio.crearReserva(3, 1, 10,
-                LocalDate.now().plusDays(7), LocalTime.of(10, 0), 90,
+                LocalDate.now().plusDays(7).atTime(10, 0), 90,
                 "Leyes de Newton", ModalidadReserva.VIRTUAL);
 
         assertNotNull(creada);
@@ -267,7 +267,7 @@ class ReservaServiceImplTest {
         when(reservaRepository.save(any(Reserva.class))).thenAnswer(i -> i.getArgument(0));
 
         Reserva creada = servicio.crearReserva(3, 1, 10,
-                LocalDate.now().plusDays(7), LocalTime.of(10, 0), 60,
+                LocalDate.now().plusDays(7).atTime(10, 0), 60,
                 "Estequiometría", ModalidadReserva.PRESENCIAL);
 
         assertNotNull(creada);
@@ -278,12 +278,11 @@ class ReservaServiceImplTest {
     @Test
     void crearReservaFallaSiTutorNoExiste() {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.now().plusDays(7);
-        LocalTime hora = LocalTime.of(10, 0);
+        var inicio = LocalDate.now().plusDays(7).atTime(10, 0);
 
         assertThrows(TutorNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        fecha, hora, 60,
+                        inicio, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -291,12 +290,11 @@ class ReservaServiceImplTest {
     void crearReservaFallaSiTutorNoDisponible() {
         Tutor tutorNoDisponible = tutorConTarifa(3, new BigDecimal("40000"), false);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutorNoDisponible));
-        LocalDate fecha = LocalDate.now().plusDays(7);
-        LocalTime hora = LocalTime.of(10, 0);
+        var inicio = LocalDate.now().plusDays(7).atTime(10, 0);
 
         assertThrows(IllegalStateException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        fecha, hora, 60,
+                        inicio, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -305,12 +303,11 @@ class ReservaServiceImplTest {
         Tutor tutor = tutorConTarifa(3, new BigDecimal("40000"), true);
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.now().plusDays(7);
-        LocalTime hora = LocalTime.of(10, 0);
+        var inicio = LocalDate.now().plusDays(7).atTime(10, 0);
 
         assertThrows(EstudianteNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        fecha, hora, 60,
+                        inicio, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 
@@ -321,12 +318,11 @@ class ReservaServiceImplTest {
         when(tutorRepository.findOneById(3)).thenReturn(Optional.of(tutor));
         when(estudianteRepository.findOneById(1)).thenReturn(Optional.of(estudiante));
         when(materiaRepository.findById(10)).thenReturn(Optional.empty());
-        LocalDate fecha = LocalDate.now().plusDays(7);
-        LocalTime hora = LocalTime.of(10, 0);
+        var inicio = LocalDate.now().plusDays(7).atTime(10, 0);
 
         assertThrows(MateriaNotFoundException.class, () ->
                 servicio.crearReserva(3, 1, 10,
-                        fecha, hora, 60,
+                        inicio, 60,
                         "Tema", ModalidadReserva.PRESENCIAL));
     }
 

@@ -75,7 +75,8 @@ public class ReservaRestController {
             return ResponseEntity.badRequest().build();
         }
         var reserva = reservas.crearReserva(datos.tutorId(), sesion.perfilId(), datos.materiaId(),
-                datos.fecha(), datos.horaInicio(), datos.duracionMinutos(), datos.tema(), datos.modalidad());
+                datos.fecha().atTime(datos.horaInicio()), datos.duracionMinutos(),
+                datos.tema(), datos.modalidad());
         if (datos.objetivo() == null || datos.objetivo().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Especifica el objetivo de la sesión");
         }

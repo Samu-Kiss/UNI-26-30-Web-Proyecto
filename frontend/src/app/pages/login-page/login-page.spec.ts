@@ -203,6 +203,19 @@ describe('Login y elección de perfil', () => {
       .expectOne('/api/sesion/restablecer')
       .flush({ mensaje: 'Código inválido' }, { status: 400, statusText: 'Bad Request' });
     expect(c.error()).toContain('Código inválido');
+
+    // Guard clauses cuando faltan datos o la contraseña es muy corta
+    c.correoRecuperacion = '   ';
+    c.solicitarCodigoRecuperacion();
+    http.expectNone('/api/sesion/recuperar');
+
+    c.tokenRestablecimiento = 'MYT-123';
+    c.nuevaContrasena = '123';
+    c.confirmarRestablecimiento();
+    http.expectNone('/api/sesion/restablecer');
+
+    c.autenticarConTokenGoogle('   ');
+    http.expectNone('/api/sesion/google');
     f.destroy();
   });
 });

@@ -62,7 +62,7 @@ describe('LandingPageComponent (Hero y áreas de conocimiento)', () => {
     expect(texto).toContain('Idiomas');
 
     const enlaces = fixture.nativeElement.querySelectorAll('.myt-landing__preview-list a');
-    expect(enlaces.length).toBe(3);
+    expect(enlaces).toHaveLength(3);
     const hrefs = Array.from(enlaces).map((a: unknown) => (a as HTMLAnchorElement).getAttribute('href'));
     expect(hrefs.some((h) => h?.includes('/tutores') && h.includes('Matem'))).toBe(true);
     expect(hrefs.some((h) => h?.includes('/tutores') && h.includes('Programaci'))).toBe(true);
@@ -107,7 +107,7 @@ describe('LandingPageComponent (Hero y áreas de conocimiento)', () => {
   it('muestra tutores destacados cuando hay sesión activa o invitación a enseñar en estado vacío', () => {
     const fixtureAuth = montar(true);
     expect(apiMock.tutores).toHaveBeenCalled();
-    expect(fixtureAuth.componentInstance.destacados().length).toBe(1);
+    expect(fixtureAuth.componentInstance.destacados()).toHaveLength(1);
     expect(fixtureAuth.nativeElement.textContent).toContain('Elena Guerrero');
     expect(fixtureAuth.nativeElement.textContent).toContain('Personas reales para retos reales');
     fixtureAuth.destroy();

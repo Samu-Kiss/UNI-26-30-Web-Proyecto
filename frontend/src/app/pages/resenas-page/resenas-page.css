@@ -75,7 +75,7 @@
 .review-card__status {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #147d6c;
+  color: #0f6b5c;
   background: #e3eeea;
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-pill);
@@ -318,4 +318,13 @@
   line-height: 1.5;
   color: var(--color-text-subtle);
   margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-card,
+  .star-btn,
+  .star-btn:hover {
+    transition: none;
+    transform: none;
+  }
 }
