@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ApiService, MensajeApi, ReservaApi } from '../core/services/api.service';
 import { AuthService } from '../core/services/auth.service';
@@ -32,6 +32,7 @@ describe('Interacciones de las vistas basadas en mockups', () => {
     tutor: ReturnType<typeof vi.fn>;
     resenas: ReturnType<typeof vi.fn>;
     horas: ReturnType<typeof vi.fn>;
+    agenda: ReturnType<typeof vi.fn>;
   };
   beforeEach(() => {
     vi.useFakeTimers();
@@ -58,6 +59,7 @@ describe('Interacciones de las vistas basadas en mockups', () => {
       ),
       resenas: vi.fn(() => of([])),
       horas: vi.fn(() => of(['10:00'])),
+      agenda: vi.fn(() => of({ horarios: [], bloqueos: [] })),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -162,6 +164,17 @@ describe('Interacciones de las vistas basadas en mockups', () => {
     await primera;
     expect(c.fechaSeleccionada()).toBe('2030-05-17');
     expect(c.horarios()).toEqual(['14:00']);
+    c.horaSeleccionada.set('14:00');
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Reservar este horario');
+
+    api.horas.mockReturnValueOnce(throwError(() => new Error('fallo')));
+    await c.seleccionarFecha('2030-05-18');
+    expect(c.errorDisponibilidad()).toBeTruthy();
+
+    TestBed.inject(AuthService).sesion.set({ rol: 'TUTOR', perfilId: 7, nombreUsuario: 'Ana' });
+    f.detectChanges();
+    expect(c.esPropietario()).toBe(true);
     f.destroy();
   });
 });

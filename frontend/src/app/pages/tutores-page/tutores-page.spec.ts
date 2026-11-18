@@ -235,4 +235,55 @@ describe('Catálogo y editor conectados', () => {
     expect(f.componentInstance.form.controls.biografia.value).toBe('Otro tutor');
     f.destroy();
   });
+  it('calcula páginas con elipsis, filtra por chips de categoría y limpia la búsqueda', () => {
+    const f = pagina();
+    http
+      .expectOne('/api/tutores?page=0&size=6')
+      .flush({ content: [tutor], number: 0, totalPages: 10, totalElements: 60 });
+    const c = f.componentInstance;
+    c.page = 4;
+    expect(c.paginasDisponibles()).toContain('...');
+    expect(c.esNumero(0)).toBe(true);
+    expect(c.esNumero('...')).toBe(false);
+    expect(c.inicialTutor('')).toBe('T');
+    expect(c.modalidadTutor(7)).toBe('Modalidad a convenir');
+    expect(c.resenasCountTutor(7)).toBe(0);
+
+    c.irAPagina(2);
+    http
+      .expectOne('/api/tutores?page=2&size=6')
+      .flush({ content: [tutor], number: 2, totalPages: 10, totalElements: 60 });
+    expect(c.page).toBe(2);
+
+    c.materias.set([{ id: 1, nombre: 'Matemáticas discretas' }]);
+    c.seleccionarCategoriaChip('Matemáticas');
+    http
+      .expectOne('/api/tutores?page=0&size=6&materiaId=1')
+      .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
+    expect(c.materiaId).toBe('1');
+
+    c.seleccionarCategoriaChip('Todas');
+    http
+      .expectOne('/api/tutores?page=0&size=6')
+      .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
+    expect(c.materiaId).toBe('');
+
+    c.materiaId = '1';
+    c.onMateriaChange();
+    http
+      .expectOne('/api/tutores?page=0&size=6&materiaId=1')
+      .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
+
+    c.materiaId = '';
+    c.onMateriaChange();
+    http
+      .expectOne('/api/tutores?page=0&size=6')
+      .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
+
+    c.limpiarBusqueda();
+    http
+      .expectOne('/api/tutores?page=0&size=6')
+      .flush({ content: [tutor], number: 0, totalPages: 1, totalElements: 1 });
+    f.destroy();
+  });
 });
