@@ -52,9 +52,13 @@ export function buildUpstreamUrl(reqUrl = '/api/salud', upstreamBase = DEFAULT_R
   let pathname = parsed.pathname;
 
   if (pathname === '/api/proxy' && parsed.searchParams.has('__myt_path')) {
-    const subPath = (parsed.searchParams.get('__myt_path') || '').replace(/^\/+/, '');
+    const rawValues = parsed.searchParams.getAll('__myt_path');
+    const joined = rawValues
+      .map((part) => (part || '').replace(/^\/+|\/+$/g, ''))
+      .filter(Boolean)
+      .join('/');
     parsed.searchParams.delete('__myt_path');
-    pathname = subPath ? `/api/${subPath}` : '/api';
+    pathname = joined ? `/api/${joined}` : '/api';
   }
 
   const search = parsed.searchParams.toString();

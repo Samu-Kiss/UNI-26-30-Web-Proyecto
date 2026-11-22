@@ -248,9 +248,10 @@ class RenderWompiUnitTest {
                 "prv_test_123",
                 "test_integrity_secret",
                 "test_events_secret",
-                "https://myt.onrender.com");
+                "http://localhost:4200, https://myt-frontend-eight.vercel.app/");
         String urlRemota = wompiRemoto.checkout("ORD-1", 1_500_000L);
         assertTrue(urlRemota.contains("redirect-url="));
+        assertTrue(urlRemota.contains("myt-frontend-eight.vercel.app"));
 
         ObjectMapper mapper = new ObjectMapper();
         String checksum = sha256("tx-99APPROVED15000001700000000test_events_secret");

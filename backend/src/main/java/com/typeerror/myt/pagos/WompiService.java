@@ -36,12 +36,42 @@ public class WompiService {
         this.privateKey = privateKey;
         this.integrityKey = integrityKey;
         this.eventsSecret = eventsSecret;
-        this.frontendUrl = frontendUrl.replaceAll("/+$", "");
+        this.frontendUrl = normalizarUrlPrincipal(frontendUrl);
         var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
         var factory = new JdkClientHttpRequestFactory(client);
         factory.setReadTimeout(Duration.ofSeconds(8));
         sandbox = RestClient.builder().baseUrl("https://sandbox.wompi.co/v1")
                 .requestFactory(factory).build();
+    }
+
+    static String normalizarUrlPrincipal(String frontendUrl) {
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            return "http://localhost:4200";
+        }
+        String primera = null;
+        for (String parte : frontendUrl.split(",")) {
+            String limpia = parte.trim().replaceAll("/+$", "");
+            if (limpia.isEmpty()) {
+                continue;
+            }
+            if (primera == null) {
+                primera = limpia;
+            }
+            if (!esHostLocal(limpia)) {
+                return limpia;
+            }
+        }
+        return primera != null ? primera : "http://localhost:4200";
+    }
+
+    private static boolean esHostLocal(String url) {
+        try {
+            String host = URI.create(url).getHost();
+            return host != null && Set.of("localhost", "127.0.0.1", "[::1]")
+                    .contains(host.toLowerCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return true;
+        }
     }
 
     public boolean habilitado() {
@@ -56,9 +86,7 @@ public class WompiService {
                 .queryParam("amount-in-cents", centavos).queryParam("reference", referencia)
                 .queryParam("signature:integrity", sha256(referencia + centavos + "COP" + integrityKey));
         // Wompi bloquea el Checkout Web si la URL de retorno apunta al equipo local.
-        String host = URI.create(frontendUrl).getHost();
-        if (host != null && Set.of("localhost", "127.0.0.1", "[::1]")
-                .contains(host.toLowerCase(java.util.Locale.ROOT))) {
+        if (esHostLocal(frontendUrl)) {
             return url.build().toUriString();
         }
         return url.queryParam("redirect-url", "{retorno}")
