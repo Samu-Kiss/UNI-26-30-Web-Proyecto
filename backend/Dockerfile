@@ -10,6 +10,7 @@ RUN sed -i 's/\r$//' mvnw && chmod +x mvnw \
 
 COPY src/ src/
 COPY config/ config/
+COPY supabase/ supabase/
 RUN ./mvnw --batch-mode --no-transfer-progress package -DskipTests \
     && ./mvnw --batch-mode --no-transfer-progress dependency:copy \
         -Dartifact=io.sentry:sentry-opentelemetry-agent:"${SENTRY_VERSION}" \

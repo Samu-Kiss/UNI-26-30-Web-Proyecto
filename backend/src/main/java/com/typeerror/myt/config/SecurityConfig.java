@@ -1,8 +1,13 @@
 package com.typeerror.myt.config;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,13 +34,24 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     private static final String ROLE_ADMIN = "ADMIN";
+    private static final String DEFAULT_FRONTEND_ORIGIN = "http://localhost:4200";
 
     private final JwtSesionService jwtSesionService;
     private final SesionService sesionService;
+    private final String frontendUrl;
 
     public SecurityConfig(JwtSesionService jwtSesionService, SesionService sesionService) {
+        this(jwtSesionService, sesionService, DEFAULT_FRONTEND_ORIGIN);
+    }
+
+    @Autowired
+    public SecurityConfig(
+            JwtSesionService jwtSesionService,
+            SesionService sesionService,
+            @Value("${FRONTEND_URL:http://localhost:4200}") String frontendUrl) {
         this.jwtSesionService = jwtSesionService;
         this.sesionService = sesionService;
+        this.frontendUrl = frontendUrl;
     }
 
     @Bean
@@ -50,7 +66,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/salud").permitAll()
+                        .requestMatchers("/api/salud").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/sesion/**").permitAll()
@@ -82,13 +98,25 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(resolverOrigenesPermitidos(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "X-MYT-Request", "X-XSRF-TOKEN"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    public static List<String> resolverOrigenesPermitidos(String frontendOrigin) {
+        Set<String> origenes = new LinkedHashSet<>();
+        origenes.add(DEFAULT_FRONTEND_ORIGIN);
+        if (frontendOrigin != null && !frontendOrigin.isBlank()) {
+            String limpio = frontendOrigin.trim().replaceAll("/+$", "");
+            if (!limpio.isEmpty()) {
+                origenes.add(limpio);
+            }
+        }
+        return new ArrayList<>(origenes);
     }
 
     private void escribirErrorJson(HttpServletResponse response, int status, String mensaje)

@@ -30,7 +30,8 @@ public class ApiInterceptor implements HandlerInterceptor {
             throws IOException {
         String method = request.getMethod();
         if ("OPTIONS".equals(method)
-                || ("GET".equals(method) && "/api/salud".equals(request.getRequestURI()))
+                || (("GET".equals(method) || "HEAD".equals(method))
+                        && "/api/salud".equals(request.getRequestURI()))
                 || ("POST".equals(method) && "/api/pagos/webhook".equals(request.getRequestURI()))) {
             return true;
         }

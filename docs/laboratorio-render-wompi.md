@@ -8,10 +8,10 @@ Desde la raíz del repositorio, aplica las migraciones en orden con la conexión
 
 ```powershell
 $migraciones = (Resolve-Path .\backend\supabase\migrations).Path
-docker run --rm -it --mount "type=bind,source=$migraciones,target=/migrations,readonly" postgres:17-alpine sh -c 'conn=$1; shift; for f in /migrations/*.sql; do set -- "$@" -f "$f"; done; exec psql -W -v ON_ERROR_STOP=1 -1 "$conn" "$@"' sh 'host=HOST_EXTERNO port=5432 dbname=NOMBRE_BASE user=USUARIO sslmode=require'
+docker run --rm -it --mount "type=bind,source=$migraciones,target=/migrations,readonly" postgres:17-alpine sh -c 'conn=$1; shift; existe=$(psql -w -v ON_ERROR_STOP=1 -At "$conn" -c "select to_regclass(\x27app.usuarios\x27) is not null" 2>/dev/null || echo f); if [ "$existe" = "t" ]; then set -- -f /migrations/20261029010000_reserva_objetivo.sql -f /migrations/20261109010000_add_wompi_orders.sql -f /migrations/20261117120000_add_password_reset_tokens.sql; else for f in /migrations/*.sql; do set -- "$@" -f "$f"; done; fi; exec psql -W -v ON_ERROR_STOP=1 -1 "$conn" "$@"' sh 'host=HOST_EXTERNO port=5432 dbname=NOMBRE_BASE user=USUARIO sslmode=require'
 ```
 
-En pgAdmin también puedes ejecutar los archivos SQL en orden sobre la base nueva. Las tablas de MyT quedan en el esquema `app`. Registra una cuenta de prueba desde Angular cuando el servicio esté disponible.
+En pgAdmin también puedes ejecutar los archivos SQL en orden sobre la base nueva. Al iniciar en Render, el backend verifica y sincroniza automáticamente las tablas y columnas incrementales (`app.ordenes`, `app.tokens_recuperacion` y `app.reservas.objetivo`) antes de la validación de Hibernate. Las tablas de MyT quedan en el esquema `app`. Registra una cuenta de prueba desde Angular cuando el servicio esté disponible.
 
 ## Backend en Render
 
