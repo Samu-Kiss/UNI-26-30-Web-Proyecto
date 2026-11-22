@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MyT">
+  <defs>
+    <linearGradient id="myt-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1785a3" />
+      <stop offset="100%" stop-color="#0a4353" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#myt-bg)" />
+  <path
+    d="M32 10L12 19l20 9 16.5-7.43V30h3.5V19L32 10zm-11 16.5v7.2c0 4.1 4.92 7.3 11 7.3s11-3.2 11-7.3v-7.2L32 31.4l-11-4.9z"
+    fill="#eef7fa"
+  />
+  <text
+    x="32"
+    y="56"
+    text-anchor="middle"
+    fill="#ffffff"
+    font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+    font-size="16"
+    font-weight="800"
+    letter-spacing="-0.6"
+  >
+    MyT
+  </text>
+</svg>
