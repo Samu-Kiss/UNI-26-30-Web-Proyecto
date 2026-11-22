@@ -50,6 +50,15 @@ Abre `http://localhost:4200`. Nginx reenvía `/api/` por HTTPS a Render para que
 
 Para capturar también una solicitud directa a Render desde el navegador, ejecuta en la consola del frontend `fetch('https://TU-SERVICIO.onrender.com/api/salud')` y revisa esa entrada en Network.
 
+## Angular en Vercel
+
+También puedes desplegar el frontend en Vercel usando `frontend` como **Root Directory** (`frontend/vercel.json` y `frontend/api/proxy.mjs`):
+
+1. En Vercel, define la variable de entorno `RENDER_BACKEND_HOST` con el host o URL del backend en Render (por ejemplo, `myt-lab-api.onrender.com`).
+2. Durante el build en Vercel (`VERCEL=1`), `prepare-runtime-config.mjs` configura `backendUrl: ""` para que Angular consuma `/api/…` en el mismo origen (`https://TU-PROYECTO.vercel.app/api/…`).
+3. La función serverless `frontend/api/proxy.mjs` reenvía `/api/*` por HTTPS hacia Render, conserva la cookie `HttpOnly` (`myt_sesion`) en el mismo origen y expone el encabezado `X-MYT-Upstream`.
+4. En Render, puedes definir `FRONTEND_URL=https://TU-PROYECTO.vercel.app` para que Wompi redirija automáticamente de vuelta a `/pago/resultado` tras finalizar el pago.
+
 ## Pago de prueba
 
 1. En el panel de Wompi Colombia, selecciona **Sandbox** y registra `https://TU-SERVICIO.onrender.com/api/pagos/webhook` como URL de eventos.

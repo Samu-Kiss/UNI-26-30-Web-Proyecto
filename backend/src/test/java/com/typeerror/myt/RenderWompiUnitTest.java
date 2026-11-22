@@ -177,6 +177,35 @@ class RenderWompiUnitTest {
         var origenes = SecurityConfig.resolverOrigenesPermitidos("https://myt-front.onrender.com///");
         assertEquals(List.of("http://localhost:4200", "https://myt-front.onrender.com"), origenes);
 
+        var multiples = SecurityConfig.resolverOrigenesPermitidos(
+                "https://myt-frontend.vercel.app/, https://myt-front.onrender.com///");
+        assertEquals(
+                List.of("http://localhost:4200", "https://myt-frontend.vercel.app", "https://myt-front.onrender.com"),
+                multiples);
+
+        var patrones = SecurityConfig.resolverPatronesOrigenPermitidos("https://myt-frontend.vercel.app/");
+        assertTrue(patrones.contains("https://*.vercel.app"));
+        assertTrue(patrones.contains("https://*.onrender.com"));
+        assertTrue(patrones.contains("https://myt-frontend.vercel.app"));
+
+        JwtSesionService jwtCrossSite = new JwtSesionService(
+                "secreto-de-prueba-con-mas-de-32-bytes-seguros",
+                java.time.Duration.ofHours(8),
+                true,
+                "None");
+        MockHttpServletResponse cookieRes = new MockHttpServletResponse();
+        jwtCrossSite.guardar(cookieRes, List.of("ESTUDIANTE:1"), false);
+        assertTrue(cookieRes.getHeader("Set-Cookie").contains("SameSite=None"));
+
+        JwtSesionService jwtBlankSameSite = new JwtSesionService(
+                "secreto-de-prueba-con-mas-de-32-bytes-seguros",
+                java.time.Duration.ofHours(8),
+                true,
+                "  ");
+        MockHttpServletResponse strictRes = new MockHttpServletResponse();
+        jwtBlankSameSite.guardar(strictRes, List.of("ESTUDIANTE:1"), false);
+        assertTrue(strictRes.getHeader("Set-Cookie").contains("SameSite=Strict"));
+
         ApiInterceptor interceptor = new ApiInterceptor(
                 mock(JwtSesionService.class), mock(SesionService.class));
         MockHttpServletRequest getSalud = new MockHttpServletRequest("GET", "/api/salud");

@@ -99,6 +99,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(resolverOrigenesPermitidos(frontendUrl));
+        config.setAllowedOriginPatterns(resolverPatronesOrigenPermitidos(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "X-MYT-Request", "X-XSRF-TOKEN"));
         config.setAllowCredentials(true);
@@ -111,12 +112,21 @@ public class SecurityConfig {
         Set<String> origenes = new LinkedHashSet<>();
         origenes.add(DEFAULT_FRONTEND_ORIGIN);
         if (frontendOrigin != null && !frontendOrigin.isBlank()) {
-            String limpio = frontendOrigin.trim().replaceAll("/+$", "");
-            if (!limpio.isEmpty()) {
-                origenes.add(limpio);
+            for (String parte : frontendOrigin.split(",")) {
+                String limpio = parte.trim().replaceAll("/+$", "");
+                if (!limpio.isEmpty()) {
+                    origenes.add(limpio);
+                }
             }
         }
         return new ArrayList<>(origenes);
+    }
+
+    public static List<String> resolverPatronesOrigenPermitidos(String frontendOrigin) {
+        Set<String> patrones = new LinkedHashSet<>(resolverOrigenesPermitidos(frontendOrigin));
+        patrones.add("https://*.vercel.app");
+        patrones.add("https://*.onrender.com");
+        return new ArrayList<>(patrones);
     }
 
     private void escribirErrorJson(HttpServletResponse response, int status, String mensaje)

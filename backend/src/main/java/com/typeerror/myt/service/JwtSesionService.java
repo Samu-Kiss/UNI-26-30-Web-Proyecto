@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -33,10 +34,17 @@ public class JwtSesionService {
     private final NimbusJwtDecoder decoder;
     private final Duration duracion;
     private final boolean secure;
+    private final String sameSite;
 
+    public JwtSesionService(String secret, Duration duracion, boolean secure) {
+        this(secret, duracion, secure, "Strict");
+    }
+
+    @Autowired
     public JwtSesionService(@Value("${myt.jwt.secret}") String secret,
             @Value("${myt.jwt.duration:PT8H}") Duration duracion,
-            @Value("${myt.jwt.cookie-secure:true}") boolean secure) {
+            @Value("${myt.jwt.cookie-secure:true}") boolean secure,
+            @Value("${myt.jwt.cookie-samesite:Strict}") String sameSite) {
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32 || duracion.isNegative() || duracion.isZero()) {
             throw new IllegalArgumentException("JWT requiere una clave de al menos 32 bytes y duración positiva");
@@ -47,6 +55,7 @@ public class JwtSesionService {
         decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer("myt"));
         this.duracion = duracion;
         this.secure = secure;
+        this.sameSite = (sameSite == null || sameSite.isBlank()) ? "Strict" : sameSite.trim();
     }
 
     public String emitir(List<String> perfiles, boolean seleccion) {
@@ -91,6 +100,6 @@ public class JwtSesionService {
 
     private void cookie(HttpServletResponse response, String valor, Duration edad) {
         response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(COOKIE, valor)
-                .httpOnly(true).secure(secure).sameSite("Strict").path("/").maxAge(edad).build().toString());
+                .httpOnly(true).secure(secure).sameSite(sameSite).path("/").maxAge(edad).build().toString());
     }
 }

@@ -47,6 +47,8 @@ build/
 frontend/dist/
 frontend/coverage/
 .angular/
+.vercel/
+**/.vercel/
 
 
 .ai/
