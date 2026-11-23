@@ -21,7 +21,7 @@ import {
 
           <nav class="myt-landing__links" aria-label="Navegación de inicio">
             <a href="#como-funciona">Cómo funciona</a>
-            <a routerLink="/tutores">Encuentra tutores</a>
+            <a [routerLink]="auth.sesion() ? '/tutores' : '/login'">Encuentra tutores</a>
             <a href="#para-tutores">Para tutores</a>
           </nav>
 
@@ -62,7 +62,7 @@ import {
             </p>
             <div class="myt-landing__hero-cta">
               <a
-                routerLink="/tutores"
+                [routerLink]="auth.sesion() ? '/tutores' : '/login'"
                 class="myt-landing__btn myt-landing__btn--primary myt-landing__btn--lg"
               >
                 Encontrar un tutor
@@ -306,7 +306,10 @@ import {
         <div class="myt-landing__cta-inner">
           <h2>Encuentra el apoyo que necesitas para avanzar.</h2>
           <p>Explora tutores, compara opciones y agenda tu primera sesión en MyT.</p>
-          <a routerLink="/tutores" class="myt-landing__btn myt-landing__btn--paper">
+          <a
+            [routerLink]="auth.sesion() ? '/tutores' : '/login'"
+            class="myt-landing__btn myt-landing__btn--paper"
+          >
             Empezar ahora
           </a>
         </div>

@@ -35,16 +35,12 @@ export const routes: Routes = [
       import('./pages/landing-page/landing-page').then((m) => m.LandingPageComponent),
   },
   { path: 'landing', redirectTo: '', pathMatch: 'full' },
-  {
-    path: 'tutores',
-    loadComponent: () =>
-      import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
-  },
-  {
-    path: 'tutores/:id',
-    loadComponent: () =>
-      import('./pages/tutor-perfil-page/tutor-perfil-page').then((m) => m.TutorPerfilPageComponent),
-  },
+  rutaProtegida('tutores', () =>
+    import('./pages/tutores-page/tutores-page').then((m) => m.TutoresPageComponent),
+  ),
+  rutaProtegida('tutores/:id', () =>
+    import('./pages/tutor-perfil-page/tutor-perfil-page').then((m) => m.TutorPerfilPageComponent),
+  ),
   rutaProtegida('reservas', () =>
     import('./pages/reservas-page/reservas-page').then((m) => m.ReservasPageComponent),
   ),

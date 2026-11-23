@@ -148,15 +148,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
             <app-login-form [habilitado]="!cargando()" (loginEnviado)="procesarLogin($event)" />
 
             <div class="myt-auth-extras">
-              <div class="myt-auth-extras__row">
-                <button
-                  type="button"
-                  class="myt-btn myt-btn--secondary myt-btn--sm myt-google-trigger"
-                  [disabled]="cargando()"
-                  (click)="procesarLoginGoogle()"
-                >
-                  Continuar con Google
-                </button>
+              <div class="myt-auth-extras__actions">
                 <button
                   type="button"
                   class="myt-link-btn"
@@ -166,6 +158,37 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
+
+              <div class="myt-auth-divider" aria-hidden="true">
+                <span>o continúa con</span>
+              </div>
+
+              <button
+                type="button"
+                class="myt-google-btn myt-google-trigger"
+                [disabled]="cargando()"
+                (click)="procesarLoginGoogle()"
+              >
+                <svg class="myt-google-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                <span>Continuar con Google</span>
+              </button>
 
               <div class="myt-demo-accounts" aria-label="Cuentas de prueba Spring Security">
                 <span class="myt-demo-accounts__label"
@@ -208,8 +231,7 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
               </p>
               <p>
                 ¿Quieres conocer primero la plataforma?
-                <a routerLink="/">Explora la Landing de MyT</a> o
-                <a routerLink="/tutores">consulta el catálogo de tutores</a>.
+                <a routerLink="/">Explora la Landing de MyT</a>.
               </p>
             </div>
           }
@@ -296,14 +318,68 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
       .myt-auth-extras {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
+        gap: 0.9rem;
       }
-      .myt-auth-extras__row {
+      .myt-auth-extras__actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: -0.35rem;
+      }
+      .myt-auth-divider {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.85rem;
+        color: var(--color-text-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .myt-auth-divider::before,
+      .myt-auth-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--color-border);
+      }
+      .myt-google-btn {
+        width: 100%;
+        min-height: 3rem;
+        padding: 0.65rem 1.25rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.65rem;
+        border-radius: 12px;
+        border: 1px solid var(--color-border-strong);
+        background: #ffffff;
+        color: var(--color-text-main);
+        font-size: 0.94rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+        transition:
+          background-color 140ms ease,
+          border-color 140ms ease,
+          box-shadow 140ms ease;
+      }
+      .myt-google-btn:hover:not(:disabled) {
+        background: #f8fafc;
+        border-color: var(--color-primary);
+        box-shadow: 0 2px 6px rgba(18, 110, 135, 0.12);
+      }
+      .myt-google-btn:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
+      .myt-google-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .myt-google-btn__icon {
+        width: 19px;
+        height: 19px;
+        flex-shrink: 0;
       }
       .myt-link-btn {
         background: none;
@@ -312,7 +388,10 @@ import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/l
         font-weight: 700;
         font-size: 0.85rem;
         cursor: pointer;
-        padding: 0.25rem 0;
+        padding: 0.2rem 0;
+      }
+      .myt-link-btn:hover:not(:disabled) {
+        text-decoration: underline;
       }
       .myt-demo-token {
         padding: 0.65rem 0.85rem;
