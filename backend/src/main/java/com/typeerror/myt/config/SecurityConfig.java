@@ -113,13 +113,21 @@ public class SecurityConfig {
         origenes.add(DEFAULT_FRONTEND_ORIGIN);
         if (frontendOrigin != null && !frontendOrigin.isBlank()) {
             for (String parte : frontendOrigin.split(",")) {
-                String limpio = parte.trim().replaceAll("/+$", "");
+                String limpio = quitarBarrasFinales(parte.trim());
                 if (!limpio.isEmpty()) {
                     origenes.add(limpio);
                 }
             }
         }
         return new ArrayList<>(origenes);
+    }
+
+    private static String quitarBarrasFinales(String valor) {
+        int fin = valor.length();
+        while (fin > 0 && valor.charAt(fin - 1) == '/') {
+            fin--;
+        }
+        return valor.substring(0, fin);
     }
 
     public static List<String> resolverPatronesOrigenPermitidos(String frontendOrigin) {

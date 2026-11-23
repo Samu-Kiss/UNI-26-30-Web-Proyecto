@@ -140,7 +140,7 @@ describe('PagoPageComponent (Wompi Sandbox y órdenes)', () => {
     const comp = fixture.componentInstance;
     expect(comp.habilitado()).toBe(true);
     expect(comp.reservaSeleccionada()?.id).toBe(14);
-    expect(comp.reservasPorPagar().length).toBe(1);
+    expect(comp.reservasPorPagar()).toHaveLength(1);
 
     // Alternar a abono general y de vuelta a la reserva
     comp.seleccionarReserva(null);

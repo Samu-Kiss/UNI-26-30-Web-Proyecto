@@ -23,6 +23,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public final class ApiDtos {
+    public static final String ESTADO_SIN_PAGO = "SIN_PAGO";
+
     private ApiDtos() { }
 
     public record MateriaDto(Integer id, String nombre) { }
@@ -62,7 +64,7 @@ public final class ApiDtos {
                 String objetivo, String motivoCancelacion, String estudianteCorreo, String estudianteTelefono) {
             this(id, tutorId, estudianteId, tutor, estudiante, materia, fecha, horaInicio, duracionMinutos,
                     tema, estado, costoTotal, modalidad, objetivo, motivoCancelacion, estudianteCorreo,
-                    estudianteTelefono, "SIN_PAGO", null);
+                    estudianteTelefono, ESTADO_SIN_PAGO, null);
         }
     }
 
@@ -84,7 +86,7 @@ public final class ApiDtos {
     }
 
     public static ReservaDto reserva(Reserva r) {
-        return reserva(r, "SIN_PAGO", null);
+        return reserva(r, ESTADO_SIN_PAGO, null);
     }
 
     public static ReservaDto reserva(Reserva r, String estadoPago, String referenciaPago) {
@@ -94,6 +96,6 @@ public final class ApiDtos {
                 r.getTema(), r.getEstado(), r.getCostoTotal(), r.getModalidad(), r.getObjetivo(),
                 r.getMotivoCancelacion(), r.getEstudiante().getUsuario().getCorreo(),
                 r.getEstudiante().getUsuario().getTelefono(),
-                estadoPago != null ? estadoPago : "SIN_PAGO", referenciaPago);
+                estadoPago != null ? estadoPago : ESTADO_SIN_PAGO, referenciaPago);
     }
 }

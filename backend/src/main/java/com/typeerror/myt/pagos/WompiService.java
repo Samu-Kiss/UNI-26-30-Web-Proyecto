@@ -50,7 +50,7 @@ public class WompiService {
         }
         String primera = null;
         for (String parte : frontendUrl.split(",")) {
-            String limpia = parte.trim().replaceAll("/+$", "");
+            String limpia = quitarBarrasFinales(parte.trim());
             if (limpia.isEmpty()) {
                 continue;
             }
@@ -62,6 +62,14 @@ public class WompiService {
             }
         }
         return primera != null ? primera : "http://localhost:4200";
+    }
+
+    private static String quitarBarrasFinales(String valor) {
+        int fin = valor.length();
+        while (fin > 0 && valor.charAt(fin - 1) == '/') {
+            fin--;
+        }
+        return valor.substring(0, fin);
     }
 
     private static boolean esHostLocal(String url) {

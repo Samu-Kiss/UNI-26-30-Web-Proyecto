@@ -41,6 +41,15 @@ public class PagoController {
 
     private static final long CENTAVOS_ABONO = 1_500_000L;
     private static final String CONCEPTO_ABONO = "Abono de tutoría académica MyT";
+    private static final String COL_RESERVA_ID = "reserva_id";
+    private static final String COL_REFERENCIA = "referencia";
+    private static final String COL_CONCEPTO = "concepto";
+    private static final String COL_ESTADO = "estado";
+    private static final String COL_MONTO_CENTAVOS = "monto_en_centavos";
+    private static final String COL_WOMPI_TX_ID = "wompi_transaccion_id";
+    private static final String ESTADO_APPROVED = "APPROVED";
+    private static final String ESTADO_PENDING = "PENDING";
+    private static final String ESTADO_SIN_PAGO = "SIN_PAGO";
 
     private final WompiService wompi;
     private final JdbcClient db;
@@ -65,6 +74,12 @@ public class PagoController {
             String tutor,
             String estudiante,
             String estadoReserva) { }
+
+    private record DatosOrdenCheckout(
+            String referencia,
+            Integer reservaId,
+            String concepto,
+            long centavos) { }
 
     public PagoController(
             WompiService wompi,
@@ -140,19 +155,19 @@ public class PagoController {
         };
 
         return spec.query((rs, rowNum) -> {
-            long centavos = rs.getLong("monto_en_centavos");
+            long centavos = rs.getLong(COL_MONTO_CENTAVOS);
             BigDecimal cop = BigDecimal.valueOf(centavos)
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             Timestamp ts = rs.getTimestamp("fecha_creacion");
-            Integer resId = rs.getObject("reserva_id", Integer.class);
+            Integer resId = rs.getObject(COL_RESERVA_ID, Integer.class);
             return new OrdenPagoDto(
-                    rs.getString("referencia"),
+                    rs.getString(COL_REFERENCIA),
                     resId,
-                    rs.getString("concepto"),
+                    rs.getString(COL_CONCEPTO),
                     centavos,
                     cop,
-                    rs.getString("estado"),
-                    rs.getString("wompi_transaccion_id"),
+                    rs.getString(COL_ESTADO),
+                    rs.getString(COL_WOMPI_TX_ID),
                     ts != null ? ts.toInstant().toString() : null,
                     rs.getString("materia"),
                     rs.getString("tutor"),
@@ -172,61 +187,73 @@ public class PagoController {
         }
 
         Integer reservaId = solicitud != null ? solicitud.reservaId() : null;
-        long centavos = CENTAVOS_ABONO;
-        String concepto = CONCEPTO_ABONO;
-        String referencia = "ORD-" + UUID.randomUUID();
+        DatosOrdenCheckout datos = reservaId != null
+                ? prepararOrdenReserva(sesion, reservaId)
+                : new DatosOrdenCheckout(
+                        "ORD-" + UUID.randomUUID(), null, CONCEPTO_ABONO, CENTAVOS_ABONO);
 
-        if (reservaId != null) {
-            Reserva reserva = reservas.findById(reservaId).orElseThrow(
-                    () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva no encontrada"));
-            if (sesion.rol() == RolUsuario.ESTUDIANTE
-                    && !reserva.getEstudiante().getId().equals(sesion.perfilId())) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "La reserva pertenece a otro estudiante");
-            }
-            if (sesion.rol() == RolUsuario.TUTOR) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "Solo el estudiante puede pagar la reserva");
-            }
-            if (reserva.getEstado() == EstadoReserva.CANCELADA
-                    || reserva.getEstado() == EstadoReserva.RECHAZADA) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "No se puede pagar una reserva cancelada o rechazada");
-            }
-            ResumenPagoReserva resumen = pagoDeReserva(reservaId);
-            if ("APPROVED".equals(resumen.estadoPago())) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT, "Esta tutoría ya tiene un pago aprobado");
-            }
-            centavos = reserva.getCostoTotal()
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(0, RoundingMode.HALF_UP)
-                    .longValueExact();
-            String descripcion = "Tutoría de " + reserva.getMateria().getNombre()
-                    + " con " + reserva.getTutor().getUsuario().getNombre()
-                    + " · " + reserva.getTema();
-            concepto = descripcion.length() > 300 ? descripcion.substring(0, 300) : descripcion;
-            String sufijo = UUID.randomUUID().toString().replace("-", "")
-                    .substring(0, 10).toUpperCase(Locale.ROOT);
-            referencia = "ORD-RES" + reserva.getId() + "-" + sufijo;
-        }
-
-        String url = wompi.checkout(referencia, centavos);
+        String url = wompi.checkout(datos.referencia(), datos.centavos());
         db.sql("insert into " + ordenes
                 + " (referencia, perfil, reserva_id, concepto, monto_en_centavos)"
                 + " values (?, ?, ?, ?, ?)")
-                .params(referencia, sesion.valor(), reservaId, concepto, centavos)
+                .params(
+                        datos.referencia(),
+                        sesion.valor(),
+                        datos.reservaId(),
+                        datos.concepto(),
+                        datos.centavos())
                 .update();
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("url", url);
-        respuesta.put("referencia", referencia);
-        respuesta.put("montoEnCentavos", centavos);
-        respuesta.put("concepto", concepto);
-        if (reservaId != null) {
-            respuesta.put("reservaId", reservaId);
+        respuesta.put(COL_REFERENCIA, datos.referencia());
+        respuesta.put("montoEnCentavos", datos.centavos());
+        respuesta.put(COL_CONCEPTO, datos.concepto());
+        if (datos.reservaId() != null) {
+            respuesta.put("reservaId", datos.reservaId());
         }
         return respuesta;
+    }
+
+    private DatosOrdenCheckout prepararOrdenReserva(ContextoSesion sesion, Integer reservaId) {
+        Reserva reserva = reservas.findById(reservaId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva no encontrada"));
+        validarPermisosYEstadoReserva(sesion, reserva);
+
+        long centavos = reserva.getCostoTotal()
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValueExact();
+        String descripcion = "Tutoría de " + reserva.getMateria().getNombre()
+                + " con " + reserva.getTutor().getUsuario().getNombre()
+                + " · " + reserva.getTema();
+        String concepto = descripcion.length() > 300 ? descripcion.substring(0, 300) : descripcion;
+        String sufijo = UUID.randomUUID().toString().replace("-", "")
+                .substring(0, 10).toUpperCase(Locale.ROOT);
+        String referencia = "ORD-RES" + reserva.getId() + "-" + sufijo;
+        return new DatosOrdenCheckout(referencia, reservaId, concepto, centavos);
+    }
+
+    private void validarPermisosYEstadoReserva(ContextoSesion sesion, Reserva reserva) {
+        if (sesion.rol() == RolUsuario.ESTUDIANTE
+                && !reserva.getEstudiante().getId().equals(sesion.perfilId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "La reserva pertenece a otro estudiante");
+        }
+        if (sesion.rol() == RolUsuario.TUTOR) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Solo el estudiante puede pagar la reserva");
+        }
+        if (reserva.getEstado() == EstadoReserva.CANCELADA
+                || reserva.getEstado() == EstadoReserva.RECHAZADA) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "No se puede pagar una reserva cancelada o rechazada");
+        }
+        ResumenPagoReserva resumen = pagoDeReserva(reserva.getId());
+        if (ESTADO_APPROVED.equals(resumen.estadoPago())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Esta tutoría ya tiene un pago aprobado");
+        }
     }
 
     @GetMapping("/orden/{referencia}")
@@ -236,8 +263,8 @@ public class PagoController {
             @PathVariable String referencia,
             @RequestParam(required = false) String transaccionId) {
         var fila = consultarFilaOrden(sesion, referencia);
-        String estadoActual = (String) fila.get("estado");
-        if ("PENDING".equals(estadoActual)
+        String estadoActual = (String) fila.get(COL_ESTADO);
+        if (ESTADO_PENDING.equals(estadoActual)
                 && transaccionId != null
                 && !transaccionId.isBlank()
                 && wompi.habilitado()) {
@@ -266,7 +293,7 @@ public class PagoController {
         String referencia = tx.path("reference").asText();
         long centavos = tx.path("amount_in_cents").asLong(-1);
         if (!"COP".equals(tx.path("currency").asText())
-                || !Set.of("APPROVED", "DECLINED", "ERROR", "VOIDED").contains(estado)) {
+                || !Set.of(ESTADO_APPROVED, "DECLINED", "ERROR", "VOIDED").contains(estado)) {
             return;
         }
         int actualizadas = db.sql("update " + ordenes + """
@@ -278,7 +305,7 @@ public class PagoController {
                 .params(estado, id, referencia, centavos, estado, id)
                 .update();
 
-        if (actualizadas > 0 && "APPROVED".equals(estado)) {
+        if (actualizadas > 0 && ESTADO_APPROVED.equals(estado)) {
             confirmarReservaSiCorresponde(referencia);
         }
     }
@@ -323,15 +350,15 @@ public class PagoController {
                         sesion.perfilId())
                 .query((rs, rowNum) -> {
                     Map<String, Object> map = new LinkedHashMap<>();
-                    map.put("referencia", rs.getString("referencia"));
-                    map.put("estado", rs.getString("estado"));
-                    map.put("montoEnCentavos", rs.getLong("monto_en_centavos"));
-                    map.put("concepto", rs.getString("concepto"));
-                    Integer resId = rs.getObject("reserva_id", Integer.class);
+                    map.put(COL_REFERENCIA, rs.getString(COL_REFERENCIA));
+                    map.put(COL_ESTADO, rs.getString(COL_ESTADO));
+                    map.put("montoEnCentavos", rs.getLong(COL_MONTO_CENTAVOS));
+                    map.put(COL_CONCEPTO, rs.getString(COL_CONCEPTO));
+                    Integer resId = rs.getObject(COL_RESERVA_ID, Integer.class);
                     if (resId != null) {
                         map.put("reservaId", resId);
                     }
-                    String txId = rs.getString("wompi_transaccion_id");
+                    String txId = rs.getString(COL_WOMPI_TX_ID);
                     if (txId != null) {
                         map.put("wompiTransaccionId", txId);
                     }
@@ -344,10 +371,10 @@ public class PagoController {
 
     public ResumenPagoReserva pagoDeReserva(Integer reservaId) {
         if (reservaId == null) {
-            return new ResumenPagoReserva("SIN_PAGO", null);
+            return new ResumenPagoReserva(ESTADO_SIN_PAGO, null);
         }
         return pagosPorReservas(List.of(reservaId))
-                .getOrDefault(reservaId, new ResumenPagoReserva("SIN_PAGO", null));
+                .getOrDefault(reservaId, new ResumenPagoReserva(ESTADO_SIN_PAGO, null));
     }
 
     public Map<Integer, ResumenPagoReserva> pagosPorReservas(Collection<Integer> reservaIds) {
@@ -365,10 +392,10 @@ public class PagoController {
                     """.formatted(esquemaSql);
             Map<Integer, ResumenPagoReserva> resultado = new HashMap<>();
             db.sql(sql).query((rs, rowNum) -> {
-                Integer id = rs.getInt("reserva_id");
+                Integer id = rs.getInt(COL_RESERVA_ID);
                 if (reservaIds.contains(id)) {
                     resultado.put(id, new ResumenPagoReserva(
-                            rs.getString("estado"), rs.getString("referencia")));
+                            rs.getString(COL_ESTADO), rs.getString(COL_REFERENCIA)));
                 }
                 return null;
             }).list();
