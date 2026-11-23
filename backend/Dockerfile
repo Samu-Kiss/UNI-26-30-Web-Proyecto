@@ -5,7 +5,7 @@ ARG SENTRY_VERSION=8.59.0
 WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN sed -i 's/\r$//' mvnw && chmod +x mvnw \
+RUN sed -i 's/\r$//' mvnw .mvn/wrapper/maven-wrapper.properties && chmod +x mvnw \
     && ./mvnw --batch-mode --no-transfer-progress dependency:go-offline
 
 COPY src/ src/
