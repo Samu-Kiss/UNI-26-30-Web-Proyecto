@@ -21,11 +21,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     { provide: LOCALE_ID, useValue: 'es-CO' },
     provideBrowserGlobalErrorListeners(),
-    provideAppInitializer(() =>
+    provideAppInitializer(() => {
       inject(AuthService)
         .restaurar()
-        .pipe(catchError(() => of(null))),
-    ),
+        .pipe(catchError(() => of(null)))
+        .subscribe();
+    }),
     provideRouter(routes),
     provideHttpClient(withInterceptors([apiInterceptor])),
     {

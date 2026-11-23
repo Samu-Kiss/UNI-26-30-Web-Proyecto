@@ -96,6 +96,8 @@ async function readRequestBody(req) {
   return undefined;
 }
 
+const UPSTREAM_TIMEOUT_MS = 8500;
+
 export default async function handler(req, res) {
   const upstreamBase = resolveUpstreamBase(process.env);
   const upstreamHost = new URL(upstreamBase).host;
@@ -120,6 +122,9 @@ export default async function handler(req, res) {
     }
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
   try {
     const body = await readRequestBody(req);
     const upstreamRes = await fetch(upstreamUrl, {
@@ -127,6 +132,7 @@ export default async function handler(req, res) {
       headers,
       body,
       redirect: 'manual',
+      signal: controller.signal,
     });
 
     res.statusCode = upstreamRes.status;
@@ -165,5 +171,7 @@ export default async function handler(req, res) {
           'El backend en Render está iniciando o no respondió a tiempo. Reintenta en unos segundos.',
       }),
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
