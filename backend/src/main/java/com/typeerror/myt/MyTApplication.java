@@ -20,10 +20,10 @@ public class MyTApplication {
     private static final String ENV_DATABASE_URL = "DATABASE_URL";
 
     private static final List<String> CLAVES_URL = List.of(
-            ENV_SPRING_URL,
             ENV_SUPABASE_DEV_URL,
             ENV_SUPABASE_PROD_URL,
             ENV_SUPABASE_URL,
+            ENV_SPRING_URL,
             ENV_DATABASE_URL
     );
 
@@ -57,12 +57,13 @@ public class MyTApplication {
             aplicarUriNormalizada(
                     URI.create(uriPostgres),
                     limpia,
-                    ENV_DATABASE_URL.equals(claveActiva),
+                    ENV_DATABASE_URL.equals(claveActiva) || CLAVES_SUPABASE_URL.contains(claveActiva),
                     entorno,
                     propiedadesSistema);
         } catch (IllegalArgumentException ignored) {
             // Si la URL no es parseable como URI estándar, se delega al driver JDBC.
         }
+        aplicarCredencialesSupabaseExplicitas(entorno, propiedadesSistema);
     }
 
     private static String buscarClaveUrlActiva(Map<String, String> entorno) {
@@ -137,6 +138,33 @@ public class MyTApplication {
                     List.of("SUPABASE_DEV_DB_PASSWORD", "SUPABASE_PROD_DB_PASSWORD"),
                     clave);
         }
+    }
+
+    private static void aplicarCredencialesSupabaseExplicitas(
+            Map<String, String> entorno,
+            Properties propiedadesSistema) {
+        String usuarioSupabase = primeroNoVacio(
+                entorno,
+                List.of("SUPABASE_DEV_DB_USERNAME", "SUPABASE_PROD_DB_USERNAME"));
+        if (!estaVacio(usuarioSupabase)) {
+            propiedadesSistema.setProperty("spring.datasource.username", usuarioSupabase.trim());
+        }
+        String claveSupabase = primeroNoVacio(
+                entorno,
+                List.of("SUPABASE_DEV_DB_PASSWORD", "SUPABASE_PROD_DB_PASSWORD"));
+        if (!estaVacio(claveSupabase)) {
+            propiedadesSistema.setProperty("spring.datasource.password", claveSupabase.trim());
+        }
+    }
+
+    private static String primeroNoVacio(Map<String, String> entorno, List<String> claves) {
+        for (String clave : claves) {
+            String valor = entorno.get(clave);
+            if (!estaVacio(valor)) {
+                return valor;
+            }
+        }
+        return null;
     }
 
     private static void propagarSiPresente(

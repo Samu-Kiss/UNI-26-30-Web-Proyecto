@@ -1,40 +1,45 @@
 # Laboratorio Render y Wompi con MyT
 
-## PostgreSQL en Render
+## Base de datos en Supabase
 
-Crea un PostgreSQL nuevo en el panel de Render. Elige la misma región que usarás para el backend y selecciona Free si está disponible.
+El despliegue en Render usa directamente el proyecto de **Supabase** existente del equipo (no requiere crear un PostgreSQL nuevo en Render).
 
-Desde la raíz del repositorio, aplica las migraciones en orden con la conexión **externa** de esa base. Sustituye los tres valores en mayúsculas por los de **Connect**. PostgreSQL solicitará la contraseña de forma interactiva.
+Si el proyecto de Supabase ya tiene las migraciones iniciales pero deseas aplicar manualmente las migraciones incrementales de reservas, órdenes Wompi y tokens de recuperación desde la raíz del repositorio (o desde el **SQL Editor** de Supabase), puedes ejecutar:
 
 ```powershell
 $migraciones = (Resolve-Path .\backend\supabase\migrations).Path
-docker run --rm -it --mount "type=bind,source=$migraciones,target=/migrations,readonly" postgres:17-alpine sh -c 'conn=$1; shift; existe=$(psql -w -v ON_ERROR_STOP=1 -At "$conn" -c "select to_regclass(\x27app.usuarios\x27) is not null" 2>/dev/null || echo f); if [ "$existe" = "t" ]; then set -- -f /migrations/20261029010000_reserva_objetivo.sql -f /migrations/20261109010000_add_wompi_orders.sql -f /migrations/20261117120000_add_password_reset_tokens.sql; else for f in /migrations/*.sql; do set -- "$@" -f "$f"; done; fi; exec psql -W -v ON_ERROR_STOP=1 -1 "$conn" "$@"' sh 'host=HOST_EXTERNO port=5432 dbname=NOMBRE_BASE user=USUARIO sslmode=require'
+docker run --rm -it --mount "type=bind,source=$migraciones,target=/migrations,readonly" postgres:17-alpine sh -c 'conn=$1; shift; existe=$(psql -w -v ON_ERROR_STOP=1 -At "$conn" -c "select to_regclass(\x27app.usuarios\x27) is not null" 2>/dev/null || echo f); if [ "$existe" = "t" ]; then set -- -f /migrations/20261029010000_reserva_objetivo.sql -f /migrations/20261109010000_add_wompi_orders.sql -f /migrations/20261117120000_add_password_reset_tokens.sql; else for f in /migrations/*.sql; do set -- "$@" -f "$f"; done; fi; exec psql -W -v ON_ERROR_STOP=1 -1 "$conn" "$@"' sh 'host=aws-0-us-west-2.pooler.supabase.com port=5432 dbname=postgres user=postgres.PROYECTO_REF sslmode=require'
 ```
 
-En pgAdmin también puedes ejecutar los archivos SQL en orden sobre la base nueva. Al iniciar en Render, el backend verifica y sincroniza automáticamente las tablas y columnas incrementales (`app.ordenes`, `app.tokens_recuperacion` y `app.reservas.objetivo`) antes de la validación de Hibernate. Las tablas de MyT quedan en el esquema `app`. Registra una cuenta de prueba desde Angular cuando el servicio esté disponible.
+Además, al iniciar en Render, el backend verifica y sincroniza automáticamente las tablas y columnas incrementales (`app.ordenes`, `app.tokens_recuperacion` y `app.reservas.objetivo`) sobre el esquema `app` de Supabase antes de la validación de Hibernate.
 
-## Backend en Render
+## Backend en Render (conectado a Supabase)
 
 Crea un **Web Service** de tipo Docker desde el repositorio de MyT. Selecciona la rama que contiene este laboratorio. Usa `backend` como **Root Directory**, `./Dockerfile` como **Dockerfile Path**, `.` como **Docker Build Context** y `/api/salud` como **Health Check Path**.
 
-En **Environment**, configura lo siguiente.
+En **Environment**, configura la conexión al Session Pooler de **Supabase** (puerto `5432`, compatible con IPv4 en Render) y las llaves del servicio:
 
 | Variable | Valor |
 | --- | --- |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://HOST_INTERNO:5432/NOMBRE_BASE` |
-| `SPRING_DATASOURCE_USERNAME` | Usuario del PostgreSQL nuevo |
-| `SPRING_DATASOURCE_PASSWORD` | Contraseña del PostgreSQL nuevo |
-| `JWT_SECRET` | Secreto nuevo y aleatorio de al menos 32 bytes |
+| `SPRING_PROFILES_ACTIVE` | `dev` (o `prod` si usas el proyecto de producción) |
+| `SUPABASE_DEV_DB_URL` | `jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require` |
+| `SUPABASE_DEV_DB_USERNAME` | `postgres.rrxvxcufuwmjbqiwhgmt` (o `postgres.TU_PROJECT_REF`) |
+| `SUPABASE_DEV_DB_PASSWORD` | Contraseña de la base de datos de Supabase |
+| `SUPABASE_URL` | `https://rrxvxcufuwmjbqiwhgmt.supabase.co` (opcional; se deriva de `SUPABASE_DEV_DB_USERNAME`) |
+| `SUPABASE_ANON_KEY` | `anon public` key del proyecto en Supabase (para validación de Google OAuth) |
+| `JWT_SECRET` | Secreto aleatorio de al menos 32 bytes |
 | `JWT_COOKIE_SECURE` | `true` |
-| `FRONTEND_URL` | `http://localhost:4200` |
+| `FRONTEND_URL` | `http://localhost:4200, https://TU-PROYECTO.vercel.app` |
 | `WOMPI_PUBLIC_KEY` | Llave `pub_test_…` |
 | `WOMPI_PRIVATE_KEY` | Llave `prv_test_…` |
 | `WOMPI_INTEGRITY_KEY` | Secreto `test_integrity_…` |
 | `WOMPI_EVENTS_SECRET` | Secreto `test_events_…` |
 
-Puedes desplegar el backend antes de ingresar las llaves Wompi. El pago queda deshabilitado hasta configurar las cuatro. Spring Boot toma el puerto de Render mediante `PORT` y valida el esquema creado por las migraciones.
+> **Nota:** Si tenías variables `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` o `DATABASE_URL` apuntando al PostgreSQL interno de Render, **elimínalas** en el panel de Render para que Spring Boot tome las variables `SUPABASE_DEV_DB_*` (o `SUPABASE_PROD_DB_*` si usas `SPRING_PROFILES_ACTIVE=prod`).
 
-Cuando el servicio esté **Live**, abre `https://TU-SERVICIO.onrender.com/api/salud`. Debe devolver HTTP 200 y `{"estado":"ok"}` después de consultar PostgreSQL.
+Puedes desplegar el backend antes de ingresar las llaves Wompi. El pago queda deshabilitado hasta configurar las cuatro. Spring Boot toma el puerto de Render mediante `PORT` y valida el esquema `app` en Supabase.
+
+Cuando el servicio esté **Live**, abre `https://TU-SERVICIO.onrender.com/api/salud`. Debe devolver HTTP 200 y `{"estado":"ok"}` después de consultar Supabase.
 
 ## Angular en Docker Desktop
 

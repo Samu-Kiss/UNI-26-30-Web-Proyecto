@@ -106,17 +106,28 @@ class RenderWompiUnitTest {
         assertFalse(props4.containsKey("spring.datasource.password"));
 
         // También normaliza si se configuró en SUPABASE_DEV_DB_URL o SUPABASE_PROD_DB_URL
+        // y prioriza Supabase sobre SPRING_DATASOURCE_URL / DATABASE_URL si coexisten
         Properties props5 = new Properties();
+        String supabasePoolerUri = "postgres://render_u:render_p@"
+                + "aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require";
+        String expectedSupabaseJdbc = "jdbc:postgresql://"
+                + "aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require";
         MyTApplication.normalizarPropiedadesRender(
                 Map.of(
-                        "SUPABASE_DEV_DB_URL", "postgres://render_u:render_p@dpg-dev:5432/render_db",
-                        "SUPABASE_DEV_DB_USERNAME", "render_u",
-                        "SUPABASE_DEV_DB_PASSWORD", "render_p"),
+                        "SPRING_DATASOURCE_URL", "jdbc:postgresql://dpg-render-interno:5432/render_db",
+                        "SPRING_DATASOURCE_USERNAME", "render_old_user",
+                        "SUPABASE_DEV_DB_URL", supabasePoolerUri,
+                        "SUPABASE_DEV_DB_USERNAME", "postgres.rrxvxcufuwmjbqiwhgmt",
+                        "SUPABASE_DEV_DB_PASSWORD", "1ManzanaGrande!"),
                 props5);
-        assertEquals("jdbc:postgresql://dpg-dev:5432/render_db",
+        assertEquals(expectedSupabaseJdbc,
                 props5.getProperty("spring.datasource.url"));
-        assertEquals("jdbc:postgresql://dpg-dev:5432/render_db",
+        assertEquals(expectedSupabaseJdbc,
                 props5.getProperty("SUPABASE_DEV_DB_URL"));
+        assertEquals("postgres.rrxvxcufuwmjbqiwhgmt",
+                props5.getProperty("spring.datasource.username"));
+        assertEquals("1ManzanaGrande!",
+                props5.getProperty("spring.datasource.password"));
 
         assertDoesNotThrow(() -> MyTApplication.normalizarPropiedadesRender(null, null));
         assertDoesNotThrow(() -> MyTApplication.normalizarPropiedadesRender(Map.of(), new Properties()));
