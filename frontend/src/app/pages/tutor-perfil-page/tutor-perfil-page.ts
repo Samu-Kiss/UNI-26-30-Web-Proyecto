@@ -15,11 +15,12 @@ import {
   switchMap,
   timer,
 } from 'rxjs';
-import { ApiService, AgendaApi, ResenaApi, TutorApi, mensajeHttp } from '../../core/services/api.service';
+import { ApiService, AgendaApi, Materia, ResenaApi, TutorApi, TutorEdicion, mensajeHttp } from '../../core/services/api.service';
 import { AvatarComponent } from '../../shared/components/atoms/avatar/avatar';
 import { LucideIconComponent } from '../../shared/components/atoms/lucide-icon/lucide-icon';
 import { AuthService } from '../../core/services/auth.service';
 import { AgendaEditorComponent } from '../../shared/components/organisms/agenda-editor/agenda-editor';
+import { TutorEditorComponent } from '../../shared/components/organisms/tutor-editor/tutor-editor';
 import {
   CalendarioDisponibilidadComponent,
   DIAS_MAP,
@@ -32,6 +33,7 @@ import {
     FormsModule,
     RouterLink,
     AgendaEditorComponent,
+    TutorEditorComponent,
     CalendarioDisponibilidadComponent,
     AvatarComponent,
     LucideIconComponent,
@@ -45,6 +47,10 @@ export class TutorPerfilPageComponent implements OnInit {
   readonly route = inject(ActivatedRoute);
   readonly destroyRef = inject(DestroyRef);
   readonly tutorApi = signal<TutorApi | null>(null);
+  readonly materiasDisponibles = signal<Materia[]>([]);
+  readonly editandoPerfilTutor = signal(false);
+  readonly guardandoTutor = signal(false);
+  readonly mensajeTutor = signal('');
   readonly resenas = signal<ResenaApi[]>([]);
   readonly agenda = signal<AgendaApi | null>(null);
   readonly cargando = signal(true);
@@ -101,7 +107,44 @@ export class TutorPerfilPageComponent implements OnInit {
     () =>
       this.auth.sesion()?.rol === 'TUTOR' && this.auth.sesion()?.perfilId === this.tutorApi()?.id,
   );
+  readonly puedeEditar = computed(
+    () => this.esPropietario() || this.auth.sesion()?.rol === 'ADMINISTRADOR',
+  );
   private readonly refrescar = new Subject<void>();
+  abrirEditorTutor() {
+    this.mensajeTutor.set('');
+    this.editandoPerfilTutor.set(true);
+    if (this.materiasDisponibles().length === 0 && typeof this.api.materias === 'function') {
+      this.api
+        .materias()
+        .pipe(
+          catchError(() => of([])),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe((m) => this.materiasDisponibles.set(m));
+    }
+  }
+  guardarPerfilTutor(datos: TutorEdicion) {
+    const tutor = this.tutorApi();
+    if (!tutor || this.guardandoTutor() || typeof this.api.editarTutor !== 'function') return;
+    this.guardandoTutor.set(true);
+    this.error.set('');
+    this.mensajeTutor.set('');
+    this.api
+      .editarTutor(tutor.id, datos)
+      .pipe(
+        finalize(() => this.guardandoTutor.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (actualizado) => {
+          this.tutorApi.set(actualizado);
+          this.editandoPerfilTutor.set(false);
+          this.mensajeTutor.set('Perfil de tutor y materias actualizados.');
+        },
+        error: (e) => this.error.set(mensajeHttp(e)),
+      });
+  }
   ngOnInit() {
     merge(timer(0, 30000), this.refrescar, this.api.cambios)
       .pipe(

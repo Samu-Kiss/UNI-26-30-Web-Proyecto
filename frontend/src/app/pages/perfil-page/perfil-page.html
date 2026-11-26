@@ -114,8 +114,19 @@
         </form>
       </section>
 
-      <!-- Panel de disponibilidad si el usuario es Tutor -->
+      <!-- Panel de tutor (materias, tarifa, biografía y disponibilidad) si el usuario es Tutor -->
       @if (auth.sesion()?.rol === 'TUTOR') {
+        @if (tutor(); as t) {
+          <section class="myt-surface-card profile-settings__card" aria-label="Configuración de tutoría y materias">
+            <app-tutor-editor
+              [tutor]="t"
+              [materiasDisponibles]="materiasDisponibles()"
+              [ocupado]="guardandoTutor()"
+              (guardado)="guardarTutor($event)"
+              (cancelado)="cargarDatosTutor(t.id)"
+            />
+          </section>
+        }
         <div class="profile-settings__tutor-agenda">
           <div class="profile-settings__tutor-intro">
             <div class="profile-settings__info-box">

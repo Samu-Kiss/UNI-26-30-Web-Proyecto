@@ -202,11 +202,15 @@ class ApiIntegrationTest extends PostgreSqlIntegrationTest {
                 {"usuarioId":%d,"biografia":"Nuevo perfil","tarifaPorHora":20000,"materiaIds":[%d]}
                 """.formatted(nuevaCuenta.getId(), materia.getId()), adminPerfil())).andExpect(status().isCreated());
         mvc.perform(json(put("/api/tutores/" + tutor.getId()),
-                "{\"biografia\":\"Editada\",\"tarifaPorHora\":40000,\"disponible\":true}", adminPerfil()))
-                .andExpect(status().isOk());
+                "{\"biografia\":\"Editada\",\"tarifaPorHora\":40000,\"disponible\":true,"
+                + "\"materiaIds\":[" + materia.getId() + "],\"nuevasMaterias\":[\"Física Cuántica\"]}", adminPerfil()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.materias.length()").value(2));
         em.flush();
         em.clear();
-        assertEquals("Editada", tutores.findById(tutor.getId()).orElseThrow().getBiografia());
+        var tutorActualizado = tutores.findById(tutor.getId()).orElseThrow();
+        assertEquals("Editada", tutorActualizado.getBiografia());
+        assertEquals(2, tutorActualizado.getMaterias().size());
         String alta = """
                 {"tutorId":%d,"materiaId":%d,"fecha":"%s","horaInicio":"10:00",
                  "duracionMinutos":60,"tema":"Prueba real","modalidad":"VIRTUAL","objetivo":"Preparar examen"}

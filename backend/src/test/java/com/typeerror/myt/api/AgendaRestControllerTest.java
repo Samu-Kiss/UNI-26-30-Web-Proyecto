@@ -11,10 +11,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,14 +24,17 @@ import com.typeerror.myt.entities.BloqueoAgenda;
 import com.typeerror.myt.entities.DiaSemana;
 import com.typeerror.myt.entities.DisponibilidadTutor;
 import com.typeerror.myt.entities.EstadoReserva;
+import com.typeerror.myt.entities.Materia;
 import com.typeerror.myt.entities.Reserva;
 import com.typeerror.myt.entities.RolUsuario;
 import com.typeerror.myt.entities.Tutor;
 import com.typeerror.myt.entities.Usuario;
 import com.typeerror.myt.repository.BloqueoAgendaRepository;
 import com.typeerror.myt.repository.DisponibilidadTutorRepository;
+import com.typeerror.myt.repository.MateriaRepository;
 import com.typeerror.myt.repository.ReservaRepository;
 import com.typeerror.myt.repository.TutorRepository;
+import com.typeerror.myt.repository.UsuarioRepository;
 import com.typeerror.myt.service.ContextoSesion;
 
 class AgendaRestControllerTest {
@@ -100,5 +105,36 @@ class AgendaRestControllerTest {
         assertThrows(ResponseStatusException.class, () -> controller.guardar(7, vacia, propio));
         verify(horarios, never()).deleteAll(anyList());
         assertEquals(EstadoReserva.CONFIRMADA, r.getEstado());
+    }
+
+    @Test
+    void actualizaMateriasDelTutorEnEdicion() {
+        UsuarioRepository usuariosRepo = mock(UsuarioRepository.class);
+        MateriaRepository materiasRepo = mock(MateriaRepository.class);
+        TutorRestController tutorController = new TutorRestController(tutores, usuariosRepo, materiasRepo);
+
+        tutor.getUsuario().setId(10);
+        tutor.getUsuario().setNombre("Ana");
+        tutor.getUsuario().setApellido("Tutor");
+        Materia calculo = new Materia(1, "Cálculo");
+        Materia fisica = new Materia(2, "Física");
+        when(materiasRepo.findAllById(Set.of(1))).thenReturn(List.of(calculo));
+        when(materiasRepo.findByNombre("Física")).thenReturn(Optional.empty());
+        when(materiasRepo.save(any(Materia.class))).thenReturn(fisica);
+        when(tutores.save(any(Tutor.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var sesion = new ContextoSesion(RolUsuario.TUTOR, 7, "Ana");
+        var edicion = new ApiDtos.TutorEdicion("Nueva bio", new BigDecimal("45000"), true,
+                Set.of(1), List.of("Física"));
+        var respuesta = tutorController.editar(7, edicion, sesion);
+
+        assertEquals(200, respuesta.getStatusCode().value());
+        assertEquals(2, respuesta.getBody().materias().size());
+        assertEquals(Set.of(calculo, fisica), tutor.getMaterias());
+
+        // Si se pasa lista de materias vacía se rechaza con 400
+        var sinMaterias = new ApiDtos.TutorEdicion("Nueva bio", new BigDecimal("45000"), true,
+                Set.of(), List.of("   "));
+        assertThrows(ResponseStatusException.class, () -> tutorController.editar(7, sinMaterias, sesion));
     }
 }

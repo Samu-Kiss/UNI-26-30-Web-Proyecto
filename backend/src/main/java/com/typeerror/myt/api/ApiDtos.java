@@ -38,7 +38,13 @@ public final class ApiDtos {
 
     public record TutorEdicion(@NotBlank @Size(max = 2000) String biografia,
             @NotNull @DecimalMin("1") @DecimalMax("9999999999.99") BigDecimal tarifaPorHora,
-            @NotNull Boolean disponible) { }
+            @NotNull Boolean disponible,
+            Set<@NotNull @Positive Integer> materiaIds,
+            List<@NotBlank @Size(max = 100) String> nuevasMaterias) {
+        public TutorEdicion(String biografia, BigDecimal tarifaPorHora, Boolean disponible) {
+            this(biografia, tarifaPorHora, disponible, null, null);
+        }
+    }
 
     public record ReservaAlta(@NotNull @Positive Integer tutorId, @NotNull @Positive Integer materiaId,
             @NotNull @FutureOrPresent LocalDate fecha, @NotNull LocalTime horaInicio,

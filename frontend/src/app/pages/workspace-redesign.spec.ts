@@ -33,6 +33,8 @@ describe('Interacciones de las vistas basadas en mockups', () => {
     resenas: ReturnType<typeof vi.fn>;
     horas: ReturnType<typeof vi.fn>;
     agenda: ReturnType<typeof vi.fn>;
+    materias: ReturnType<typeof vi.fn>;
+    editarTutor: ReturnType<typeof vi.fn>;
   };
   beforeEach(() => {
     vi.useFakeTimers();
@@ -60,6 +62,18 @@ describe('Interacciones de las vistas basadas en mockups', () => {
       resenas: vi.fn(() => of([])),
       horas: vi.fn(() => of(['10:00'])),
       agenda: vi.fn(() => of({ horarios: [], bloqueos: [] })),
+      materias: vi.fn(() => of([{ id: 1, nombre: 'Cálculo' }, { id: 2, nombre: 'Física' }])),
+      editarTutor: vi.fn(() =>
+        of({
+          id: 7,
+          nombre: 'Ana',
+          materias: [{ id: 1, nombre: 'Cálculo' }, { id: 2, nombre: 'Física' }],
+          calificacion: null,
+          tarifaPorHora: 55000,
+          disponible: true,
+          biografia: 'Actualizada',
+        }),
+      ),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -175,6 +189,28 @@ describe('Interacciones de las vistas basadas en mockups', () => {
     TestBed.inject(AuthService).sesion.set({ rol: 'TUTOR', perfilId: 7, nombreUsuario: 'Ana' });
     f.detectChanges();
     expect(c.esPropietario()).toBe(true);
+    expect(c.puedeEditar()).toBe(true);
+    c.abrirEditorTutor();
+    f.detectChanges();
+    expect(c.editandoPerfilTutor()).toBe(true);
+    expect(c.materiasDisponibles()).toHaveLength(2);
+    c.guardarPerfilTutor({
+      biografia: 'Actualizada',
+      tarifaPorHora: 55000,
+      disponible: true,
+      materiaIds: [1, 2],
+    });
+    expect(c.editandoPerfilTutor()).toBe(false);
+    expect(c.mensajeTutor()).toBe('Perfil de tutor y materias actualizados.');
+
+    api.editarTutor.mockReturnValueOnce(throwError(() => new Error('fallo')));
+    c.guardarPerfilTutor({
+      biografia: 'Actualizada',
+      tarifaPorHora: 55000,
+      disponible: true,
+      materiaIds: [1],
+    });
+    expect(c.error()).toBeTruthy();
     f.destroy();
   });
 });

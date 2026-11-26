@@ -52,6 +52,39 @@ describe('Vistas con datos reales', () => {
       }),
     ),
     guardarAgenda: vi.fn((_id: number, a: unknown) => of(a)),
+    tutor: vi.fn(() =>
+      of({
+        id: 7,
+        usuarioId: 3,
+        nombre: 'Ana',
+        biografia: 'Bio',
+        tarifaPorHora: 50000,
+        disponible: true,
+        materias: [{ id: 1, nombre: 'Cálculo' }],
+        calificacion: 5,
+      }),
+    ),
+    materias: vi.fn(() =>
+      of([
+        { id: 1, nombre: 'Cálculo' },
+        { id: 2, nombre: 'Física' },
+      ]),
+    ),
+    editarTutor: vi.fn((_id: number, datos: { biografia: string; tarifaPorHora: number; disponible: boolean }) =>
+      of({
+        id: 7,
+        usuarioId: 3,
+        nombre: 'Ana',
+        biografia: datos.biografia,
+        tarifaPorHora: datos.tarifaPorHora,
+        disponible: datos.disponible,
+        materias: [
+          { id: 1, nombre: 'Cálculo' },
+          { id: 2, nombre: 'Física' },
+        ],
+        calificacion: 5,
+      }),
+    ),
     estudiantes: vi.fn(() =>
       of([
         {
@@ -337,6 +370,25 @@ describe('Vistas con datos reales', () => {
     TestBed.inject(AuthService).sesion.set({ rol: 'TUTOR', perfilId: 7, nombreUsuario: 'Ana' });
     f.detectChanges();
     expect(f.nativeElement.querySelector('app-agenda-editor')).not.toBeNull();
+    expect(f.nativeElement.querySelector('app-tutor-editor')).not.toBeNull();
+    expect(c.tutor()?.id).toBe(7);
+
+    c.guardarTutor({
+      biografia: 'Nueva bio',
+      tarifaPorHora: 60000,
+      disponible: true,
+      materiaIds: [1, 2],
+    });
+    expect(c.mensaje()).toBe('Perfil de tutor y materias actualizados.');
+
+    api.editarTutor.mockReturnValueOnce(throwError(() => new Error('fallo')));
+    c.guardarTutor({
+      biografia: 'Nueva bio',
+      tarifaPorHora: 60000,
+      disponible: true,
+      materiaIds: [1],
+    });
+    expect(c.error()).toBeTruthy();
 
     c.guardar();
     httpMock.expectOne('/api/perfil').flush({}, { status: 500, statusText: 'Error' });

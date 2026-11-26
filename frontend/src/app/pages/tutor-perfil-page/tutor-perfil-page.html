@@ -41,8 +41,31 @@
             >Reservar tutoría</a
           >
         }
+        @if (puedeEditar()) {
+          <button
+            type="button"
+            class="myt-btn myt-btn--secondary myt-btn--sm"
+            (click)="abrirEditorTutor()"
+          >
+            Editar materias y perfil
+          </button>
+        }
       </div>
     </header>
+    @if (mensajeTutor()) {
+      <output class="myt-alert myt-alert--success">{{ mensajeTutor() }}</output>
+    }
+    @if (editandoPerfilTutor() && puedeEditar()) {
+      <section class="myt-surface-card" aria-label="Editar perfil y materias de tutor">
+        <app-tutor-editor
+          [tutor]="t"
+          [materiasDisponibles]="materiasDisponibles()"
+          [ocupado]="guardandoTutor()"
+          (guardado)="guardarPerfilTutor($event)"
+          (cancelado)="editandoPerfilTutor.set(false)"
+        />
+      </section>
+    }
     <div class="profile-layout">
       <div class="profile-main">
         <section class="profile-section">

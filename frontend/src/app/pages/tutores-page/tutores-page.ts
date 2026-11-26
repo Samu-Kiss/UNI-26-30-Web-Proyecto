@@ -323,7 +323,16 @@ export class TutoresPageComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
+        next: (actualizado) => {
+          if (actualizado?.materias?.length) {
+            this.materias.update((actuales) => {
+              const mapa = new Map(actuales.map((m) => [m.id, m]));
+              for (const m of actualizado.materias) {
+                mapa.set(m.id, m);
+              }
+              return Array.from(mapa.values());
+            });
+          }
           this.seleccionado.set(null);
           this.cambios.update((n) => n + 1);
           this.cargar();

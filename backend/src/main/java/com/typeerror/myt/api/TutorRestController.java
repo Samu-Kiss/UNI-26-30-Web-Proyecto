@@ -127,6 +127,30 @@ public class TutorRestController {
             @RequestAttribute("apiSesion") ContextoSesion sesion) {
         propietario(sesion, id);
         return tutores.findById(id).map(t -> {
+            if (datos.materiaIds() != null || datos.nuevasMaterias() != null) {
+                var nuevasMaterias = new HashSet<com.typeerror.myt.entities.Materia>();
+                if (datos.materiaIds() != null && !datos.materiaIds().isEmpty()) {
+                    var encontradas = materias.findAllById(datos.materiaIds());
+                    if (encontradas.size() != datos.materiaIds().size()) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Una o más materias no existen");
+                    }
+                    nuevasMaterias.addAll(encontradas);
+                }
+                if (datos.nuevasMaterias() != null) {
+                    for (String nombre : datos.nuevasMaterias()) {
+                        String normalizado = nombre == null ? "" : nombre.trim();
+                        if (!normalizado.isEmpty()) {
+                            nuevasMaterias.add(materias.findByNombre(normalizado)
+                                    .orElseGet(() -> materias.save(
+                                            new com.typeerror.myt.entities.Materia(null, normalizado))));
+                        }
+                    }
+                }
+                if (nuevasMaterias.isEmpty()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar al menos una materia");
+                }
+                t.setMaterias(nuevasMaterias);
+            }
             t.setBiografia(datos.biografia());
             t.setTarifaPorHora(datos.tarifaPorHora());
             t.setDisponible(datos.disponible());

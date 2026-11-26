@@ -80,4 +80,38 @@ describe('TutorEditorComponent', () => {
     expect(canceladoSpy).toHaveBeenCalled();
     expect(component.form.value.tarifaPorHora).toBe(50000);
   });
+
+  it('permite seleccionar y alternar materias del catalogo y escribir materias adicionales', () => {
+    const guardadoSpy = vi.spyOn(component.guardado, 'emit');
+    componentRef.setInput('tutor', {
+      ...tutorMock,
+      materias: [{ id: 1, nombre: 'Cálculo' }],
+    });
+    componentRef.setInput('materiasDisponibles', [
+      { id: 1, nombre: 'Cálculo' },
+      { id: 2, nombre: 'Física' },
+    ]);
+    fixture.detectChanges();
+
+    expect(component.materiaSeleccionada(1)).toBe(true);
+    expect(component.materiaSeleccionada(2)).toBe(false);
+
+    // Deseleccionar todas las materias e intentar guardar
+    component.alternarMateria(1);
+    component.guardar();
+    expect(guardadoSpy).not.toHaveBeenCalled();
+
+    // Seleccionar Física y agregar una materia por texto
+    component.alternarMateria(2);
+    component.form.controls.materiasTexto.setValue('Álgebra lineal, Programación');
+    component.guardar();
+
+    expect(guardadoSpy).toHaveBeenCalledWith({
+      biografia: 'Experiencia en cálculo y álgebra',
+      tarifaPorHora: 50000,
+      disponible: true,
+      materiaIds: [2],
+      nuevasMaterias: ['Álgebra lineal', 'Programación'],
+    });
+  });
 });

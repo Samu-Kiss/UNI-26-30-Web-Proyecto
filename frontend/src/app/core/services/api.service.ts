@@ -19,6 +19,8 @@ export interface TutorEdicion {
   biografia: string;
   tarifaPorHora: number;
   disponible: boolean;
+  materiaIds?: number[];
+  nuevasMaterias?: string[];
 }
 export interface TutorAlta {
   usuarioId: number;
@@ -170,7 +172,14 @@ export class ApiService {
     return this.http.post<TutorApi>('/api/tutores', datos);
   }
   editarTutor(id: number, datos: TutorEdicion) {
-    return this.http.put<TutorApi>(`/api/tutores/${id}`, datos);
+    return this.http.put<TutorApi>(`/api/tutores/${id}`, datos).pipe(
+      tap((t) => {
+        if (t?.id) {
+          this.tutoresCache.set(t.id, t);
+        }
+        this.cambios.next();
+      }),
+    );
   }
   desactivarTutor(id: number) {
     return this.http.delete<void>(`/api/tutores/${id}`);
