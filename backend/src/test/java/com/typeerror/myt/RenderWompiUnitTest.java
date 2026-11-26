@@ -233,8 +233,27 @@ class RenderWompiUnitTest {
         when(spec.query(Integer.class)).thenReturn(mapped);
         when(mapped.optional()).thenReturn(Optional.of(1));
 
-        SaludRestController saludCtrl = new SaludRestController(jdbc, "app");
+        SaludRestController saludCtrl = new SaludRestController(jdbc, "app", 60_000L);
         assertEquals(Map.of("estado", "ok"), saludCtrl.salud());
+        // Segunda invocación dentro de la ventana de caché no vuelve a consultar BD
+        assertEquals(Map.of("estado", "ok"), saludCtrl.salud());
+        verify(jdbc, org.mockito.Mockito.times(1)).sql(anyString());
+
+        // Si falla la primera verificación (sin éxito previo), propaga el error
+        SaludRestController saludInicialFallida = new SaludRestController(jdbc, "app", 0L);
+        when(mapped.optional()).thenThrow(new RuntimeException("DB inicial caida"));
+        assertThrows(RuntimeException.class, () -> saludInicialFallida.salud(false));
+
+        // Si ya hubo un check exitoso y luego falla la BD sin forzarDb, degrada sin tumbar Render
+        org.mockito.Mockito.reset(mapped);
+        when(mapped.optional()).thenReturn(Optional.of(1));
+        SaludRestController saludSinCache = new SaludRestController(jdbc, "app", 0L);
+        assertEquals(Map.of("estado", "ok"), saludSinCache.salud(true));
+        when(mapped.optional()).thenThrow(new RuntimeException("Pooler timeout"));
+        assertEquals(Map.of("estado", "ok", "db", "degradado"),
+                saludSinCache.salud(false));
+        assertThrows(RuntimeException.class, () -> saludSinCache.salud(true));
+        assertNotNull(new SaludRestController(jdbc, "app"));
     }
 
     @Test

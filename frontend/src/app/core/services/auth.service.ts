@@ -1,8 +1,8 @@
-import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { DOCUMENT } from '@angular/common';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
+import { catchError, finalize, map, of, retry, shareReplay, tap, throwError, timer } from 'rxjs';
 import { Credenciales } from '../models/usuario.model';
 
 export interface Sesion {
@@ -26,17 +26,34 @@ export interface UrlOAuthGoogleRespuesta {
   provider?: string;
 }
 
+const TRANSIENT_GATEWAY_STATUSES = new Set([0, 502, 503, 504]);
+const SAFE_RETRY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
   const rawBase = inject(DOCUMENT).defaultView?.__MYT_CONFIG__?.backendUrl ?? '';
   const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
-  return next(
-    req.url.startsWith('/api/')
-      ? req.clone({
-          url: `${base}${req.url}`,
-          withCredentials: true,
-          setHeaders: { 'X-MYT-Request': '1' },
-        })
-      : req,
+  if (!req.url.startsWith('/api/')) {
+    return next(req);
+  }
+  const apiReq = req.clone({
+    url: `${base}${req.url}`,
+    withCredentials: true,
+    setHeaders: { 'X-MYT-Request': '1' },
+  });
+  return next(apiReq).pipe(
+    retry({
+      count: 2,
+      delay: (error: unknown, retryCount: number) => {
+        if (
+          SAFE_RETRY_METHODS.has(apiReq.method) &&
+          error instanceof HttpErrorResponse &&
+          TRANSIENT_GATEWAY_STATUSES.has(error.status)
+        ) {
+          return timer(retryCount * 1500);
+        }
+        return throwError(() => error);
+      },
+    }),
   );
 };
 

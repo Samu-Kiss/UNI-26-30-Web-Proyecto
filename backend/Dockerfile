@@ -24,9 +24,9 @@ COPY --from=build --chown=10001:0 /workspace/target/*.jar app.jar
 COPY --from=build --chown=10001:0 \
     /workspace/sentry-agent/sentry-opentelemetry-agent.jar sentry-opentelemetry-agent.jar
 
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0" \
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=55.0 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError" \
     SENTRY_AUTO_INIT="false"
 EXPOSE 8080
 USER 10001
 
-ENTRYPOINT ["java", "-javaagent:/app/sentry-opentelemetry-agent.jar", "-jar", "/app/app.jar"]
+ENTRYPOINT ["sh", "-c", "if [ -n \"$SENTRY_DSN\" ] || [ \"${SENTRY_AGENT_ENABLED:-false}\" = \"true\" ]; then exec java -javaagent:/app/sentry-opentelemetry-agent.jar -jar /app/app.jar; else exec java -jar /app/app.jar; fi"]

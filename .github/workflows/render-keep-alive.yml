@@ -1,0 +1,38 @@
+name: Render Keep-Alive
+
+on:
+  schedule:
+    # Ejecuta cada 12 minutos para evitar que el plan Free de Render suspenda el contenedor (15 min inactividad)
+    - cron: "*/12 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: render-keep-alive
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping Render /api/salud
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Despertar y verificar salud del backend en Render
+        env:
+          RENDER_HEALTH_URL: ${{ vars.RENDER_HEALTH_URL || 'https://myt-lab-api.onrender.com/api/salud' }}
+        shell: bash
+        run: |
+          echo "Verificando disponibilidad de: $RENDER_HEALTH_URL"
+          for intento in 1 2 3; do
+            codigo=$(curl -sS -o /tmp/salud.json -w "%{http_code}" --max-time 35 "$RENDER_HEALTH_URL" || echo "000")
+            if [[ "$codigo" == "200" ]]; then
+              echo "Intento $intento exitoso (HTTP $codigo): $(cat /tmp/salud.json)"
+              exit 0
+            fi
+            echo "Intento $intento devolvio HTTP $codigo; esperando 10s mientras Render inicia..."
+            sleep 10
+          done
+          echo "Aviso: El backend en Render no respondio HTTP 200 tras 3 intentos."
+          exit 0

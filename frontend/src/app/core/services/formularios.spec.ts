@@ -119,4 +119,24 @@ describe('Sesión y formularios HTTP', () => {
     expect(submitSpy).toHaveBeenCalledOnce();
     submitSpy.mockRestore();
   });
+
+  it('reintenta automáticamente peticiones GET ante errores 502/503 de arranque en frío en Render', () => {
+    vi.useFakeTimers();
+    try {
+      auth.restaurar().subscribe();
+      const intento1 = http.expectOne('/api/sesion');
+      intento1.flush(
+        { mensaje: 'El backend en Render está iniciando' },
+        { status: 502, statusText: 'Bad Gateway' },
+      );
+
+      vi.advanceTimersByTime(1500);
+      const intento2 = http.expectOne('/api/sesion');
+      intento2.flush({ actual: { rol: 'ESTUDIANTE', perfilId: 1, nombreUsuario: 'Ana' }, opciones: [] });
+
+      expect(auth.sesion()?.rol).toBe('ESTUDIANTE');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

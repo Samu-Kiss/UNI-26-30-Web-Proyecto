@@ -41,6 +41,15 @@ Puedes desplegar el backend antes de ingresar las llaves Wompi. El pago queda de
 
 Cuando el servicio esté **Live**, abre `https://TU-SERVICIO.onrender.com/api/salud`. Debe devolver HTTP 200 y `{"estado":"ok"}` después de consultar Supabase.
 
+### Alta disponibilidad y prevención de caídas en Render Free
+
+Para evitar que Render suspenda el contenedor tras 15 minutos de inactividad, reinicie la instancia por micro-cortes con el pooler de Supabase o sufra errores `Out of Memory` (512 MB RAM):
+
+1. **Keep-Alive automático**: El workflow `.github/workflows/render-keep-alive.yml` hace ping cada 12 minutos a `https://myt-lab-api.onrender.com/api/salud` (puedes personalizar la URL definiendo la variable de repositorio `RENDER_HEALTH_URL` en GitHub o registrando `https://TU-SERVICIO.onrender.com/api/salud` en UptimeRobot / Cron-job.org cada 5–10 minutos).
+2. **Health Check resiliente (`/api/salud`)**: Soporta `GET` y `HEAD`, cachea la verificación contra Supabase por 60 segundos (`myt.salud.cache-ms`) y degrada controladamente (`{"estado":"ok","db":"degradado"}`) ante latencias transitorias del pooler sin provocar que Render mate el contenedor. Usa `/api/salud?forzarDb=true` si deseas forzar una consulta en vivo a PostgreSQL.
+3. **Optimización de memoria y arranque**: El `Dockerfile` limita el heap a `55%` (`-XX:MaxRAMPercentage=55.0 -XX:+UseSerialGC -XX:TieredStopAtLevel=1`) y solo carga el agente OpenTelemetry de Sentry cuando `SENTRY_DSN` está definido.
+4. **Reintentos ante Cold Starts**: El proxy de Vercel (`frontend/api/proxy.mjs`) y el interceptor HTTP de Angular reintentan automáticamente peticiones de lectura cuando Render devuelve `502/503/504` mientras despierta.
+
 ## Angular en Docker Desktop
 
 Desde la raíz del repositorio, reemplaza el nombre del host y levanta solo el frontend.

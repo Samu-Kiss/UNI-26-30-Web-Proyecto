@@ -96,7 +96,26 @@ async function readRequestBody(req) {
   return undefined;
 }
 
-const UPSTREAM_TIMEOUT_MS = 8500;
+const UPSTREAM_TIMEOUT_MS = 25000;
+const TRANSIENT_UPSTREAM_STATUSES = new Set([502, 503, 504]);
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+async function fetchUpstreamWithRetry(upstreamUrl, options, canRetry) {
+  try {
+    const res = await fetch(upstreamUrl, options);
+    if (canRetry && TRANSIENT_UPSTREAM_STATUSES.has(res.status) && !options.signal?.aborted) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      return await fetch(upstreamUrl, options);
+    }
+    return res;
+  } catch (err) {
+    if (canRetry && !options.signal?.aborted) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      return await fetch(upstreamUrl, options);
+    }
+    throw err;
+  }
+}
 
 export default async function handler(req, res) {
   const upstreamBase = resolveUpstreamBase(process.env);
@@ -127,13 +146,17 @@ export default async function handler(req, res) {
 
   try {
     const body = await readRequestBody(req);
-    const upstreamRes = await fetch(upstreamUrl, {
-      method,
-      headers,
-      body,
-      redirect: 'manual',
-      signal: controller.signal,
-    });
+    const upstreamRes = await fetchUpstreamWithRetry(
+      upstreamUrl,
+      {
+        method,
+        headers,
+        body,
+        redirect: 'manual',
+        signal: controller.signal,
+      },
+      IDEMPOTENT_METHODS.has(method),
+    );
 
     res.statusCode = upstreamRes.status;
 
