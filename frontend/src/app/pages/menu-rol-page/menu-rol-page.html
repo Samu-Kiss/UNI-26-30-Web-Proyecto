@@ -1,0 +1,245 @@
+<main class="myt-page-shell" aria-label="Menú por rol">
+  <header class="myt-hero-banner">
+    <div>
+      <span class="myt-eyebrow">{{ etiquetaPanel() }}</span>
+      <h1>Hola, {{ nombreUsuario() }}</h1>
+      <p>{{ descripcionPanel() }}</p>
+    </div>
+    <div class="myt-role-switcher" role="tablist" aria-label="Vista previa de menús por rol">
+      <button
+        type="button"
+        role="tab"
+        class="myt-pill-tab"
+        [class.myt-pill-tab--active]="rolVista() === 'ESTUDIANTE'"
+        [attr.aria-selected]="rolVista() === 'ESTUDIANTE'"
+        (click)="rolVista.set('ESTUDIANTE')"
+      >
+        Panel Estudiante
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="myt-pill-tab"
+        [class.myt-pill-tab--active]="rolVista() === 'TUTOR'"
+        [attr.aria-selected]="rolVista() === 'TUTOR'"
+        (click)="rolVista.set('TUTOR')"
+      >
+        Panel Tutor
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="myt-pill-tab"
+        [class.myt-pill-tab--active]="rolVista() === 'ADMINISTRADOR'"
+        [attr.aria-selected]="rolVista() === 'ADMINISTRADOR'"
+        (click)="rolVista.set('ADMINISTRADOR')"
+      >
+        Panel Administrativo
+      </button>
+    </div>
+  </header>
+
+  @switch (rolVista()) {
+    @case ('ESTUDIANTE') {
+      <section class="myt-cards-grid" aria-label="Acciones de estudiante">
+        <a routerLink="/tutores" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Explorar</span>
+            <app-lucide-icon name="search" [size]="20" />
+          </div>
+          <h2>Consultar tutores</h2>
+          <p>Revisa los tutores disponibles, compara tarifas, horarios y reseñas reales.</p>
+          <span class="myt-menu-card__cta">Ir a buscar tutores →</span>
+        </a>
+
+        <a routerLink="/reservas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Reservas</span>
+            <app-lucide-icon name="plus" [size]="20" />
+          </div>
+          <h2>Crear reserva</h2>
+          <p>Programa una nueva sesión de tutoría paso a paso y elige tu modalidad.</p>
+          <span class="myt-menu-card__cta">Reservar tutoría →</span>
+        </a>
+
+        <a routerLink="/reservas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Seguimiento</span>
+            <app-lucide-icon name="book-open" [size]="20" />
+          </div>
+          <h2>Mis reservas</h2>
+          <p>Consulta el estado de tus tutorías y cancela las que aún estén pendientes.</p>
+          <span class="myt-menu-card__cta">Ver mis tutorías →</span>
+        </a>
+
+        <a routerLink="/calendario" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Agenda</span>
+            <app-lucide-icon name="calendar" [size]="20" />
+          </div>
+          <h2>Calendario semanal</h2>
+          <p>Visualiza tus sesiones confirmadas, enlaces de reunión y próximas clases.</p>
+          <span class="myt-menu-card__cta">Abrir calendario →</span>
+        </a>
+
+        <a routerLink="/mensajes" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Coordinación</span>
+            <app-lucide-icon name="message-square" [size]="20" />
+          </div>
+          <h2>Chat con tutores</h2>
+          <p>Acuerda temas específicos, comparte talleres previos y coordina horarios.</p>
+          <span class="myt-menu-card__cta">Abrir mensajes →</span>
+        </a>
+
+        <a routerLink="/resenas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Calidad</span>
+            <app-lucide-icon name="star" [size]="20" />
+          </div>
+          <h2>Dejar reseña</h2>
+          <p>Califica tus tutorías finalizadas para orientar a otros estudiantes de MyT.</p>
+          <span class="myt-menu-card__cta">Calificar sesión →</span>
+        </a>
+
+        <a routerLink="/mi-perfil" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Cuenta</span>
+            <app-lucide-icon name="user" [size]="20" />
+          </div>
+          <h2>Mi perfil</h2>
+          <p>Consulta o actualiza tus datos personales y número de contacto.</p>
+          <span class="myt-menu-card__cta">Gestionar perfil →</span>
+        </a>
+      </section>
+    }
+
+    @case ('TUTOR') {
+      <section class="myt-cards-grid" aria-label="Acciones de tutor">
+        <a routerLink="/reservas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Solicitudes</span>
+            <app-lucide-icon name="book-open" [size]="20" />
+          </div>
+          <h2>Mis reservas</h2>
+          <p>Acepta o rechaza reservas pendientes y revisa el historial de tus tutorías.</p>
+          <span class="myt-menu-card__cta">Gestionar reservas →</span>
+        </a>
+
+        <a [routerLink]="['/tutores', auth.sesion()?.perfilId]" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Perfil público</span>
+            <app-lucide-icon name="user" [size]="20" />
+          </div>
+          <h2>Mi perfil de tutor</h2>
+          <p>Consulta cómo ven los estudiantes tu biografía, experiencia, tarifas y reseñas.</p>
+          <span class="myt-menu-card__cta">Ver perfil público →</span>
+        </a>
+
+        <a routerLink="/mi-perfil" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Agenda</span>
+            <app-lucide-icon name="clock" [size]="20" />
+          </div>
+          <h2>Disponibilidad y agenda</h2>
+          <p>Configura tus días y franjas semanales y añade bloqueos por fechas.</p>
+          <span class="myt-menu-card__cta">Editar disponibilidad →</span>
+        </a>
+
+        <a routerLink="/calendario" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Calendario</span>
+            <app-lucide-icon name="calendar" [size]="20" />
+          </div>
+          <h2>Calendario de sesiones</h2>
+          <p>Consulta tu disponibilidad semanal y las sesiones agendadas con estudiantes.</p>
+          <span class="myt-menu-card__cta">Ir al calendario →</span>
+        </a>
+
+        <a routerLink="/mensajes" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Estudiantes</span>
+            <app-lucide-icon name="message-square" [size]="20" />
+          </div>
+          <h2>Mensajes de coordinación</h2>
+          <p>Responde dudas previas de los estudiantes y comparte material de estudio.</p>
+          <span class="myt-menu-card__cta">Ver conversaciones →</span>
+        </a>
+
+        <a routerLink="/resenas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Opiniones</span>
+            <app-lucide-icon name="star" [size]="20" />
+          </div>
+          <h2>Reseñas recibidas</h2>
+          <p>Revisa las valoraciones y comentarios compartidos por tus estudiantes.</p>
+          <span class="myt-menu-card__cta">Ver valoraciones →</span>
+        </a>
+      </section>
+    }
+
+    @case ('ADMINISTRADOR') {
+      <section class="myt-cards-grid" aria-label="Acciones administrativas">
+        <a routerLink="/usuarios" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Gestión central</span>
+            <app-lucide-icon name="users" [size]="20" />
+          </div>
+          <h2>Clientes y Usuarios</h2>
+          <p>Crea, edita, activa o desactiva usuarios y asigna perfiles en la plataforma.</p>
+          <span class="myt-menu-card__cta">Administrar usuarios →</span>
+        </a>
+
+        <a routerLink="/estudiantes" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Académico</span>
+            <app-lucide-icon name="graduation-cap" [size]="20" />
+          </div>
+          <h2>Estudiantes</h2>
+          <p>Consulta los datos académicos de los estudiantes registrados (universidad, programa y semestre).</p>
+          <span class="myt-menu-card__cta">Ver directorio de estudiantes →</span>
+        </a>
+
+        <a routerLink="/administradores" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Seguridad</span>
+            <app-lucide-icon name="shield-check" [size]="20" />
+          </div>
+          <h2>Administradores</h2>
+          <p>Revisa las cuentas con acceso administrativo, su correo institucional y estado actual.</p>
+          <span class="myt-menu-card__cta">Ver administradores →</span>
+        </a>
+
+        <a routerLink="/tutores" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Docencia</span>
+            <app-lucide-icon name="book-open" [size]="20" />
+          </div>
+          <h2>Catálogo de tutores</h2>
+          <p>Consulta la lista de tutores registrados, sus tarifas y asignación de materias.</p>
+          <span class="myt-menu-card__cta">Explorar tutores →</span>
+        </a>
+
+        <a routerLink="/reservas" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Operaciones</span>
+            <app-lucide-icon name="calendar" [size]="20" />
+          </div>
+          <h2>Gestión de reservas</h2>
+          <p>Supervisa el estado y cambios de todas las tutorías agendadas en la plataforma.</p>
+          <span class="myt-menu-card__cta">Ver todas las reservas →</span>
+        </a>
+
+        <a routerLink="/mi-perfil" class="myt-menu-card">
+          <div class="myt-menu-card__top">
+            <span class="myt-menu-card__tag">Cuenta</span>
+            <app-lucide-icon name="user" [size]="20" />
+          </div>
+          <h2>Mi perfil</h2>
+          <p>Actualiza tus datos personales y credenciales de acceso administrativo.</p>
+          <span class="myt-menu-card__cta">Ver mi perfil →</span>
+        </a>
+      </section>
+    }
+  }
+</main>

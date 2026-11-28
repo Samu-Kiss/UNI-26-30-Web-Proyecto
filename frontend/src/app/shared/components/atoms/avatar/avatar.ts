@@ -23,6 +23,7 @@ export class AvatarComponent {
   readonly initials = input<string | undefined>(undefined);
   readonly src = input<string | undefined>(undefined);
   readonly size = input<AvatarSize>('md');
+  readonly tone = input<string | undefined>(undefined);
 
   readonly computedInitials = computed(() => {
     if (this.initials()) {

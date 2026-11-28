@@ -23,13 +23,17 @@
               {{ tutor.tarifaPorHora | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}
             </td>
             <td data-label="Calificación">
-              <span
-                class="calificacion"
-                [attr.aria-label]="'Calificación ' + tutor.calificacion + ' de 5'"
-              >
-                <span aria-hidden="true">★</span>
-                {{ tutor.calificacion | number: '1.1-1' }}
-              </span>
+              @if (tutor.calificacion !== null) {
+                <span
+                  class="calificacion"
+                  [attr.aria-label]="'Calificación ' + tutor.calificacion + ' de 5'"
+                >
+                  <span aria-hidden="true">★</span>
+                  {{ tutor.calificacion | number: '1.1-1' }}
+                </span>
+              } @else {
+                <span>Sin reseñas</span>
+              }
             </td>
             <td data-label="Disponibilidad">
               <app-status-badge [disponible]="tutor.disponible" />
@@ -39,7 +43,9 @@
                 variant="primary"
                 size="md"
                 [disabled]="!tutor.disponible"
-                [ariaLabel]="(tutor.disponible ? 'Reservar con ' : 'No disponible: ') + tutor.nombreCompleto"
+                [ariaLabel]="
+                  (tutor.disponible ? 'Reservar con ' : 'No disponible: ') + tutor.nombreCompleto
+                "
               >
                 {{ tutor.disponible ? 'Reservar' : 'No disponible' }}
               </app-button>

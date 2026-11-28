@@ -38,7 +38,11 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/playwright-report/
+/test-results/
+/playwright/.cache/
 
 # System files
 .DS_Store
 Thumbs.db
+.vercel

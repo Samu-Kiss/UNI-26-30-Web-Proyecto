@@ -1,7 +1,6 @@
 package com.typeerror.myt.service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +23,7 @@ public interface ReservaService {
     Reserva cambiarEstado(Integer id, EstadoReserva nuevoEstado, String motivo);
 
     Reserva crearReserva(Integer tutorId, Integer estudianteId, Integer materiaId,
-            LocalDate fecha, LocalTime horaInicio, Integer duracionMinutos,
+            LocalDateTime inicio, Integer duracionMinutos,
             String tema, ModalidadReserva modalidad);
 
 }

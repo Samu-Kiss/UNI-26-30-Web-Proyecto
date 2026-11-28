@@ -6,11 +6,10 @@ import { Component } from '@angular/core';
   styles: `
     :host {
       display: inline-block;
-      color: #196a54;
-      font-size: 0.8rem;
+      color: var(--color-primary);
+      font-size: 1.6rem;
       font-weight: 800;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
+      letter-spacing: -0.04em;
     }
   `,
 })

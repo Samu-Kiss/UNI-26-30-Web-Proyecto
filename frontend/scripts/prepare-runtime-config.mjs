@@ -34,10 +34,33 @@ const tracesSampleRate = Number.parseFloat(
   process.env.SENTRY_FRONTEND_TRACES_SAMPLE_RATE ?? process.env.SENTRY_TRACES_SAMPLE_RATE ?? '0'
 );
 
+const dbUsername =
+  process.env.SUPABASE_DEV_DB_USERNAME ??
+  process.env.SUPABASE_PROD_DB_USERNAME ??
+  process.env.DB_USERNAME ??
+  '';
+const derivedProjectRef = dbUsername.startsWith('postgres.')
+  ? dbUsername.slice('postgres.'.length).trim()
+  : '';
+const defaultSupabaseUrl = derivedProjectRef ? `https://${derivedProjectRef}.supabase.co` : '';
+
+const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const defaultBackendUrl = isVercel ? '' : 'http://localhost:8080';
+const resolvedBackendUrl =
+  isVercel && process.env.MYT_USE_DIRECT_BACKEND !== 'true'
+    ? ''
+    : (process.env.MYT_BACKEND_URL ?? defaultBackendUrl);
+
 const config = {
-  backendUrl: process.env.MYT_BACKEND_URL ?? 'http://localhost:8080',
+  backendUrl: resolvedBackendUrl.replace(/\/+$/, ''),
+  supabaseUrl: (process.env.SUPABASE_URL || defaultSupabaseUrl).replace(/\/+$/, ''),
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? '',
   sentryDsn: process.env.SENTRY_FRONTEND_DSN ?? process.env.SENTRY_DSN ?? '',
-  environment: process.env.SENTRY_FRONTEND_ENVIRONMENT ?? process.env.SENTRY_ENVIRONMENT ?? 'local',
+  environment:
+    process.env.SENTRY_FRONTEND_ENVIRONMENT ??
+    process.env.SENTRY_ENVIRONMENT ??
+    process.env.VERCEL_ENV ??
+    'local',
   release: process.env.SENTRY_FRONTEND_RELEASE ?? process.env.SENTRY_RELEASE ?? 'myt-frontend@dev',
   tracesSampleRate: Number.isFinite(tracesSampleRate) ? tracesSampleRate : 0,
 };

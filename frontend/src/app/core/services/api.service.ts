@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { Subject, tap } from 'rxjs';
 export interface Materia {
   id: number;
   nombre: string;
@@ -18,6 +19,8 @@ export interface TutorEdicion {
   biografia: string;
   tarifaPorHora: number;
   disponible: boolean;
+  materiaIds?: number[];
+  nuevasMaterias?: string[];
 }
 export interface TutorAlta {
   usuarioId: number;
@@ -33,6 +36,13 @@ export interface Pagina<T> {
 }
 export type EstadoReserva =
   'PENDIENTE' | 'CONFIRMADA' | 'EN_CURSO' | 'COMPLETADA' | 'RECHAZADA' | 'CANCELADA';
+export type EstadoPagoWompi =
+  | 'SIN_PAGO'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'DECLINED'
+  | 'VOIDED'
+  | 'ERROR';
 export interface ReservaApi {
   id: number;
   tutorId: number;
@@ -46,6 +56,38 @@ export interface ReservaApi {
   tema: string;
   estado: EstadoReserva;
   costoTotal: number;
+  modalidad?: string;
+  objetivo?: string;
+  motivoCancelacion?: string;
+  estudianteCorreo?: string;
+  estudianteTelefono?: string;
+  estadoPago?: EstadoPagoWompi;
+  referenciaPago?: string | null;
+}
+export interface OrdenPagoApi {
+  referencia: string;
+  reservaId?: number | null;
+  concepto: string;
+  montoEnCentavos: number;
+  montoCop: number;
+  estado: EstadoPagoWompi;
+  wompiTransaccionId?: string | null;
+  fechaCreacion?: string | null;
+  materia?: string | null;
+  tutor?: string | null;
+  estudiante?: string | null;
+  estadoReserva?: EstadoReserva | null;
+}
+export interface EstudianteApi {
+  id: number;
+  usuarioId: number;
+  nombreCompleto: string;
+  correo: string;
+  codigoEstudiantil: string;
+  universidad: string;
+  programaAcademico: string;
+  semestre: number;
+  activo: boolean;
 }
 export interface ReservaAlta {
   tutorId: number;
@@ -54,6 +96,7 @@ export interface ReservaAlta {
   horaInicio: string;
   duracionMinutos: number;
   tema: string;
+  objetivo?: string;
   modalidad: 'VIRTUAL' | 'PRESENCIAL';
 }
 export function mensajeHttp(error: unknown): string {
@@ -61,7 +104,8 @@ export function mensajeHttp(error: unknown): string {
   if (error.status === 0 || error.status >= 500)
     return 'No hay conexión con el servidor. Conservamos tus datos; reintenta.';
   if (error.status === 401) return error.error?.mensaje || 'Tu sesión expiró. Vuelve a ingresar.';
-  if (error.status === 403) return 'Tu perfil no tiene permiso para esta acción.';
+  if (error.status === 403)
+    return error.error?.mensaje || 'Tu perfil no tiene permiso para esta acción.';
   if (error.status === 409)
     return error.error?.mensaje || 'Conflicto: el registro ya existe o cambió. Revisa y reintenta.';
   return error.error?.mensaje || 'Revisa los datos ingresados y el horario disponible.';
@@ -69,14 +113,57 @@ export function mensajeHttp(error: unknown): string {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  tutores(page = 0, materiaId = '', tarifaMax = '') {
-    let params = new HttpParams().set('page', page).set('size', 5);
+  readonly cambios = new Subject<void>();
+  agenda(id: number) {
+    return this.http.get<AgendaApi>(`/api/tutores/${id}/agenda`);
+  }
+  guardarAgenda(id: number, agenda: AgendaApi) {
+    return this.http
+      .put<AgendaApi>(`/api/tutores/${id}/agenda`, agenda)
+      .pipe(tap(() => this.cambios.next()));
+  }
+  horas(id: number, fecha: string, duracion: number) {
+    return this.http.get<string[]>(`/api/tutores/${id}/agenda/horas`, {
+      params: { fecha, duracion },
+    });
+  }
+  resenas(tutorId?: number) {
+    return this.http.get<ResenaApi[]>('/api/resenas', { params: tutorId ? { tutorId } : {} });
+  }
+  crearResena(datos: { reservaId: number; calificacion: number; comentario: string }) {
+    return this.http.post<ResenaApi>('/api/resenas', datos).pipe(tap(() => this.cambios.next()));
+  }
+  mensajes(reservaId: number) {
+    return this.http.get<MensajeApi[]>(`/api/chat/${reservaId}`);
+  }
+  enviarMensaje(reservaId: number, contenido: string) {
+    return this.http.post<MensajeApi>(`/api/chat/${reservaId}`, { contenido });
+  }
+
+  private readonly tutoresCache = new Map<number, TutorApi>();
+
+  tutorEnCache(id: number): TutorApi | undefined {
+    return this.tutoresCache.get(id);
+  }
+
+  tutores(page = 0, materiaId = '', tarifaMax = '', q = '', orden = 'calificacion') {
+    let params = new HttpParams().set('page', page).set('size', 6);
+    if (q) params = params.set('q', q);
+    if (orden === 'precio') params = params.set('orden', orden);
     if (materiaId) params = params.set('materiaId', materiaId);
     if (tarifaMax) params = params.set('tarifaMax', tarifaMax);
-    return this.http.get<Pagina<TutorApi>>('/api/tutores', { params });
+    return this.http.get<Pagina<TutorApi>>('/api/tutores', { params }).pipe(
+      tap((p) => {
+        for (const t of p.content ?? []) {
+          this.tutoresCache.set(t.id, t);
+        }
+      }),
+    );
   }
   tutor(id: number) {
-    return this.http.get<TutorApi>(`/api/tutores/${id}`);
+    return this.http
+      .get<TutorApi>(`/api/tutores/${id}`)
+      .pipe(tap((t) => this.tutoresCache.set(t.id, t)));
   }
   materias() {
     return this.http.get<Materia[]>('/api/tutores/materias');
@@ -85,21 +172,100 @@ export class ApiService {
     return this.http.post<TutorApi>('/api/tutores', datos);
   }
   editarTutor(id: number, datos: TutorEdicion) {
-    return this.http.put<TutorApi>(`/api/tutores/${id}`, datos);
+    return this.http.put<TutorApi>(`/api/tutores/${id}`, datos).pipe(
+      tap((t) => {
+        if (t?.id) {
+          this.tutoresCache.set(t.id, t);
+        }
+        this.cambios.next();
+      }),
+    );
   }
   desactivarTutor(id: number) {
     return this.http.delete<void>(`/api/tutores/${id}`);
+  }
+  reserva(id: number) {
+    return this.http.get<ReservaApi>(`/api/reservas/${id}`);
   }
   reservas(estado = '') {
     return this.http.get<ReservaApi[]>('/api/reservas', { params: estado ? { estado } : {} });
   }
   crearReserva(datos: ReservaAlta) {
-    return this.http.post<ReservaApi>('/api/reservas', datos);
+    return this.http.post<ReservaApi>('/api/reservas', datos).pipe(tap(() => this.cambios.next()));
   }
   estadoReserva(id: number, estado: EstadoReserva, motivo: string) {
-    return this.http.put<ReservaApi>(`/api/reservas/${id}/estado`, { estado, motivo });
+    return this.http
+      .put<ReservaApi>(`/api/reservas/${id}/estado`, { estado, motivo })
+      .pipe(tap(() => this.cambios.next()));
   }
-  cancelarReserva(id: number) {
-    return this.http.delete<void>(`/api/reservas/${id}`);
+  cancelarReserva(id: number, motivo: string) {
+    return this.http
+      .delete<void>(`/api/reservas/${id}`, { params: { motivo } })
+      .pipe(tap(() => this.cambios.next()));
   }
+  estudiantes() {
+    return this.http.get<EstudianteApi[]>('/api/estudiantes');
+  }
+  estudiante(id: number) {
+    return this.http.get<EstudianteApi>(`/api/estudiantes/${id}`);
+  }
+  estadisticasPublicas() {
+    return this.http.get<{
+      plataforma: string;
+      estado: string;
+      tutoresDisponibles: number;
+      materiasActivas: number;
+      materias: Materia[];
+    }>('/api/public/estadisticas');
+  }
+  configuracionPagos() {
+    return this.http.get<{ habilitado: boolean; moneda?: string }>('/api/pagos/configuracion');
+  }
+  ordenesPago() {
+    return this.http.get<OrdenPagoApi[]>('/api/pagos/ordenes');
+  }
+  checkoutPago(reservaId?: number) {
+    return this.http
+      .post<{
+        url: string;
+        referencia: string;
+        montoEnCentavos?: number;
+        concepto?: string;
+        reservaId?: number;
+      }>('/api/pagos/checkout', reservaId ? { reservaId } : {})
+      .pipe(tap(() => this.cambios.next()));
+  }
+  estadoOrdenPago(referencia: string, transaccionId?: string | null) {
+    const params: Record<string, string> = {};
+    if (transaccionId) params['transaccionId'] = transaccionId;
+    return this.http.get<{
+      referencia?: string;
+      estado: string;
+      montoEnCentavos?: number;
+      concepto?: string;
+      reservaId?: number;
+      wompiTransaccionId?: string;
+    }>(`/api/pagos/orden/${encodeURIComponent(referencia)}`, { params });
+  }
+}
+
+export interface AgendaApi {
+  horarios: { diaSemana: string; horaInicio: string; horaFin: string }[];
+  bloqueos: { fecha: string; horaInicio: string; horaFin: string; motivo: string }[];
+}
+export interface ResenaApi {
+  id: number;
+  reservaId: number;
+  tutorId: number;
+  tutor: string;
+  estudiante: string;
+  calificacion: number;
+  comentario: string;
+  fecha: string;
+}
+export interface MensajeApi {
+  id: number;
+  autor: string;
+  contenido: string;
+  fecha: string;
 }

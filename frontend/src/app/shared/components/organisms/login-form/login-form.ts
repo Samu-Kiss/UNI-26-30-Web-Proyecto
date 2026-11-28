@@ -35,7 +35,7 @@ import { Credenciales } from '../../../../core/models/usuario.model';
         @if (form.submitted && form.invalid) {
           <p class="form-error" role="alert">Ingresa un correo válido y tu contraseña.</p>
         }
-        <button class="btn btn--primary btn--lg" type="submit">Ingresar</button>
+        <button class="btn btn--primary btn--lg btn--full" type="submit">Ingresar</button>
       </fieldset>
     </form>
   `,
@@ -50,6 +50,5 @@ export class LoginFormComponent {
   enviarLogin(form: NgForm): void {
     if (!this.habilitado() || form.invalid || !this.correo.trim()) return;
     this.loginEnviado.emit({ correo: this.correo.trim(), contrasena: this.contrasena });
-    this.contrasena = '';
   }
 }
